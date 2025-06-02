@@ -1,0 +1,18 @@
+{
+    "name": "MirraCloudSDKEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:c0770843d576328409bf9d9c0d2c39be"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
