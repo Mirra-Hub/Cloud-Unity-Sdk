@@ -1,0 +1,70 @@
+using System;
+using System.Collections.Generic;
+using MirraCloud.Example;
+using UnityEngine;
+
+namespace Plugins.MirraCloud.Example.Scripts
+{
+    public class UIController : MonoBehaviour
+    {
+        [SerializeField] private GameObject _screensRoot;
+        [SerializeField] private GameObject _popupsRoot;
+        
+        private readonly Dictionary<Type, BaseScreenUI> _screensMap = new Dictionary<Type, BaseScreenUI>();
+        private readonly Dictionary<Type, BasePopupUI> _popupsMap = new Dictionary<Type, BasePopupUI>();
+
+        private BaseScreenUI _currentScreen;
+
+        private readonly Stack<BasePopupUI> _currentPopups = new Stack<BasePopupUI>();
+        
+        public void Initialize()
+        {
+            var screens = _screensRoot.GetComponentsInChildren<BaseScreenUI>(true);
+
+            foreach (var screen in screens)
+            {
+                screen.Initialize(this);
+                _screensMap[screen.GetType()] = screen;
+            }
+            
+            var popups = _popupsRoot.GetComponentsInChildren<BasePopupUI>(true);
+
+            foreach (var popup in popups)
+            {
+                popup.Initialize(this);
+                _popupsMap[popup.GetType()] = popup;
+            }
+        }
+
+        public void ShowScreen<T>() where T : BaseScreenUI
+        {
+            if (_screensMap.TryGetValue(typeof(T), out var screen))
+            {
+                if (_currentScreen != null)
+                {
+                    _currentScreen.Hide();
+                }
+                
+                _currentScreen = screen;
+                _currentScreen.Show();
+            }
+        }
+
+        public void ShowPopup<T>() where T : BasePopupUI
+        {
+            if (_popupsMap.TryGetValue(typeof(T), out var popup))
+            {
+                popup.Show();
+                _currentPopups.Push(popup);
+            }
+        }
+
+        public void HideLastPopup()
+        {
+            if (_currentPopups.TryPeek(out var popup))
+            {
+                popup.Hide();
+            }
+        }
+    }
+}
