@@ -15,6 +15,24 @@ namespace MirraCloud.Json.Internal {
             T Parse(string str);
         }
 
+        internal static bool TryParse(Type destinationType, string value, out object result) {
+            if (destinationType == typeof(char)) {
+                result = CharValueParser.Instance.Parse(value);
+                return true;
+            }
+            if (destinationType == typeof(DateTime)) {
+                result = DateTimeValueParser.Instance.Parse(value);
+                return true;
+            }
+            if (destinationType == typeof(DateTimeOffset)) {
+                result = DateTimeOffsetValueParser.Instance.Parse(value);
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
+
         internal class CharValueParser : IStringValueParser<char> {
             public static readonly CharValueParser Instance = new();
 

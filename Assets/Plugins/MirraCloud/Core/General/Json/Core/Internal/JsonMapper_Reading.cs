@@ -61,8 +61,12 @@ namespace MirraCloud.Json {
                 case JsonToken.ObjectStart: return ReadObject(tokenReader, destinationType);
                 case JsonToken.ArrayStart: return ReadArray(tokenReader, destinationType);
                 case JsonToken.String: {
+                    string stringValue = tokenReader.ConsumeString();
+                    if (Internal.StringValueParsers.TryParse(valueType, stringValue, out var parsedValue)) {
+                        return underlyingType != null ? parsedValue : Convert.ChangeType(parsedValue, destinationType);
+                    }
                     jsonType = typeof(string);
-                    jsonValue = tokenReader.ConsumeString();
+                    jsonValue = stringValue;
                 } break;
                 case JsonToken.Number: {
                     // All numbers in json are represented as doubles.
