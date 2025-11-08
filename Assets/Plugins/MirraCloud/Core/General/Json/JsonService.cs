@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using Plugins.MirraCloud.Core.Services.RulesConstructor.Dto;
@@ -40,11 +39,11 @@ namespace MirraCloud
 
         private BaseNodeDto ParseBaseNode(JsonTokenReader reader)
         {
-            var capturedJson = CaptureCurrentJson(reader);
-            var jsonValue = JsonMapper.FromJson<JsonValue>(capturedJson);
-            var sourceType = ParseSourceType(jsonValue);
+            var node = _mapper.ReadJsonNode(reader);
+            var sourceType = ParseSourceType(node);
             var targetType = ResolveNodeType(sourceType);
-            return (BaseNodeDto)_mapper.Read(targetType, new JsonTokenReader(new StringReader(capturedJson)));
+            var json = JsonMapper.ToJson(node);
+            return (BaseNodeDto)_mapper.Read(targetType, new JsonTokenReader(new StringReader(json)));
         }
 
         private SourceType ParseSourceType(JsonValue value)
@@ -77,102 +76,5 @@ namespace MirraCloud
             };
         }
 
-        private string CaptureCurrentJson(JsonTokenReader reader)
-        {
-            var stringBuilder = new StringBuilder();
-            WriteValue(stringBuilder, reader);
-            return stringBuilder.ToString();
-        }
-
-        private void WriteValue(StringBuilder builder, JsonTokenReader reader)
-        {
-            switch (reader.NextToken)
-            {
-                case JsonToken.Null:
-                    builder.Append("null");
-                    reader.SkipToken(JsonToken.Null);
-                    return;
-                case JsonToken.True:
-                    builder.Append("true");
-                    reader.SkipToken(JsonToken.True);
-                    return;
-                case JsonToken.False:
-                    builder.Append("false");
-                    reader.SkipToken(JsonToken.False);
-                    return;
-                case JsonToken.Number:
-                    builder.Append(reader.ConsumeNumber().ToString(CultureInfo.InvariantCulture));
-                    return;
-                case JsonToken.String:
-                    builder.Append('"');
-                    builder.Append(reader.ConsumeString());
-                    builder.Append('"');
-                    return;
-                case JsonToken.ObjectStart:
-                    WriteObject(builder, reader);
-                    return;
-                case JsonToken.ArrayStart:
-                    WriteArray(builder, reader);
-                    return;
-                default:
-                    throw new InvalidJsonException($"{reader.LineColString} Unexpected token {reader.NextToken}");
-            }
-        }
-
-        private void WriteObject(StringBuilder builder, JsonTokenReader reader)
-        {
-            builder.Append('{');
-            reader.SkipToken(JsonToken.ObjectStart);
-
-            bool first = true;
-            while (reader.NextToken != JsonToken.ObjectEnd)
-            {
-                if (!first)
-                {
-                    builder.Append(',');
-                }
-                first = false;
-
-                var propertyName = reader.ConsumeString();
-                builder.Append('"').Append(propertyName).Append('"').Append(':');
-                reader.SkipToken(JsonToken.KeyValueSeparator);
-
-                WriteValue(builder, reader);
-
-                if (reader.NextToken == JsonToken.Separator)
-                {
-                    reader.SkipToken(JsonToken.Separator);
-                }
-            }
-
-            reader.SkipToken(JsonToken.ObjectEnd);
-            builder.Append('}');
-        }
-
-        private void WriteArray(StringBuilder builder, JsonTokenReader reader)
-        {
-            builder.Append('[');
-            reader.SkipToken(JsonToken.ArrayStart);
-
-            bool first = true;
-            while (reader.NextToken != JsonToken.ArrayEnd)
-            {
-                if (!first)
-                {
-                    builder.Append(',');
-                }
-                first = false;
-
-                WriteValue(builder, reader);
-
-                if (reader.NextToken == JsonToken.Separator)
-                {
-                    reader.SkipToken(JsonToken.Separator);
-                }
-            }
-
-            reader.SkipToken(JsonToken.ArrayEnd);
-            builder.Append(']');
-        }
     }
 }

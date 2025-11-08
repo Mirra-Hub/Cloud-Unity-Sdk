@@ -311,7 +311,7 @@ namespace Voorhees {
             return instance;
         }
 
-        static JsonValue ReadJsonValue(JsonTokenReader tokenReader) {
+        internal static JsonValue ReadJsonValue(JsonTokenReader tokenReader) {
             switch (tokenReader.NextToken) {
                 case JsonToken.Null: tokenReader.SkipToken(JsonToken.Null); return new JsonValue(null);
                 case JsonToken.True: tokenReader.SkipToken(JsonToken.True); return new JsonValue(true);
@@ -403,6 +403,10 @@ namespace Voorhees {
                 case JsonToken.None:
                 default: throw new InvalidJsonException($"{tokenReader.LineColString} Unexpected token {tokenReader.NextToken}");
             }
+        }
+
+        public JsonValue ReadJsonNode(JsonTokenReader tokenReader) {
+            return ReadJsonValue(tokenReader);
         }
     }
 }
