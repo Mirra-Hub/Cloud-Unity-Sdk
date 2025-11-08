@@ -1,4 +1,4 @@
-﻿namespace Voorhees {
+﻿namespace MirraCloud.Json {
     /// The type of a token in a json document
     public enum JsonToken {
         None,

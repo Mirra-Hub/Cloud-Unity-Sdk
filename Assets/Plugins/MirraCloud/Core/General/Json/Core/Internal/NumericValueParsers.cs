@@ -1,4 +1,4 @@
-﻿namespace Voorhees.Internal {
+﻿namespace MirraCloud.Json.Internal {
     // Value type parser instances.  This is necessary to trick the type system into not boxing the value type results.
     public static class NumericValueParsers
     {

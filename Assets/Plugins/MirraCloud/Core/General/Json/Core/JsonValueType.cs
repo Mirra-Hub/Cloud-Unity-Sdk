@@ -1,4 +1,4 @@
-﻿namespace Voorhees {
+﻿namespace MirraCloud.Json {
     /// The type of a json value
     public enum JsonValueType : byte {
         Unspecified,

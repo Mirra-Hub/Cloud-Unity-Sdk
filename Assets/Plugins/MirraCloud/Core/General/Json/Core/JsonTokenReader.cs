@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
-namespace Voorhees {
+namespace MirraCloud.Json {
     /// Reads json tokens from a json document stream.
     public class JsonTokenReader {
         /// The next Json token in the document.

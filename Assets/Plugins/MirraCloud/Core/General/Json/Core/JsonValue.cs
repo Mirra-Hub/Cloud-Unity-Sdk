@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Voorhees {
+namespace MirraCloud.Json {
    /// A union-type representing a value in a JSON document.
    /// Provides IList and IDictionary interfaces for easy enumeration of JSON arrays and objects.
    /// Distinguishes between floating point and integral values even though JSON treats them both as doubles.

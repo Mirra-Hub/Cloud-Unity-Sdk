@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text;
 
-namespace Voorhees {
+namespace MirraCloud.Json {
     /// Maps json data to values of specific types, and vice-versa.
     /// Uses any (optional) json importer and/or exporter functions
     /// registered for specific types.
@@ -88,6 +88,16 @@ namespace Voorhees {
             }
             return result;
         }
+
+        public object Read(Type valueType, JsonTokenReader tokenReader) {
+            var result = ReadValueOfType(tokenReader, valueType);
+            
+            if (tokenReader.NextToken != JsonToken.EOF) {
+                throw new InvalidJsonException($"{tokenReader.LineColString} Expected end of file");
+            }
+
+            return result;
+        }
         
         public object Read(System.Type type, JsonTokenReader tokenReader) {
             var result = ReadValueOfType(tokenReader, type);
@@ -104,14 +114,14 @@ namespace Voorhees {
         /// A custom method for reading a value of type <typeparamref name="T"/> from a <c>JsonTokenReader</c>
         /// </summary>
         /// <typeparam name="T">The type of object to read</typeparam>
-        public delegate T ImporterFunc<out T>(JsonTokenReader tokenReader);
+        public delegate T ImporterFunc<out T>(JsonMapper mapper, JsonTokenReader tokenReader);
 
         /// <summary>
         /// Register a function that produces values of type <typeparamref name="T"/> from JSON data.
         /// </summary>
         /// <param name="importer">A custom importer function for values of type <typeparamref name="T"/></param>
         /// <typeparam name="T">The type of value produced</typeparam>
-        public void RegisterImporter<T>(ImporterFunc<T> importer) => importers[typeof(T)] = json => importer(json);
+        public void RegisterImporter<T>(ImporterFunc<T> importer) => importers[typeof(T)] = (mapper, reader) => importer(mapper, reader);
         
         /// <summary>
         /// Unregisters any currently registered custom importer for values of type <typeparamref name="T"/> 
@@ -130,14 +140,14 @@ namespace Voorhees {
         /// A custom method for writing a value of type <typeparamref name="T"/> to a <c>JsonTokenWriter</c>
         /// </summary>
         /// <typeparam name="T">The type of object to write</typeparam>
-        public delegate void ExporterFunc<in T>(T objectToSerialize, JsonTokenWriter tokenWriter);
+        public delegate void ExporterFunc<in T>(T objectToSerialize, JsonMapper mapper, JsonTokenWriter tokenWriter);
         
         /// <summary>
         /// Registers a function that produces JSON given a value of type <typeparamref name="T"/>
         /// </summary>
         /// <param name="exporter">A custom exporter function for values of type <typeparamref name="T"/></param>
         /// <typeparam name="T">The type of values this function converts to JSON</typeparam>
-        public void RegisterExporter<T>(ExporterFunc<T> exporter) => exporters[typeof(T)] = (obj, os) => exporter((T)obj, os);
+        public void RegisterExporter<T>(ExporterFunc<T> exporter) => exporters[typeof(T)] = (obj, mapper, os) => exporter((T)obj, mapper, os);
         
         /// <summary>
         /// Unregisters any currently registered custom exporter for values of the type <typeparamref name="T"/>

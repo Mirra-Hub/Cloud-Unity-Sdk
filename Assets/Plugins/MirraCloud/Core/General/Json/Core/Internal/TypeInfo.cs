@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Voorhees.Internal {
+namespace MirraCloud.Json.Internal {
     /// Reflection cache for serialized and de-serialized types.
     /// Used by JsonMapper to serialize and de-serialize fields on values.
     public static class TypeInfo {

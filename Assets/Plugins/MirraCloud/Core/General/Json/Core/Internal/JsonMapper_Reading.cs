@@ -3,9 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
-using TypeInfo = Voorhees.Internal.TypeInfo;
+using TypeInfo = MirraCloud.Json.Internal.TypeInfo;
 
-namespace Voorhees {
+namespace MirraCloud.Json {
     public partial class JsonMapper {
         T ReadValueOfType<T>(JsonTokenReader tokenReader) {
             var destinationType = typeof(T);
@@ -17,7 +17,7 @@ namespace Voorhees {
             
             // If there's a custom importer that fits, use it
             if (importers.TryGetValue(destinationType, out var customImporter)) {
-                return (T)customImporter(tokenReader);
+                return (T)customImporter(this, tokenReader);
             }
 
             try {
@@ -41,10 +41,10 @@ namespace Voorhees {
         object ReadValueOfType(JsonTokenReader tokenReader, Type destinationType) {
             var underlyingType = Nullable.GetUnderlyingType(destinationType);
             if (importers.TryGetValue(destinationType, out var directImporter)) {
-                return directImporter(tokenReader);
+                return directImporter(this, tokenReader);
             }
             if (underlyingType != null && importers.TryGetValue(underlyingType, out var nullableImporter)) {
-                return nullableImporter(tokenReader);
+                return nullableImporter(this, tokenReader);
             }
             var valueType = underlyingType ?? destinationType;
             Type jsonType;
@@ -109,7 +109,7 @@ namespace Voorhees {
             }
 
             // Try using an implicit conversion operator
-            var implicitConversionOperator = TypeInfo.GetImplicitConversionOperator(valueType, jsonType);
+            var implicitConversionOperator = Internal.TypeInfo.GetImplicitConversionOperator(valueType, jsonType);
             if (implicitConversionOperator != null) {
                 return implicitConversionOperator.Invoke(null, new[] { jsonValue });
             }
@@ -180,7 +180,7 @@ namespace Voorhees {
         }
 
         object ReadArray(JsonTokenReader tokenReader, Type destinationType) {
-            var arrayMetadata = TypeInfo.GetCachedArrayMetadata(destinationType);
+            var arrayMetadata = Internal.TypeInfo.GetCachedArrayMetadata(destinationType);
 
             if (arrayMetadata.IsArray) {
                 int rank = arrayMetadata.ArrayRank;
@@ -254,7 +254,7 @@ namespace Voorhees {
                 }
             }
 
-            var objectMetadata = TypeInfo.GetObjectMetadata(valueType);
+            var objectMetadata = Internal.TypeInfo.GetObjectMetadata(valueType);
             object instance = Activator.CreateInstance(valueType);
 
             bool expectingValue = false;

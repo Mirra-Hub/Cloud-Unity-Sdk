@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace MirraCloud
+﻿namespace MirraCloud.Json
 {
     public interface IJsonService
     {

@@ -2,9 +2,9 @@ using System;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
-using TypeInfo = Voorhees.Internal.TypeInfo;
+using TypeInfo = MirraCloud.Json.Internal.TypeInfo;
 
-namespace Voorhees {
+namespace MirraCloud.Json {
     public partial class JsonMapper {
         void WriteValue(object obj, Type referenceType, Type valueType, JsonTokenWriter tokenWriter) {
             if (obj == null) {
@@ -14,7 +14,7 @@ namespace Voorhees {
 
             // See if there's a custom exporter for the object
             if (exporters.TryGetValue(referenceType, out var customExporter)) {
-                customExporter(obj, tokenWriter);
+                customExporter(obj, this, tokenWriter);
                 return;
             }
 
@@ -146,7 +146,7 @@ namespace Voorhees {
                 tokenWriter.WriteArrayOrObjectSeparator();
             }
 
-            var fieldsAndProperties = TypeInfo.GetTypePropertyMetadata(valueType);
+            var fieldsAndProperties = Internal.TypeInfo.GetTypePropertyMetadata(valueType);
 
             // Write the object's field and property values
             for (int fieldIndex = 0; fieldIndex < fieldsAndProperties.Count; fieldIndex++) {

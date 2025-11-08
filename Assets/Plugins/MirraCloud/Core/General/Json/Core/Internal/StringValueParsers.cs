@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Voorhees.Internal {
+namespace MirraCloud.Json.Internal {
     public static class StringValueParsers {
         internal static IStringValueParser<T> Get<T>() {
             var destinationType = typeof(T);

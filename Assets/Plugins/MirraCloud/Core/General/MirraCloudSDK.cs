@@ -6,6 +6,7 @@ using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.RemoteConfig;
 using MirraCloud.Core.Storage;
+using MirraCloud.Json;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.RulesConstructor;
 
@@ -35,7 +36,8 @@ namespace MirraCloud.Core
             
             Configuration configuration = Configuration.Load();
             ILogger logger = new Core.Logger.Logger();
-            IJsonService jsonService = new JsonService();
+            IJsonService jsonService = new JsonService()
+                .RegisterImporter(new RuleConstructorJsonMapper());
 
             RestApiClientOptions restApiClientOptions = new RestApiClientOptions()
             {

@@ -1,11 +1,7 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Text;
-using Plugins.MirraCloud.Core.Services.RulesConstructor.Dto;
-using Plugins.MirraCloud.Core.Services.RulesConstructor.Enums;
-using Voorhees;
 
-namespace MirraCloud
+namespace MirraCloud.Json
 {
     public class JsonService : IJsonService
     {
@@ -14,8 +10,6 @@ namespace MirraCloud
         public JsonService()
         {
             _mapper = new JsonMapper();
-
-            CreateMapper();
         }
         
         public string ToJson(object val, bool prettyPrint = false)
@@ -31,50 +25,12 @@ namespace MirraCloud
         {
             return _mapper.Read<T>(new JsonTokenReader(new StringReader(json)));
         }
-        
-        private void CreateMapper()
+
+        public JsonService RegisterImporter<T>(IJsonImporter<T> importer)
         {
-            _mapper.RegisterImporter<BaseNodeDto>(ParseBaseNode);
+            _mapper.RegisterImporter(importer.ImportJson);
+
+            return this;
         }
-
-        private BaseNodeDto ParseBaseNode(JsonTokenReader reader)
-        {
-            var node = _mapper.ReadJsonNode(reader);
-            var sourceType = ParseSourceType(node);
-            var targetType = ResolveNodeType(sourceType);
-            var json = JsonMapper.ToJson(node);
-            return (BaseNodeDto)_mapper.Read(targetType, new JsonTokenReader(new StringReader(json)));
-        }
-
-        private SourceType ParseSourceType(JsonValue value)
-        {
-            if (!value.ContainsKey("sourceType"))
-            {
-                throw new InvalidJsonException("sourceType field is missing");
-            }
-
-            var rawSourceType = value["sourceType"];
-
-            return rawSourceType.Type switch
-            {
-                JsonValueType.Int => (SourceType)(int)rawSourceType,
-                JsonValueType.Double => (SourceType)(int)(double)rawSourceType,
-                JsonValueType.String => Enum.Parse<SourceType>((string)rawSourceType, true),
-                _ => throw new InvalidJsonException("sourceType field has unsupported type")
-            };
-        }
-
-        private Type ResolveNodeType(SourceType sourceType)
-        {
-            return sourceType switch
-            {
-                SourceType.And => typeof(AndNodeDto),
-                SourceType.Or => typeof(OrNodeDto),
-                SourceType.ActiveDays => typeof(DayActiveNodeDto),
-                SourceType.InventoryItem => typeof(InventoryItemNodeDto),
-                _ => throw new InvalidJsonException($"Unsupported sourceType value {sourceType}")
-            };
-        }
-
     }
 }

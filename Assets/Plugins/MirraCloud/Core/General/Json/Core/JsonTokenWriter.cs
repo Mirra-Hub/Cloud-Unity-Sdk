@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.IO;
 
-namespace Voorhees {
+namespace MirraCloud.Json {
     /// Writes JSON tokens to a TextWriter.
     /// Can optionally write tokens in pretty printing mode.
     public class JsonTokenWriter {
