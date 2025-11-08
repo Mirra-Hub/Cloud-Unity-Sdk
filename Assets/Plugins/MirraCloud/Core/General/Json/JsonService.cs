@@ -1,72 +1,178 @@
 ﻿using System;
-using System.Collections.Generic;
-using MirraCloud.Core.CloudSave;
-using UnityEngine;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using Plugins.MirraCloud.Core.Services.RulesConstructor.Dto;
+using Plugins.MirraCloud.Core.Services.RulesConstructor.Enums;
+using Voorhees;
 
 namespace MirraCloud
 {
     public class JsonService : IJsonService
     {
-        public string ToJson(object obj)
+        private readonly JsonMapper _mapper;
+
+        public JsonService()
         {
-            return JsonUtility.ToJson(obj);
+            _mapper = new JsonMapper();
+
+            CreateMapper();
         }
         
-        public string ListToJson<T>(List<T> list)
+        public string ToJson(object val, bool prettyPrint = false)
         {
-            ListJsonWrapper<T> wrapper = new ListJsonWrapper<T>(list);
-            
-            return JsonUtility.ToJson(wrapper);
+            var stringBuilder = new StringBuilder();
+            using (var stringWriter = new StringWriter(stringBuilder)) {
+                _mapper.Write(val, new JsonTokenWriter(stringWriter, prettyPrint));
+            }
+            return stringBuilder.ToString();
         }
-        
-        public string ArrayToJson<T>(T[] arr)
-        {
-            ArrayJsonWrapper<T> wrapper = new ArrayJsonWrapper<T>(arr);
-            
-            return JsonUtility.ToJson(wrapper);
-        }
-        
+
         public T FromJson<T>(string json)
         {
-            return JsonUtility.FromJson<T>(json);
+            return _mapper.Read<T>(new JsonTokenReader(new StringReader(json)));
         }
         
-        public bool TryFromJson<T>(string json, out T result, T defaultValue = default)
+        private void CreateMapper()
         {
-            try
-            {
-                result = JsonUtility.FromJson<T>(json);
-                return true;
-            }
-            catch (Exception e)
-            {
-                result = defaultValue;
-                return false;
-            }
+            _mapper.RegisterImporter<BaseNodeDto>(ParseBaseNode);
         }
-        
-        public List<T> ListFromJson<T>(string json)
-        {
-            if (string.IsNullOrEmpty(json))
-            {
-                return new List<T>();
-            }
-            
-            ListJsonWrapper<T> wrapper = JsonUtility.FromJson<ListJsonWrapper<T>>(json);
 
-            return wrapper.Values;
-        }
-        
-        public T[] ArrayFromJson<T>(string json)
+        private BaseNodeDto ParseBaseNode(JsonTokenReader reader)
         {
-            if (string.IsNullOrEmpty(json))
-            {
-                return new T[0];
-            }
-            
-            ArrayJsonWrapper<T> wrapper = JsonUtility.FromJson<ArrayJsonWrapper<T>>(json);
+            var capturedJson = CaptureCurrentJson(reader);
+            var jsonValue = JsonMapper.FromJson<JsonValue>(capturedJson);
+            var sourceType = ParseSourceType(jsonValue);
+            var targetType = ResolveNodeType(sourceType);
+            return (BaseNodeDto)_mapper.Read(targetType, new JsonTokenReader(new StringReader(capturedJson)));
+        }
 
-            return wrapper.Values;
+        private SourceType ParseSourceType(JsonValue value)
+        {
+            if (!value.ContainsKey("sourceType"))
+            {
+                throw new InvalidJsonException("sourceType field is missing");
+            }
+
+            var rawSourceType = value["sourceType"];
+
+            return rawSourceType.Type switch
+            {
+                JsonValueType.Int => (SourceType)(int)rawSourceType,
+                JsonValueType.Double => (SourceType)(int)(double)rawSourceType,
+                JsonValueType.String => Enum.Parse<SourceType>((string)rawSourceType, true),
+                _ => throw new InvalidJsonException("sourceType field has unsupported type")
+            };
+        }
+
+        private Type ResolveNodeType(SourceType sourceType)
+        {
+            return sourceType switch
+            {
+                SourceType.And => typeof(AndNodeDto),
+                SourceType.Or => typeof(OrNodeDto),
+                SourceType.ActiveDays => typeof(DayActiveNodeDto),
+                SourceType.InventoryItem => typeof(InventoryItemNodeDto),
+                _ => throw new InvalidJsonException($"Unsupported sourceType value {sourceType}")
+            };
+        }
+
+        private string CaptureCurrentJson(JsonTokenReader reader)
+        {
+            var stringBuilder = new StringBuilder();
+            WriteValue(stringBuilder, reader);
+            return stringBuilder.ToString();
+        }
+
+        private void WriteValue(StringBuilder builder, JsonTokenReader reader)
+        {
+            switch (reader.NextToken)
+            {
+                case JsonToken.Null:
+                    builder.Append("null");
+                    reader.SkipToken(JsonToken.Null);
+                    return;
+                case JsonToken.True:
+                    builder.Append("true");
+                    reader.SkipToken(JsonToken.True);
+                    return;
+                case JsonToken.False:
+                    builder.Append("false");
+                    reader.SkipToken(JsonToken.False);
+                    return;
+                case JsonToken.Number:
+                    builder.Append(reader.ConsumeNumber().ToString(CultureInfo.InvariantCulture));
+                    return;
+                case JsonToken.String:
+                    builder.Append('"');
+                    builder.Append(reader.ConsumeString());
+                    builder.Append('"');
+                    return;
+                case JsonToken.ObjectStart:
+                    WriteObject(builder, reader);
+                    return;
+                case JsonToken.ArrayStart:
+                    WriteArray(builder, reader);
+                    return;
+                default:
+                    throw new InvalidJsonException($"{reader.LineColString} Unexpected token {reader.NextToken}");
+            }
+        }
+
+        private void WriteObject(StringBuilder builder, JsonTokenReader reader)
+        {
+            builder.Append('{');
+            reader.SkipToken(JsonToken.ObjectStart);
+
+            bool first = true;
+            while (reader.NextToken != JsonToken.ObjectEnd)
+            {
+                if (!first)
+                {
+                    builder.Append(',');
+                }
+                first = false;
+
+                var propertyName = reader.ConsumeString();
+                builder.Append('"').Append(propertyName).Append('"').Append(':');
+                reader.SkipToken(JsonToken.KeyValueSeparator);
+
+                WriteValue(builder, reader);
+
+                if (reader.NextToken == JsonToken.Separator)
+                {
+                    reader.SkipToken(JsonToken.Separator);
+                }
+            }
+
+            reader.SkipToken(JsonToken.ObjectEnd);
+            builder.Append('}');
+        }
+
+        private void WriteArray(StringBuilder builder, JsonTokenReader reader)
+        {
+            builder.Append('[');
+            reader.SkipToken(JsonToken.ArrayStart);
+
+            bool first = true;
+            while (reader.NextToken != JsonToken.ArrayEnd)
+            {
+                if (!first)
+                {
+                    builder.Append(',');
+                }
+                first = false;
+
+                WriteValue(builder, reader);
+
+                if (reader.NextToken == JsonToken.Separator)
+                {
+                    reader.SkipToken(JsonToken.Separator);
+                }
+            }
+
+            reader.SkipToken(JsonToken.ArrayEnd);
+            builder.Append(']');
         }
     }
 }
