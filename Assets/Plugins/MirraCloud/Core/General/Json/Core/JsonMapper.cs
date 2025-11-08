@@ -89,15 +89,7 @@ namespace MirraCloud.Json {
             return result;
         }
 
-        public object Read(Type valueType, JsonTokenReader tokenReader) {
-            var result = ReadValueOfType(tokenReader, valueType);
-            
-            if (tokenReader.NextToken != JsonToken.EOF) {
-                throw new InvalidJsonException($"{tokenReader.LineColString} Expected end of file");
-            }
-
-            return result;
-        }
+   
         
         public object Read(System.Type type, JsonTokenReader tokenReader) {
             var result = ReadValueOfType(tokenReader, type);
