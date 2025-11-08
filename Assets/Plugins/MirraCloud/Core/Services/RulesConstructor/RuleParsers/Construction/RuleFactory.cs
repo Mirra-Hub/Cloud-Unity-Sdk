@@ -16,10 +16,11 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor.RuleParsers.Construc
             Parsers.Add(SourceType.ActiveDays, new ActiveDaysRuleParser());
         }
         
-        public static BaseRule CreateRule(RuleNodeDto ruleDto)
+        /*
+        public static BaseRule CreateRule(BaseConditionNodeDto ruleDto)
         {
             var parser = Parsers[ruleDto.Type];
             return parser.Parse(ruleDto.Data);
-        }
+        }*/
     }
 }

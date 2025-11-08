@@ -61,6 +61,11 @@ namespace MirraCloud.Editor
             
             GUILayout.Space(4);
             
+            EditorGUILayout.LabelField("Branch ID", EditorStyles.label);
+            _configuration.BranchId = EditorGUILayout.TextField(_configuration.BranchId);
+            
+            GUILayout.Space(4);
+            
             EditorGUILayout.LabelField("Token", EditorStyles.label);
             _configuration.Token = EditorGUILayout.TextField(_configuration.Token);
 

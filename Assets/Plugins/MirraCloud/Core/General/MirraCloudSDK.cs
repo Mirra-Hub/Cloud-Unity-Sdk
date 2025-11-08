@@ -7,6 +7,7 @@ using MirraCloud.Core.Logger;
 using MirraCloud.Core.RemoteConfig;
 using MirraCloud.Core.Storage;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
+using Plugins.MirraCloud.Core.Services.RulesConstructor;
 
 namespace MirraCloud.Core
 {
@@ -19,6 +20,7 @@ namespace MirraCloud.Core
         public static LeaderboardService Leaderboard { get; private set; }
         public static RemoteConfigService RemoteConfig { get; private set; }
         public static AssetsStorageService AssetsStorage { get; private set; }
+        public static RuleConstructorService RuleConstructor { get; private set; }
         
         public static bool IsInitialized { get; private set; }
 
@@ -51,6 +53,8 @@ namespace MirraCloud.Core
             Leaderboard = new LeaderboardService(configuration, logger, jsonService, restApiClient);
             RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
+
+            RuleConstructor = new RuleConstructorService(configuration, logger, restApiClient, jsonService);
             
             IsInitialized = true;
         }

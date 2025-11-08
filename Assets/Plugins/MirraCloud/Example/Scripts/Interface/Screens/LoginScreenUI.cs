@@ -25,6 +25,8 @@ namespace MirraCloud.Example
             var authOperation = MirraCloudSDK.Authentication.LoginWithDeviceIDAsync(SystemInfo.deviceUniqueIdentifier);
 
             await authOperation.Task;
+
+            await MirraCloudSDK.RuleConstructor.LoadConfigAsync().Task;
             
             if (MirraCloudSDK.Authentication.IsAuth)
             {
@@ -34,6 +36,8 @@ namespace MirraCloud.Example
             {
                 UIController.ShowPopup<NetworkErrorPopupUI>();
             }
+            
+            
         }
     }
 }

@@ -17,7 +17,7 @@ namespace MirraCloud.Core.Auth
 
         private string _authToken;
 
-        private const string SERVICE_ROUTE = "/players/auth/v1";
+        private const string SERVICE_ROUTE = "/cloud/players/auth/v1";
 
         private string _guestId;
         private readonly Configuration _configuration;

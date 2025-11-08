@@ -9,7 +9,7 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor.RulesTree.Constructi
 {
     public static class RulesTreeFactory
     {
-        public static IRuleNode CreateFrom(RulesTreeDto dto)
+        /*public static IRuleNode CreateFrom(RulesTreeDto dto)
         {
             return dto is not null
                 ? GetRuleNode(dto.Root)
@@ -55,6 +55,6 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor.RulesTree.Constructi
             }
 
             return builder.Build();
-        }
+        }*/
     }
 }

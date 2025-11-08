@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Voorhees;
 
 namespace MirraCloud.Core.CloudSave
 {
@@ -16,10 +17,7 @@ namespace MirraCloud.Core.CloudSave
 
         public void AddList<T>(string key, List<T> value)
         {
-            ListJsonWrapper<T> wrapper = new ListJsonWrapper<T>(value);
-
-            string json = JsonUtility.ToJson(wrapper);
-            
+            var json = JsonMapper.ToJson(value);
             Fields.Add(new UpdateDataFieldValue(key, json));
         }
     }

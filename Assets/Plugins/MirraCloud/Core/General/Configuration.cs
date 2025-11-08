@@ -9,6 +9,7 @@ namespace MirraCloud
     {
         [Header("General")]
         public string ProjectId;
+        public string BranchId;
         public string Token;
         
         [Header("Debug")]
