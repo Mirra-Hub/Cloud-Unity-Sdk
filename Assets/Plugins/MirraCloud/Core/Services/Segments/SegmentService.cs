@@ -46,6 +46,8 @@ namespace Plugins.MirraCloud.Core.Services.Segments
                     _segments.Add(segment.id, segment);
                 }
                 
+                _logger.Log(_jsonService.ToJson(segments));
+                
                 CalculateSegments();
             });
             
