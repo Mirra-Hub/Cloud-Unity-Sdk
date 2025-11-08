@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 
 namespace MirraCloud.Json.Internal {
     public static class StringValueParsers {
@@ -30,7 +31,7 @@ namespace MirraCloud.Json.Internal {
             public static readonly DateTimeValueParser Instance = new();
 
             public DateTime Parse(string str) {
-                return DateTime.Parse(str);
+                return DateTime.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
             }
         }
 
@@ -38,7 +39,7 @@ namespace MirraCloud.Json.Internal {
             public static readonly DateTimeOffsetValueParser Instance = new();
 
             public DateTimeOffset Parse(string str) {
-                return DateTimeOffset.Parse(str);
+                return DateTimeOffset.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
             }
         }
     }
