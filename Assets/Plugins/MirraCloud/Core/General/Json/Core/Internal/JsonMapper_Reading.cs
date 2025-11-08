@@ -291,7 +291,7 @@ namespace MirraCloud.Json {
                 } else if (objectMetadata.IsDictionary) {
                     ((IDictionary)instance).Add(propertyName, ReadValueOfType(tokenReader, objectMetadata.ElementType));
                 } else {
-                    throw new InvalidJsonException($"The type {destinationType} doesn't have the property '{propertyName}'");
+                    ReadJsonValue(tokenReader);
                 }
 
                 if (tokenReader.NextToken == JsonToken.Separator) {
