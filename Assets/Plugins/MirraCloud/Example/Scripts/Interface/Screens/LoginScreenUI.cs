@@ -27,7 +27,8 @@ namespace MirraCloud.Example
             await authOperation.Task;
 
             await MirraCloudSDK.RuleConstructor.LoadConfigAsync().Task;
-            
+            await MirraCloudSDK.Segments.LoadConfigAsync().Task;
+
             if (MirraCloudSDK.Authentication.IsAuth)
             {
                 UIController.ShowScreen<LoadingScreenUI>();

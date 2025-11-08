@@ -9,6 +9,7 @@ using MirraCloud.Core.Storage;
 using MirraCloud.Json;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.RulesConstructor;
+using Plugins.MirraCloud.Core.Services.Segments;
 
 namespace MirraCloud.Core
 {
@@ -22,6 +23,7 @@ namespace MirraCloud.Core
         public static RemoteConfigService RemoteConfig { get; private set; }
         public static AssetsStorageService AssetsStorage { get; private set; }
         public static RuleConstructorService RuleConstructor { get; private set; }
+        public static SegmentService Segments { get; private set; }
         
         public static bool IsInitialized { get; private set; }
 
@@ -57,6 +59,7 @@ namespace MirraCloud.Core
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
 
             RuleConstructor = new RuleConstructorService(configuration, logger, restApiClient, jsonService);
+            Segments = new SegmentService(configuration, logger, restApiClient, jsonService);
             
             IsInitialized = true;
         }
