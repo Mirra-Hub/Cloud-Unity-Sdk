@@ -26,19 +26,20 @@ namespace MirraCloud.Example
 
             await authOperation.Task;
 
-            await MirraCloudSDK.RuleConstructor.LoadConfigAsync().Task;
-            await MirraCloudSDK.Segments.LoadConfigAsync().Task;
+         
 
             if (MirraCloudSDK.Authentication.IsAuth)
             {
                 UIController.ShowScreen<LoadingScreenUI>();
+                
+                await MirraCloudSDK.RuleConstructor.LoadConfigAsync().Task;
+                await MirraCloudSDK.Segments.LoadConfigAsync().Task;
+            
             }
             else if (authOperation.IsError)
             {
                 UIController.ShowPopup<NetworkErrorPopupUI>();
             }
-            
-            
         }
     }
 }

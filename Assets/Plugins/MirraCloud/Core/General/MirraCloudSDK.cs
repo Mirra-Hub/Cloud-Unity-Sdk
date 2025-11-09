@@ -7,6 +7,8 @@ using MirraCloud.Core.Logger;
 using MirraCloud.Core.RemoteConfig;
 using MirraCloud.Core.Storage;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.Services.Analytics;
+using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.RulesConstructor;
 using Plugins.MirraCloud.Core.Services.Segments;
@@ -24,6 +26,8 @@ namespace MirraCloud.Core
         public static AssetsStorageService AssetsStorage { get; private set; }
         public static RuleConstructorService RuleConstructor { get; private set; }
         public static SegmentService Segments { get; private set; }
+        public static AnalyticsService Analytics { get; private set; }
+        public static DeploymentService Deployment { get; private set; }
         
         public static bool IsInitialized { get; private set; }
 
@@ -57,6 +61,8 @@ namespace MirraCloud.Core
             Leaderboard = new LeaderboardService(configuration, logger, jsonService, restApiClient);
             RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
+            Analytics = new AnalyticsService(configuration, logger, restApiClient, jsonService);
+            Deployment = new DeploymentService(configuration, logger, restApiClient, jsonService);
 
             RuleConstructor = new RuleConstructorService(configuration, logger, restApiClient, jsonService);
             Segments = new SegmentService(configuration, logger, restApiClient, jsonService);

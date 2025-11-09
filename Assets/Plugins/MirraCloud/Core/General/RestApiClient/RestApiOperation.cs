@@ -1,4 +1,5 @@
 ﻿using System;
+using MirraCloud.Json;
 
 namespace MirraCloud
 {
@@ -7,6 +8,10 @@ namespace MirraCloud
         public event Action<RestApiOperation> OnCompleted;
 
         private event Action<RestApiOperation> CompletedCallback;
+        
+        public RestApiOperation(IJsonService jsonService) : base(jsonService)
+        {
+        }
 
         public void UseCompletedCallback(Action<RestApiOperation> callback)
         {
@@ -27,16 +32,22 @@ namespace MirraCloud
             OnCompleted = null;
             CompletedCallback = null;
         }
+
+       
     }
 
     public class RestApiOperation<T> : BaseRestApiOperation,  IRestApiOperation<T>
     {
         public T Value { get; private set; }
-
-
+        
         private event Func<RestApiOperation<T>, T> ExtractDataCallback;
 
         public event Action<RestApiOperation<T>> OnCompleted;
+        private event Action<RestApiOperation<T>> CompletedCallback;
+
+        public RestApiOperation(IJsonService jsonService) : base(jsonService)
+        {
+        }
 
         public override void Complete()
         {
@@ -44,6 +55,12 @@ namespace MirraCloud
             {
                 Value = ExtractDataCallback.Invoke(this);
             }
+            else
+            {
+                Value = GetData<T>();
+            }
+            
+            CompletedCallback?.Invoke(this);
             
             base.Complete();
 
@@ -55,8 +72,13 @@ namespace MirraCloud
             OnCompleted = null;
             ExtractDataCallback = null;
         }
+        
+        public void UseCompletedCallback(Action<RestApiOperation<T>> callback)
+        {
+            CompletedCallback += callback;
+        }
 
-        public void UseExtractData(Func<RestApiOperation<T>, T> callback)
+        public void UseExtractDataCallback(Func<RestApiOperation<T>, T> callback)
         {
             ExtractDataCallback = callback;
         }

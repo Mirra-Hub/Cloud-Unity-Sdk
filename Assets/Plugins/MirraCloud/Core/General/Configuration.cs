@@ -11,7 +11,8 @@ namespace MirraCloud
         public string ProjectId;
         public string BranchId;
         public string Token;
-        
+        public string AnalyticsPlatformId;
+
         [Header("Debug")]
         [SerializeField] private int _connectionIndex = -1;
         [SerializeField] private ConnectionSettings[] _connections;

@@ -173,7 +173,7 @@ namespace MirraCloud.Core
         
         private RestApiOperation SendRequest(string route, RequestOptions options)
         {
-            RestApiOperation response = new RestApiOperation();
+            RestApiOperation response = new RestApiOperation(_jsonService);
 
             string url = GetUrl(route);
 
@@ -184,7 +184,7 @@ namespace MirraCloud.Core
         
         private RestApiOperation<T> SendRequest<T>(string route, RequestOptions options)
         {
-            RestApiOperation<T> response = new RestApiOperation<T>();
+            RestApiOperation<T> response = new RestApiOperation<T>(_jsonService);
 
             string url = GetUrl(route);
 

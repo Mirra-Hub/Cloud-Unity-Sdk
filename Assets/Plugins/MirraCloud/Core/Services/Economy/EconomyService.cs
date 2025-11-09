@@ -79,7 +79,7 @@ namespace MirraCloud.Core.Economy
             
             var operation = _restApi.Patch<ResultCurrencyOperationDto>(route, operationDto);
 
-            operation.UseExtractData(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
+            operation.UseExtractDataCallback(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
             
             return operation;
         }
@@ -96,7 +96,7 @@ namespace MirraCloud.Core.Economy
             
             var operation = _restApi.Patch<ResultCurrencyOperationDto>(route, operationDto);
 
-            operation.UseExtractData(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
+            operation.UseExtractDataCallback(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
             
             return operation;
         }
@@ -113,7 +113,7 @@ namespace MirraCloud.Core.Economy
             
             var operation = _restApi.Put<ResultCurrencyOperationDto>(route, operationDto);
 
-            operation.UseExtractData(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
+            operation.UseExtractDataCallback(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
             
             return operation;
         }

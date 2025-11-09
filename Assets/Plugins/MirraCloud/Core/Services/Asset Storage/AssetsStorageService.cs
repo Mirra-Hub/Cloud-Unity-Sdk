@@ -68,7 +68,7 @@ namespace MirraCloud.Core.AssetsStorage
 
             var response = _restApi.Get<TextFile>(route);
             
-            response.UseExtractData((operation => ExtractTextFile(operation, textFileType)));
+            response.UseExtractDataCallback((operation => ExtractTextFile(operation, textFileType)));
             
             return response;
         }
@@ -84,7 +84,7 @@ namespace MirraCloud.Core.AssetsStorage
             
             var response = _restApi.Get<Texture2D>(route, options);
             
-            response.UseExtractData(ExtractTexture);
+            response.UseExtractDataCallback(ExtractTexture);
             
             return response;
         }
@@ -101,7 +101,7 @@ namespace MirraCloud.Core.AssetsStorage
             
             var response = _restApi.Get<AudioClip>(route, options);
             
-            response.UseExtractData(ExtractAudio);
+            response.UseExtractDataCallback(ExtractAudio);
             
             return response;
         }
@@ -117,7 +117,7 @@ namespace MirraCloud.Core.AssetsStorage
             
             var response = _restApi.Get<AssetBundle>(route, options);
             
-            response.UseExtractData(ExtractAssetBundle);
+            response.UseExtractDataCallback(ExtractAssetBundle);
             
             return response;
         }

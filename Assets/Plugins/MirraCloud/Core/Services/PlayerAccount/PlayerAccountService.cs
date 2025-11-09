@@ -43,7 +43,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                 
             var request = _restApi.Post<PlayerAccountInfo>(route, data);
 
-            request.UseExtractData(response =>
+            request.UseExtractDataCallback(response =>
             {
                 var dto = response.GetData<PlayerAccountInfoDto>();
 

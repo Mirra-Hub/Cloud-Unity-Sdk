@@ -15,6 +15,7 @@ MonoBehaviour:
   ProjectId: 690dc788be00f3ba780ec875
   BranchId: 690dc788be00f3ba780ec875
   Token: 01K9EX6TWFGJ6E74KXKT5GFFBM
+  AnalyticsPlatformId: 69109e69b774cbd7e05d63ec
   _connectionIndex: 1
   _connections:
   - Url: https://sdk.mirrahub.com/api/cloud/sdk

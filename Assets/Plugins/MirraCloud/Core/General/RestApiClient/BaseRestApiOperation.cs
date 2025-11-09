@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using MirraCloud.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -7,6 +8,7 @@ namespace MirraCloud
 {
     public abstract class BaseRestApiOperation : CustomYieldInstruction, IBaseRestApiOperation, IDisposable
     {
+        private readonly IJsonService _jsonService;
         public UnityWebRequest WebRequest { get; private set; }
 
         public bool IsDone { get; private set; }
@@ -19,6 +21,11 @@ namespace MirraCloud
         
         public override bool keepWaiting => IsDone == false;
         public Task Task => TaskWait();
+
+        protected BaseRestApiOperation(IJsonService jsonService)
+        {
+            _jsonService = jsonService;
+        }
         
         public void Initialize(UnityWebRequest request)
         {
