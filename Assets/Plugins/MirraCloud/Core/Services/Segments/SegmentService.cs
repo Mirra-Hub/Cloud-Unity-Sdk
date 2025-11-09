@@ -31,7 +31,7 @@ namespace Plugins.MirraCloud.Core.Services.Segments
         
         public IRestApiOperation LoadConfigAsync()
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/environments/{_configuration.BranchId}/segments";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/segments";
             
             var response = _restApi.Get(route);
 

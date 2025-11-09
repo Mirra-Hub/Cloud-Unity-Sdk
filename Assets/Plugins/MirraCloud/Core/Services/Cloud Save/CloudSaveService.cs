@@ -24,7 +24,7 @@ namespace MirraCloud.Core.CloudSave
 
         public IRestApiOperation LoadAsync()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/load";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/load";
             
             var request = _restApi.Get(route);
             
@@ -50,7 +50,7 @@ namespace MirraCloud.Core.CloudSave
 
         public IRestApiOperation SaveAsync(UpdateDataContainer data)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/update";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/update";
             
             var request = _restApi.Post(route, data);
 

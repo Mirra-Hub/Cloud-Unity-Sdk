@@ -28,7 +28,7 @@ namespace MirraCloud.Core.AssetsStorage
 
         public IRestApiOperation LoadConfigAsync()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/config";
             
             var response = _restApi.Get(route);
             
@@ -64,7 +64,7 @@ namespace MirraCloud.Core.AssetsStorage
         
         public IRestApiOperation<TextFile> LoadTextFromId(string id, ExtractTextFileType textFileType = ExtractTextFileType.Text)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/assets/{id}";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
 
             var response = _restApi.Get<TextFile>(route);
             
@@ -75,7 +75,7 @@ namespace MirraCloud.Core.AssetsStorage
 
         public IRestApiOperation<Texture2D> LoadTextureFromId(string id, bool readable = false)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/assets/{id}";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
             RequestOptions options = new RequestOptions()
             {
@@ -92,7 +92,7 @@ namespace MirraCloud.Core.AssetsStorage
 
         public IRestApiOperation<AudioClip> LoadAudioFromId(string id, AudioType audioType)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/assets/{id}";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
             RequestOptions options = new RequestOptions()
             {
@@ -108,7 +108,7 @@ namespace MirraCloud.Core.AssetsStorage
         
         public IRestApiOperation<AssetBundle> LoadAssetBundleFromId(string id)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/assets/{id}";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
             RequestOptions options = new RequestOptions()
             {

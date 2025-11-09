@@ -17,7 +17,7 @@ namespace MirraCloud.Core.Auth
 
         private string _authToken;
 
-        private const string SERVICE_ROUTE = "/cloud/players/auth/v1";
+        private const string SERVICE_ROUTE = "/players/auth/v1/projects";
 
         private string _guestId;
         private readonly Configuration _configuration;
@@ -35,7 +35,7 @@ namespace MirraCloud.Core.Auth
 
         public IRestApiOperation LoginWithWebIDAsync(string webId, bool createAccount = true)
         {
-            string route = SERVICE_ROUTE + "web/login";
+            string route = $"{SERVICE_ROUTE}/{_configuration.ProjectId}/web/login";
             var data = new LoginWithWebIDRequest()
             {
                 Id = webId,
@@ -83,7 +83,7 @@ namespace MirraCloud.Core.Auth
                 _storage.SaveString(GUEST_ID_KEY, _guestId);
             }
             
-            string route = SERVICE_ROUTE + "guest/login";
+            string route = $"{SERVICE_ROUTE}/{_configuration.ProjectId}/guest/login";
             var data = new LoginWithGuestRequest()
             {
                 GuestId = _guestId,

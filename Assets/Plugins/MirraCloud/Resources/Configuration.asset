@@ -17,5 +17,5 @@ MonoBehaviour:
   Token: 01K9EX6TWFGJ6E74KXKT5GFFBM
   _connectionIndex: 1
   _connections:
-  - Url: https://sdk.mirrahub.com/api/sdk/cloud
-  - Url: http://localhost:81/api/sdk
+  - Url: https://sdk.mirrahub.com/api/cloud/sdk
+  - Url: http://localhost:81/api/cloud/sdk

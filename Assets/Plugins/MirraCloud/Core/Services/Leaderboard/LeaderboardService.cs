@@ -6,7 +6,7 @@ namespace MirraCloud.Core.Leaderboard
 {
     public class LeaderboardService 
     {        
-        private const string ControllerApi = "api/leaderboard/v1/";
+        private const string ControllerApi = "/leaderboards/v1/projects";
         
         private readonly IJsonService _jsonService;
         private readonly ILogger _logger;

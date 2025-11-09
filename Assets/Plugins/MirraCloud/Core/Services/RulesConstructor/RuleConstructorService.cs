@@ -15,7 +15,7 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor
         private readonly RestApiClient _restApi;
         private readonly IJsonService _jsonService;
 
-        private const string ControllerApi =  "/rules-constructor";
+        private const string ControllerApi =  "/rules-constructor/v1";
 
         private readonly Dictionary<string, RulesTreeDto> _rules = new Dictionary<string, RulesTreeDto>(); 
         
@@ -29,7 +29,7 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor
         
         public IRestApiOperation LoadConfigAsync()
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/env/{_configuration.BranchId}/rules";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rules";
             
             var response = _restApi.Get(route);
 

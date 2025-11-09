@@ -10,7 +10,7 @@ namespace MirraCloud.Core.Economy
         private readonly Configuration _configuration;
         private readonly RestApiClient _restApi;
 
-        private const string ControllerApi = "/economy/v1";
+        private const string ControllerApi = "/economy/v1/projects";
 
         private readonly List<CurrencyEconomyDefinition> _currencies = new List<CurrencyEconomyDefinition>();
         private readonly List<ItemEconomyDefinition> _items = new List<ItemEconomyDefinition>();
@@ -29,7 +29,7 @@ namespace MirraCloud.Core.Economy
 
         public IRestApiOperation LoadConfigAsync()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/config/";
+            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/configs";
             
             var operation = _restApi.Get(route);
 
@@ -74,10 +74,10 @@ namespace MirraCloud.Core.Economy
                 CurrencyId = currencyId,
                 Amount = amount,
             };
-
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/currency/";
+ 
+            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/add";
             
-            var operation = _restApi.Put<ResultCurrencyOperationDto>(route, operationDto);
+            var operation = _restApi.Patch<ResultCurrencyOperationDto>(route, operationDto);
 
             operation.UseExtractData(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
             
@@ -91,10 +91,10 @@ namespace MirraCloud.Core.Economy
                 CurrencyId = currencyId,
                 Amount = amount,
             };
-
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/currency/";
+ 
+            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/subtract";
             
-            var operation = _restApi.Put<ResultCurrencyOperationDto>(route, operationDto);
+            var operation = _restApi.Patch<ResultCurrencyOperationDto>(route, operationDto);
 
             operation.UseExtractData(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
             
@@ -108,10 +108,10 @@ namespace MirraCloud.Core.Economy
                 CurrencyId = currencyId,
                 Amount = amount,
             };
-
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/currency/";
+ 
+            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/set";
             
-            var operation = _restApi.Post<ResultCurrencyOperationDto>(route, operationDto);
+            var operation = _restApi.Put<ResultCurrencyOperationDto>(route, operationDto);
 
             operation.UseExtractData(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
             

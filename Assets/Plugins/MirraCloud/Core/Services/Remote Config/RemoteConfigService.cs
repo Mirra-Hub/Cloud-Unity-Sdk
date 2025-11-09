@@ -23,7 +23,7 @@ namespace MirraCloud.Core.RemoteConfig
 
         public IRestApiOperation LoadConfigAsync()
         {
-            var request = _restApi.Get($"{SERVICE_ROUTE}/{_configuration.ProjectId}/config");
+            var request = _restApi.Get($"{SERVICE_ROUTE}/projects/{_configuration.ProjectId}/config");
             
             request.UseCompletedCallback(response =>
             {

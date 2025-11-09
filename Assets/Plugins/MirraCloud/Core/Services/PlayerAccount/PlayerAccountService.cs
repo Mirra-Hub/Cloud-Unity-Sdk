@@ -15,7 +15,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
         public PlayerAccountInfo PlayerAccountInfo { get; private set; }
 
-        private const string SERVICE_ROUTE = "/players/accounts/v1";
+        private const string SERVICE_ROUTE = "/player-accounts/v1/projects";
         
         public PlayerAccountService(AuthenticationService authenticationService, RestApiClient restApi, Configuration configuration, ILogger logger)
         {

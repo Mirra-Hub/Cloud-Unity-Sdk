@@ -127,23 +127,23 @@ namespace MirraCloud.Core
             {
                 options = CreateDefaultRequestOptions();
             }
-
+ 
             options.Body = body;
-            options.Method = UnityWebRequest.kHttpVerbCREATE;
-
+            options.Method = "PATCH";
+ 
             return SendRequest<T>(url, options);
         }
-
+ 
         public RestApiOperation Patch(string url, object body, RequestOptions options = null)
         {
             if (options == null)
             {
                 options = CreateDefaultRequestOptions();
             }
-
+ 
             options.Body = body;
-            options.Method = UnityWebRequest.kHttpVerbCREATE;
-
+            options.Method = "PATCH";
+ 
             return SendRequest(url, options);
         }
         
