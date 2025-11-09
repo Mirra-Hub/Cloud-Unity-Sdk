@@ -52,7 +52,7 @@ namespace Plugins.MirraCloud.Core.Services.Analytics
         
         private IBaseRestApiOperation SubmitEvent(string metricId, string value = null)
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/platforms/{_configuration.AnalyticsPlatformId}/custom-metrics/{metricId})";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/platforms/{_configuration.AnalyticsPlatformId}/custom-metrics/{metricId}";
             
             var response = _restApi.Post(route, new SendEventDto()
             {
