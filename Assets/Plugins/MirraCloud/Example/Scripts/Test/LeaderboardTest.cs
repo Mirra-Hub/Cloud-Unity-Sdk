@@ -3,9 +3,10 @@ using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
 {
-    public class AnalyticsTest : MonoBehaviour
+    public class LeaderboardTest : MonoBehaviour
     {
-        [SerializeField] private string _eventid;
+        [SerializeField] private double _score = 123;
+        [SerializeField] private string _leaderboardid;
 
         private void Update()
         {
@@ -17,7 +18,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         public void SendEvent()
         {
-            MirraCloudSDK.Analytics.SendEvent(_eventid);
+            MirraCloudSDK.Leaderboard.SubmitScore(_score, _leaderboardid);
         }
     }
 }

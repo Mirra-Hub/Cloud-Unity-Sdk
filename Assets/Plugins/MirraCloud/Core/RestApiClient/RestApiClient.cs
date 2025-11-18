@@ -195,7 +195,7 @@ namespace MirraCloud.Core
         
         private IEnumerator SendRequest(string url, BaseRestApiOperation response, RequestOptions options)
         {
-            _logger.Log($"Send request: {url}");
+            _logger.Log($"Send {options.Method} request: {url}");
 
             UnityWebRequest request = new UnityWebRequest(url, options.Method);
 

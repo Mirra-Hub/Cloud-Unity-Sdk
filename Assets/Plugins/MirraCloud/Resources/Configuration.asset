@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f2b3f20ecc64b38a14b6759a6a3cdbf, type: 3}
   m_Name: Configuration
   m_EditorClassIdentifier: 
-  ProjectId: 690dc788be00f3ba780ec875
-  BranchId: 690dc788be00f3ba780ec875
-  Token: 01K9EX6TWFGJ6E74KXKT5GFFBM
+  ProjectId: 6918c231cf7f494f0fa0c7f3
+  BranchId: 6918c231cf7f494f0fa0c7f5
+  Token: 01KA4BD4FNZ8H5A0YDN3XHXG93
   AnalyticsPlatformId: 69109e69b774cbd7e05d63ec
   _connectionIndex: 1
   _connections:
