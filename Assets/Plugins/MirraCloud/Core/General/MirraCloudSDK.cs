@@ -12,6 +12,7 @@ using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.RulesConstructor;
 using Plugins.MirraCloud.Core.Services.Segments;
+using Plugins.MirraCloud.Core.Services.Tournaments;
 
 namespace MirraCloud.Core
 {
@@ -22,6 +23,7 @@ namespace MirraCloud.Core
         public static EconomyService Economy { get; private set; }
         public static CloudSaveService CloudSave { get; private set; }
         public static LeaderboardService Leaderboard { get; private set; }
+        public static TournamentsService Tournaments { get; private set; }
         public static RemoteConfigService RemoteConfig { get; private set; }
         public static AssetsStorageService AssetsStorage { get; private set; }
         public static RuleConstructorService RuleConstructor { get; private set; }
@@ -59,6 +61,7 @@ namespace MirraCloud.Core
             Economy = new EconomyService(configuration, logger, restApiClient);
             CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
             Leaderboard = new LeaderboardService(configuration, logger, jsonService, restApiClient);
+            Tournaments = new TournamentsService(configuration, restApiClient);
             RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
             Analytics = new AnalyticsService(configuration, logger, restApiClient, jsonService);

@@ -55,11 +55,6 @@ namespace MirraCloud.Core.Economy
                     foreach (var itemDefinitionDto in config.items)
                     {
                         _items.Add(new ItemEconomyDefinition(itemDefinitionDto));
-                    }   
-                    
-                    foreach (var tradeDefinitionDto in config.virtualPurchases)
-                    {
-                        _trades.Add(new TradeEconomyDefinition(tradeDefinitionDto));
                     }
                 }
             });
