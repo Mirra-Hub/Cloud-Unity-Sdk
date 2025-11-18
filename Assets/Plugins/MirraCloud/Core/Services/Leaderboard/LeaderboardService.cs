@@ -29,7 +29,7 @@ namespace MirraCloud.Core.Leaderboard
 
         public IBaseRestApiOperation Initialize()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards";
 
             var operation = _restApi.Get<LeaderboardConfigDto[]>(route);
 
@@ -71,18 +71,18 @@ namespace MirraCloud.Core.Leaderboard
         
         public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntries(string leaderboardId, int top = 100)
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top?entriesCount=22";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top";
 
             var operation = _restApi.Get<LeaderboardEntriesDto>(route);
 
             return operation;
         }
         
-        public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardPlayerAroundEntries(string leaderboardId, int around = 10)
+        public IRestApiOperation<LeaderboardAroundEntriesDto> GetLeaderboardPlayerAroundEntries(string leaderboardId, int around = 10)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/around";
 
-            var operation = _restApi.Get<LeaderboardEntriesDto>(route);
+            var operation = _restApi.Get<LeaderboardAroundEntriesDto>(route);
 
             return operation;
         }

@@ -7,7 +7,7 @@ namespace MirraCloud.Core.Leaderboard.Dto
     {
         public string leaderboardId;
 
-        public LeaderboardEntryDto[] tTop;
-        public LeaderboardEntryDto[] playersAround;
+        public LeaderboardEntryDto[] top;
+        public LeaderboardAroundEntriesDto playersAround;
     }
 }

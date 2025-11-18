@@ -260,6 +260,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3a639bbbb2b4bd0bf1f17142a568e81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _avatarImage: {fileID: 4222663463516445000}
+  _rangText: {fileID: 4205213951015487932}
+  _scoreText: {fileID: 704145049217512862}
+  _nicknameText: {fileID: 4901690791751324378}
 --- !u!1 &1107073752211643821
 GameObject:
   m_ObjectHideFlags: 0

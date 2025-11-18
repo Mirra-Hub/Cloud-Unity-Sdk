@@ -43,9 +43,9 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
             }
             
             var operationTable = MirraCloudSDK.Leaderboard.GetLeaderboardTopEntries(_leaderboardId);
-            await operation.Task;
+            await operationTable.Task;
 
-            if (operation.IsSuccess)
+            if (operationTable.IsSuccess)
             {
                 Debug.Log(operationTable.DownloadHandler.text);
                 
