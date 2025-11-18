@@ -65,6 +65,21 @@ namespace MirraCloud.Json {
                     if (Internal.StringValueParsers.TryParse(valueType, stringValue, out var parsedValue)) {
                         return underlyingType != null ? parsedValue : Convert.ChangeType(parsedValue, destinationType);
                     }
+
+                    // String -> enum (supports Nullable<enum> as well)
+                    if (valueType.IsEnum) {
+                        try {
+                            var enumValue = Enum.Parse(valueType, stringValue, ignoreCase: true);
+                            return underlyingType != null
+                                ? enumValue
+                                : Convert.ChangeType(enumValue, destinationType);
+                        } catch (Exception ex) {
+                            throw new InvalidJsonException(
+                                $"{tokenReader.LineColString} Can't parse \"{stringValue}\" as enum {valueType}: {ex.Message}"
+                            );
+                        }
+                    }
+
                     jsonType = typeof(string);
                     jsonValue = stringValue;
                 } break;
@@ -110,6 +125,25 @@ namespace MirraCloud.Json {
 
             if (valueType.IsAssignableFrom(jsonType)) {
                 return Convert.ChangeType(Convert.ChangeType(jsonValue, valueType), destinationType);
+            }
+
+            // Handle numeric conversions between different primitive numeric types
+            bool jsonIsNumeric = jsonType == typeof(int) || jsonType == typeof(double);
+            if (jsonIsNumeric &&
+                (valueType == typeof(byte)   || valueType == typeof(sbyte)  ||
+                 valueType == typeof(short)  || valueType == typeof(ushort) ||
+                 valueType == typeof(int)    || valueType == typeof(uint)   ||
+                 valueType == typeof(long)   || valueType == typeof(ulong)  ||
+                 valueType == typeof(float)  || valueType == typeof(double) ||
+                 valueType == typeof(decimal))) {
+                try {
+                    var converted = Convert.ChangeType(jsonValue, valueType);
+                    return underlyingType != null
+                        ? converted
+                        : Convert.ChangeType(converted, destinationType);
+                } catch {
+                    // Fall through and try implicit conversion or throw a detailed exception below
+                }
             }
 
             // Try using an implicit conversion operator

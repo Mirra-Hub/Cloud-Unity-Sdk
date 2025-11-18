@@ -48,7 +48,9 @@ namespace MirraCloud
                 return default;
             }
             
-            return JsonUtility.FromJson<T>(DownloadHandler.text);
+            Debug.Log(DownloadHandler.text);
+            
+            return _jsonService.FromJson<T>(DownloadHandler.text);
         }
 
         private async Task TaskWait()
