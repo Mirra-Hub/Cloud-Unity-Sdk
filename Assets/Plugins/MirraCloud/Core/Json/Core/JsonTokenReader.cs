@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Globalization;
 
 namespace MirraCloud.Json {
     /// Reads json tokens from a json document stream.
@@ -125,9 +126,12 @@ namespace MirraCloud.Json {
             }
             
             AdvanceToNextToken();
-            
+
             try {
-                return double.Parse(numberChars[..length]);
+                return double.Parse(
+                    numberChars[..length],
+                    NumberStyles.Float | NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture);
             } catch (FormatException) {
                 throw new InvalidJsonException($"Cannot parse \"{new string(numberChars[..length])}\" as a number.");
             }
