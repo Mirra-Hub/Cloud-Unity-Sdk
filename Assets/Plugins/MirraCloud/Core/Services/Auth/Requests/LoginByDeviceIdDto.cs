@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 
-namespace MirraCloud
+namespace MirraCloud.Core.Auth
 {
     [Serializable]
-    public struct LoginWithDeviceIDRequest
+    public class LoginByDeviceIdDto
     {
         public string DeviceId;
         public bool CreateAccount;
     }
 }
+

@@ -12,23 +12,22 @@ namespace Plugins.MirraCloud.Example.Scripts
 
         public void Initialize()
         {
-            Name = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.Name;
-            PlayerId = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.PlayerId;
+            if (MirraCloudSDK.PlayerAccount.PlayerAccountInfo != null)
+            {
+                Name = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.Nickname;
+                PlayerId = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.Id;
+            }
         }
 
         public IBaseRestApiOperation ChangeName(string newPlayerName)
         {
-            var operation = MirraCloudSDK.PlayerAccount.UpdatePlayerInfo(new UpdatePlayerInfoOptions()
-            {
-                Name = newPlayerName,
-            });
+            var operation = MirraCloudSDK.PlayerAccount.UpdateNicknameAsync(newPlayerName);
 
             operation.OnCompleted += (response =>
             {
                 if (response.IsSuccess)
                 {
-                    Name = response.Value.Name;
-                    
+                    Name = newPlayerName;
                     OnPlayerInfoChanged?.Invoke();
                 }
             });
