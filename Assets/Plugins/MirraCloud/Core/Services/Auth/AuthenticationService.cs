@@ -45,14 +45,17 @@ namespace MirraCloud.Core.Auth
 
         public IRestApiOperation LoginGuestAsync(bool createAccount = true)
         {
-            var guestId = GetOrCreateGuestId();
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/guest";
             var dto = new LoginAsGuestDto
             {
-                GuestId = guestId,
                 CreateAccount = createAccount
             };
 
+            if (_storage.HasKey(GuestIdKey))
+            {
+                dto.GuestId = _storage.GetString(GuestIdKey);
+            }
+            
             var op = _restApi.Post(route, dto);
             op.UseCompletedCallback(HandleAuthCompleted);
             return op;
@@ -141,13 +144,16 @@ namespace MirraCloud.Core.Auth
 
         public IRestApiOperation LinkGuestAsync(bool createAccount = false)
         {
-            var guestId = GetOrCreateGuestId();
             var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/guest";
             var dto = new LoginAsGuestDto
             {
-                GuestId = guestId,
                 CreateAccount = createAccount
             };
+            
+            if (_storage.HasKey(GuestIdKey))
+            {
+                dto.GuestId = _storage.GetString(GuestIdKey);
+            }
 
             var op = _restApi.Post(route, dto);
             op.UseCompletedCallback(HandleAuthCompleted);
@@ -320,7 +326,7 @@ namespace MirraCloud.Core.Auth
 
         private void HandleAuthCompleted(RestApiOperation operation)
         {
-            if (!operation.IsSuccess)
+            if (operation.IsSuccess == false)
             {
                 _logger.Error(operation.ErrorMessage);
                 return;
@@ -348,6 +354,10 @@ namespace MirraCloud.Core.Auth
             _authToken = data.Token;
             ApplySession(data.Session);
             IsAuth = true;
+            if (string.IsNullOrEmpty(data.GuestId) == false)
+            {
+                _storage.SaveString(GuestIdKey, data.GuestId);
+            }
 
             OnLogin?.Invoke(data);
         }
@@ -366,18 +376,6 @@ namespace MirraCloud.Core.Auth
             _refreshToken = null;
             _sessionExpiresAt = default;
             IsAuth = false;
-        }
-
-        private string GetOrCreateGuestId()
-        {
-            if (_storage.HasKey(GuestIdKey))
-            {
-                return _storage.GetString(GuestIdKey);
-            }
-
-            var id = Guid.NewGuid().ToString("N");
-            _storage.SaveString(GuestIdKey, id);
-            return id;
         }
 
         private void AuthTokenInterceptor(UnityWebRequest request)
