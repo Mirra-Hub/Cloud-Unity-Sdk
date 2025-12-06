@@ -1,13 +1,13 @@
 using System;
+using MirraCloud.Json;
 
 namespace MirraCloud.Core.Auth
 {
     [Serializable]
     public class SessionInfoDto
     {
-        public string SessionId;
-        public string RefreshToken;
-        public DateTime ExpiresAt;
+        [JsonNameCamel] public string SessionId;
+        [JsonNameCamel] public string RefreshToken;
+        [JsonNameCamel] public DateTime ExpiresAt;
     }
 }
-

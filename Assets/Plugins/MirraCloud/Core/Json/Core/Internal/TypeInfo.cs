@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using MirraCloud.Json;
 
 namespace MirraCloud.Json.Internal {
     /// Reflection cache for serialized and de-serialized types.
@@ -127,20 +128,50 @@ namespace MirraCloud.Json.Internal {
                         continue;
                     }
 
-                    objectMetadata.Properties.Add(propertyInfo.Name, new PropertyMetadata {
+                    var jsonNameAttr = propertyInfo.GetCustomAttribute<JsonNameAttribute>();
+                    var camelAttr = propertyInfo.GetCustomAttribute<JsonNameCamelAttribute>();
+
+                    string jsonName;
+                    if (jsonNameAttr != null) {
+                        jsonName = jsonNameAttr.Name;
+                    } else if (camelAttr != null) {
+                        var name = propertyInfo.Name;
+                        jsonName = name.Length > 0
+                            ? char.ToLowerInvariant(name[0]) + name.Substring(1)
+                            : name;
+                    } else {
+                        jsonName = propertyInfo.Name;
+                    }
+
+                    objectMetadata.Properties[jsonName] = new PropertyMetadata {
                         Info = propertyInfo,
                         Type = propertyInfo.PropertyType,
                         Ignored = Attribute.IsDefined(propertyInfo, typeof(JsonIgnoreAttribute))
-                    });
+                    };
                 }
 
                 foreach (var fieldInfo in type.GetFields()) {
-                    objectMetadata.Properties.Add(fieldInfo.Name, new PropertyMetadata {
+                    var jsonNameAttr = fieldInfo.GetCustomAttribute<JsonNameAttribute>();
+                    var camelAttr = fieldInfo.GetCustomAttribute<JsonNameCamelAttribute>();
+
+                    string jsonName;
+                    if (jsonNameAttr != null) {
+                        jsonName = jsonNameAttr.Name;
+                    } else if (camelAttr != null) {
+                        var name = fieldInfo.Name;
+                        jsonName = name.Length > 0
+                            ? char.ToLowerInvariant(name[0]) + name.Substring(1)
+                            : name;
+                    } else {
+                        jsonName = fieldInfo.Name;
+                    }
+
+                    objectMetadata.Properties[jsonName] = new PropertyMetadata {
                         Info = fieldInfo,
                         IsField = true,
                         Type = fieldInfo.FieldType,
                         Ignored = Attribute.IsDefined(fieldInfo, typeof(JsonIgnoreAttribute))
-                    });
+                    };
                 }
 
                 cachedObjectMetadata.Add(type, objectMetadata);
