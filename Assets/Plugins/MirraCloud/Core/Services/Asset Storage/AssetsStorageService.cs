@@ -77,12 +77,12 @@ namespace MirraCloud.Core.AssetsStorage
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
-            RequestOptions options = new RequestOptions()
+            var config = new RestRequestConfig
             {
-                DownloadHandler = new DownloadHandlerTexture(readable),
+                DownloadHandler = new DownloadHandlerTexture(readable)
             };
             
-            var response = _restApi.Get<Texture2D>(route, options);
+            var response = _restApi.Get<Texture2D>(route, config);
             
             response.UseExtractDataCallback(ExtractTexture);
             
@@ -94,12 +94,12 @@ namespace MirraCloud.Core.AssetsStorage
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
-            RequestOptions options = new RequestOptions()
+            var config = new RestRequestConfig
             {
                 DownloadHandler = new DownloadHandlerAudioClip(_restApi.GetUrl(route), audioType),
             };
             
-            var response = _restApi.Get<AudioClip>(route, options);
+            var response = _restApi.Get<AudioClip>(route, config);
             
             response.UseExtractDataCallback(ExtractAudio);
             
@@ -110,12 +110,12 @@ namespace MirraCloud.Core.AssetsStorage
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
-            RequestOptions options = new RequestOptions()
+            var config = new RestRequestConfig
             {
                 DownloadHandler = new DownloadHandlerAssetBundle(_restApi.GetUrl(route), 0),
             };
             
-            var response = _restApi.Get<AssetBundle>(route, options);
+            var response = _restApi.Get<AssetBundle>(route, config);
             
             response.UseExtractDataCallback(ExtractAssetBundle);
             

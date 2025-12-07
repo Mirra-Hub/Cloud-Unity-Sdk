@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using MirraCloud.Core;
 using MirraCloud.Core.Storage;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -425,26 +427,34 @@ namespace MirraCloud.Core.Auth
             IsAuth = false;
         }
 
-        private void AuthTokenInterceptor(UnityWebRequest request)
+        private RestRequestConfig AuthTokenInterceptor(RestRequestConfig config)
         {
             if (!string.IsNullOrEmpty(_authToken))
             {
-                request.SetRequestHeader("Authorization", "Bearer " + _authToken);
+                config.Headers ??= new Dictionary<string, string>();
+                config.Headers["Authorization"] = "Bearer " + _authToken;
             }
+
+            return config;
         }
 
-        private System.Collections.IEnumerator SessionRefreshInterceptor(UnityWebRequest request)
+        private System.Collections.IEnumerator SessionRefreshInterceptor(RestResponseContext context)
         {
-            if (request.responseCode == 401 || request.responseCode == 403)
+            var code = context.Request.responseCode;
+            if ((code == 401 || code == 403) && !string.IsNullOrEmpty(_refreshToken))
             {
-                if (!string.IsNullOrEmpty(_refreshToken))
+                var refreshOperation = RefreshSessionAsync();
+                yield return refreshOperation.Task;
+
+                if (refreshOperation.IsSuccess)
                 {
-                    var refreshOperation = RefreshSessionAsync();
-                    yield return refreshOperation.Task;
+                    context.RetryRequested = true;
+                }
+                else
+                {
+                    HandleSessionExpired();
                 }
             }
-
-            yield break;
         }
 
         private void HandleSessionExpired()
