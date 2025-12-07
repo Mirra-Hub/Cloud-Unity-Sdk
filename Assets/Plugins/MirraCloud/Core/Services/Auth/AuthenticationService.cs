@@ -125,6 +125,33 @@ namespace MirraCloud.Core.Auth
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/apple-game-center", userId, createAccount);
         }
 
+        public IRestApiOperation LoginGoogleAsync(string userId, bool createAccount = true)
+        {
+            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google", userId, createAccount);
+        }
+
+        public IRestApiOperation LoginAppleAsync(string userId, bool createAccount = true)
+        {
+            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/apple", userId, createAccount);
+        }
+
+        public IRestApiOperation LoginYandexAsync(string userId, bool createAccount = true)
+        {
+            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex", userId, createAccount);
+        }
+
+     
+        public IRestApiOperation StartOpenIdLoginAsync(int providerId, string successUrl)
+        {
+            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/openid/{providerId}";
+            var dto = new RegisterOpenIdProviderDto
+            {
+                SuccessUrl = successUrl
+            };
+
+            return _restApi.Post(route, dto);
+        }
+
         private IRestApiOperation LoginByUserIdAsync(string route, string userId, bool createAccount)
         {
             var dto = new LoginByUserIdDto
@@ -222,6 +249,26 @@ namespace MirraCloud.Core.Auth
         public IRestApiOperation LinkAppleGameCenterAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/apple-game-center", userId, createAccount);
+        }
+
+        public IRestApiOperation LinkGoogleAsync(string userId, bool createAccount = false)
+        {
+            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/google", userId, createAccount);
+        }
+
+        public IRestApiOperation LinkAppleAsync(string userId, bool createAccount = false)
+        {
+            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/apple", userId, createAccount);
+        }
+
+        public IRestApiOperation LinkYandexAsync(string userId, bool createAccount = false)
+        {
+            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/yandex", userId, createAccount);
+        }
+
+        public IRestApiOperation LinkOpenIdAsync(string userId, bool createAccount = false)
+        {
+            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/openid", userId, createAccount);
         }
 
         private IRestApiOperation LinkByUserIdAsync(string route, string userId, bool createAccount)
@@ -409,4 +456,3 @@ namespace MirraCloud.Core.Auth
         #endregion
     }
 }
-

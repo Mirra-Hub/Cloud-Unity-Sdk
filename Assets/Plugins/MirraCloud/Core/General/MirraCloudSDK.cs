@@ -60,7 +60,7 @@ namespace MirraCloud.Core
             PlayerAccount = new PlayerAccountService(Authentication, restApiClient, configuration, logger);
             Economy = new EconomyService(configuration, logger, restApiClient);
             CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
-            Leaderboard = new LeaderboardService(configuration, logger, jsonService, restApiClient);
+            Leaderboard = new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient);
             Tournaments = new TournamentsService(configuration, restApiClient);
             RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);

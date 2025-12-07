@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.Logger;
+using Plugins.MirraCloud.Core.Services.PlayerAccount.Dto;
 
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 {
@@ -17,6 +19,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
         private const string PROFILES_ROUTE = "/player-accounts/v1";
 
         public PlayerAccountInfo PlayerAccountInfo { get; private set; }
+        public IReadOnlyList<ProfileInfo> Profiles => _profiles;
+
+        private List<ProfileInfo> _profiles = new();
+
+        public event Action<IReadOnlyList<ProfileInfo>> OnProfilesChanged;
+        public event Action<ProfileInfo> OnProfileUpdated;
+        public event Action<string> OnProfileSelected;
 
         public PlayerAccountService(AuthenticationService authenticationService, RestApiClient restApi, Configuration configuration, ILogger logger)
         {
@@ -95,13 +104,6 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return _restApi.Patch(route, dto);
         }
 
-        public RestApiOperation SelectProfileAsync(string profileId)
-        {
-            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/profile";
-            var dto = new { ProfileId = profileId };
-            return _restApi.Patch(route, dto);
-        }
-
         public RestApiOperation UpdateIconAsync(string iconKeyJson)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/icon";
@@ -120,58 +122,201 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
         #region Profiles
 
-        public RestApiOperation GetProfilesAsync()
+        public RestApiOperation<ProfileInfo[]> GetProfilesAsync()
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles";
-            return _restApi.Get(route);
+            var op = _restApi.Get<ProfileInfo[]>(route);
+
+            op.UseExtractDataCallback(response =>
+            {
+                var data = response.GetData<ProfileInfo[]>() ?? Array.Empty<ProfileInfo>();
+                _profiles = new List<ProfileInfo>(data);
+                OnProfilesChanged?.Invoke(Profiles);
+                return data;
+            });
+
+            return op;
         }
 
-        public RestApiOperation GetProfileAsync(string profileId)
+        public RestApiOperation<ProfileInfo> GetProfileAsync(string profileId)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
-            return _restApi.Get(route);
+            var op = _restApi.Get<ProfileInfo>(route);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    var profile = operation.Value;
+                    UpdateLocalProfile(profile);
+                }
+            });
+
+            return op;
         }
 
-        public RestApiOperation CreateProfileAsync(object createProfileDto, bool autoSelect = false)
+        public RestApiOperation<ProfileInfo> CreateProfileAsync(CreateProfileDto dto, bool autoSelect = false)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles?autoSelect={autoSelect}";
-            return _restApi.Post(route, createProfileDto);
+            var op = _restApi.Post<ProfileInfo>(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess && operation.Value != null)
+                {
+                    _profiles.Add(operation.Value);
+                    OnProfilesChanged?.Invoke(Profiles);
+                    OnProfileUpdated?.Invoke(operation.Value);
+                }
+            });
+
+            return op;
         }
 
         public RestApiOperation DeleteProfileAsync(string profileId)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
-            return _restApi.Delete(route);
+            var op = _restApi.Delete(route);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    _profiles.RemoveAll(p => p.Id == profileId);
+                    OnProfilesChanged?.Invoke(Profiles);
+                }
+            });
+
+            return op;
         }
 
         public RestApiOperation UpdateProfileNicknameAsync(string profileId, string username)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/nickname";
-            var dto = new { Username = username };
-            return _restApi.Patch(route, dto);
+            var dto = new UpdateProfileNicknameDto { Username = username };
+            var op = _restApi.Patch(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    RefreshProfile(profileId);
+                }
+            });
+
+            return op;
         }
 
         public RestApiOperation UpdateProfileIconAsync(string profileId, string iconKeyJson)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/icon";
-            var dto = new { IconKey = iconKeyJson };
-            return _restApi.Patch(route, dto);
+            var dto = new UpdateProfileIconDto { IconKeyJson = iconKeyJson };
+            var op = _restApi.Patch(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    RefreshProfile(profileId);
+                }
+            });
+
+            return op;
         }
 
         public RestApiOperation UpdateProfileSegmentsAsync(string profileId, string[] segmentIds)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/segments";
-            var dto = new { SegmentIds = segmentIds };
-            return _restApi.Patch(route, dto);
+            var dto = new UpdateProfileSegmentsDto { SegmentIds = segmentIds };
+            var op = _restApi.Patch(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    RefreshProfile(profileId);
+                }
+            });
+
+            return op;
         }
 
-        public RestApiOperation ReplaceProfileAsync(string profileId, object createProfileDto)
+        public RestApiOperation UpdateProfileStatusAsync(string profileId, string status)
+        {
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/status";
+            var dto = new UpdateProfileStatusDto { Status = status };
+            var op = _restApi.Patch(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    RefreshProfile(profileId);
+                }
+            });
+
+            return op;
+        }
+
+        public RestApiOperation<ProfileInfo> ReplaceProfileAsync(string profileId, CreateProfileDto dto)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
-            return _restApi.Put(route, createProfileDto);
+            var op = _restApi.Put<ProfileInfo>(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess && operation.Value != null)
+                {
+                    UpdateLocalProfile(operation.Value);
+                }
+            });
+
+            return op;
+        }
+
+        private void RefreshProfile(string profileId)
+        {
+            var _ = GetProfileAsync(profileId);
+        }
+
+        private void UpdateLocalProfile(ProfileInfo profile)
+        {
+            if (profile == null)
+            {
+                return;
+            }
+
+            var index = _profiles.FindIndex(p => p.Id == profile.Id);
+            if (index >= 0)
+            {
+                _profiles[index] = profile;
+            }
+            else
+            {
+                _profiles.Add(profile);
+            }
+
+            OnProfilesChanged?.Invoke(Profiles);
+            OnProfileUpdated?.Invoke(profile);
+        }
+
+        public RestApiOperation SelectProfileAsync(string profileId)
+        {
+            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/profile";
+            var dto = new { ProfileId = profileId };
+            var op = _restApi.Patch(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    OnProfileSelected?.Invoke(profileId);
+                }
+            });
+
+            return op;
         }
 
         #endregion
     }
 }
-

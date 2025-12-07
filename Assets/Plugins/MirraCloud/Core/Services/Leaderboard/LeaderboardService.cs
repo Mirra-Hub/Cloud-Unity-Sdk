@@ -4,6 +4,7 @@ using MirraCloud.Core.Leaderboard.Dto;
 using MirraCloud.Core.Leaderboard.Entities;
 using MirraCloud.Core.Logger;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.Services.PlayerAccount;
 
 namespace MirraCloud.Core.Leaderboard
 {
@@ -15,13 +16,15 @@ namespace MirraCloud.Core.Leaderboard
         private readonly ILogger _logger;
         private readonly RestApiClient _restApi;
         private readonly Configuration _configuration;
+        private readonly PlayerAccountService _playerAccountService;
 
         private readonly List<LeaderboardConfig> _leaderboardConfigs = new List<LeaderboardConfig>();
         public IReadOnlyList<LeaderboardConfig> LeaderboardConfigs => _leaderboardConfigs;
 
-        public LeaderboardService(Configuration configuration, ILogger logger, IJsonService jsonService, RestApiClient restApi) 
+        public LeaderboardService(Configuration configuration, PlayerAccountService playerAccountService, ILogger logger, IJsonService jsonService, RestApiClient restApi) 
         {
             _configuration = configuration;
+            _playerAccountService = playerAccountService;
             _restApi = restApi;
             _logger = logger;
             _jsonService = jsonService;
@@ -60,7 +63,7 @@ namespace MirraCloud.Core.Leaderboard
 
             SubmitScoreDto submitScoreDto = new SubmitScoreDto()
             {
-                PlayerName = "Petr",
+                PlayerName = _playerAccountService.PlayerAccountInfo.Nickname,
                 Value = score,
             };
             
