@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f2b3f20ecc64b38a14b6759a6a3cdbf, type: 3}
   m_Name: Configuration
   m_EditorClassIdentifier: 
-  ProjectId: 69333669b900959a682fed6a
-  BranchId: 6918c231cf7f494f0fa0c7f5
-  Token: 01KBR0S2XKXT8XTWB4FRW2SW9N
-  AnalyticsPlatformId: 69109e69b774cbd7e05d63ec
-  _connectionIndex: 1
+  ProjectId: 694532649e0607965834a544
+  BranchId: 694532649e0607965834a546
+  Token: 01KCV4SP0DTGZKWWS9T19WTAK8
+  AnalyticsPlatformId: 6936a1e38f198f12ca94e8ec
+  _connectionIndex: 2
   _connections:
   - Url: https://sdk.mirrahub.com/api/cloud/sdk
   - Url: http://localhost:81/api/cloud/sdk
+  - Url: https://sdk.miratest.ru/api/cloud/sdk

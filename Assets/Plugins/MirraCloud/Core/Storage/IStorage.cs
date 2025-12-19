@@ -3,7 +3,9 @@
     public interface IStorage
     {
         bool HasKey(string guestIDKey);
-        string GetString(string guestIDKey);
-        void SaveString(string guestIDKey, string guestId);
+        string GetString(string key);
+        void SaveString(string key, string value);
+        void DeleteKey(string key);
+        void DeleteKeys(params string[] key);
     }
 }

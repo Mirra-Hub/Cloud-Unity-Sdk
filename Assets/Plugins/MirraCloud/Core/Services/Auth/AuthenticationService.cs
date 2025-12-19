@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MirraCloud.Core;
 using MirraCloud.Core.Storage;
+using MirraCloud.Json;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -18,7 +19,10 @@ namespace MirraCloud.Core.Auth
         private const string AUTH_LINK_ROUTE = "/players/link/v1/projects";
         private const string ACCOUNTS_ROUTE = "/players/accounts/v1/projects";
 
-        private const string GuestIdKey = "GuestId";
+        private const string GUESTID_KEY = "GuestId";
+        private const string REFRESH_TOKEN_KEY = "RefreshToken";
+        private const string SESSIONID_KEY = "SessionId";
+        private const string SESSION_EXPIRESAT_KEY = "SessionExpiresAt";
 
         private string _authToken;
         private string _sessionId;
@@ -42,7 +46,49 @@ namespace MirraCloud.Core.Auth
             _restApi.UseRequestInterceptor(AuthTokenInterceptor);
             _restApi.UseResponseInterceptor(SessionRefreshInterceptor);
         }
+        
+        public IRestApiOperation InitializeAsync()
+        {
+            if (_storage.HasKey(REFRESH_TOKEN_KEY) == false)
+            {
+                var emptyOperation = new RestApiOperation(_restApi.JsonService);
+                var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
+                {
+                    downloadHandler = new DownloadHandlerBuffer()
+                };
+                emptyOperation.Initialize(dummyRequest);
+                emptyOperation.Complete();
+                return emptyOperation;
+            }
 
+            var savedRefresh = _storage.GetString(REFRESH_TOKEN_KEY);
+            if (string.IsNullOrWhiteSpace(savedRefresh))
+            {
+                ClearSessionStorage();
+
+                var emptyOperation = new RestApiOperation(_restApi.JsonService);
+                var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
+                {
+                    downloadHandler = new DownloadHandlerBuffer()
+                };
+                emptyOperation.Initialize(dummyRequest);
+                emptyOperation.Complete();
+                return emptyOperation;
+            }
+
+            _refreshToken = savedRefresh;
+
+            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/session";
+            var dto = new RefreshSessionDto
+            {
+                RefreshToken = _refreshToken
+            };
+
+            var op = _restApi.Post(route, dto);
+            op.UseCompletedCallback(HandleAuthCompleted);
+            return op;
+        }
+        
         #region Login
 
         public IRestApiOperation LoginGuestAsync(bool createAccount = true)
@@ -53,9 +99,9 @@ namespace MirraCloud.Core.Auth
                 CreateAccount = createAccount
             };
 
-            if (_storage.HasKey(GuestIdKey))
+            if (_storage.HasKey(GUESTID_KEY))
             {
-                dto.GuestId = _storage.GetString(GuestIdKey);
+                dto.GuestId = _storage.GetString(GUESTID_KEY);
             }
             
             var op = _restApi.Post(route, dto);
@@ -179,9 +225,9 @@ namespace MirraCloud.Core.Auth
                 CreateAccount = createAccount
             };
             
-            if (_storage.HasKey(GuestIdKey))
+            if (_storage.HasKey(GUESTID_KEY))
             {
-                dto.GuestId = _storage.GetString(GuestIdKey);
+                dto.GuestId = _storage.GetString(GUESTID_KEY);
             }
 
             var op = _restApi.Post(route, dto);
@@ -405,8 +451,9 @@ namespace MirraCloud.Core.Auth
             IsAuth = true;
             if (string.IsNullOrEmpty(data.GuestId) == false)
             {
-                _storage.SaveString(GuestIdKey, data.GuestId);
+                _storage.SaveString(GUESTID_KEY, data.GuestId);
             }
+            SaveSessionToStorage();
 
             OnLogin?.Invoke(data);
         }
@@ -427,8 +474,36 @@ namespace MirraCloud.Core.Auth
             IsAuth = false;
         }
 
+        private void SaveSessionToStorage()
+        {
+            if (!string.IsNullOrEmpty(_refreshToken))
+            {
+                _storage.SaveString(REFRESH_TOKEN_KEY, _refreshToken);
+            }
+
+            if (!string.IsNullOrEmpty(_sessionId))
+            {
+                _storage.SaveString(SESSIONID_KEY, _sessionId);
+            }
+
+            _storage.SaveString(SESSION_EXPIRESAT_KEY, _sessionExpiresAt.ToString("o"));
+        }
+
+        private void ClearSessionStorage()
+        {
+            _storage.DeleteKeys(REFRESH_TOKEN_KEY, SESSIONID_KEY, SESSION_EXPIRESAT_KEY);
+        }
+
         private RestRequestConfig AuthTokenInterceptor(RestRequestConfig config)
         {
+            //  new Claim(nameof(profile.Username), profile?.Username ?? string.Empty),
+            //       new Claim(nameof(profile.IconKey), JsonConvert.SerializeObject(profile?.IconKey ?? new IconKey()))
+            //  new Claim(nameof(account.Age), account.Age.ToString()),
+            //   new Claim(nameof(account.Country), account.Country.ToString()),
+            //  new Claim(nameof(account.LanguageCode), account.LanguageCode.ToString()),
+            //     new Claim("Account" + nameof(account.SegmentIds), string.Join(',', account.SegmentIds)),
+            //    new Claim("Profile" + nameof(profile.SegmentIds), string.Join(',', profile?.SegmentIds ?? [])),
+            
             if (!string.IsNullOrEmpty(_authToken))
             {
                 config.Headers ??= new Dictionary<string, string>();
@@ -449,6 +524,7 @@ namespace MirraCloud.Core.Auth
                 if (refreshOperation.IsSuccess)
                 {
                     context.RetryRequested = true;
+                    SaveSessionToStorage();
                 }
                 else
                 {
@@ -460,6 +536,7 @@ namespace MirraCloud.Core.Auth
         private void HandleSessionExpired()
         {
             ClearSession();
+            ClearSessionStorage();
             OnSessionExpired?.Invoke();
         }
 

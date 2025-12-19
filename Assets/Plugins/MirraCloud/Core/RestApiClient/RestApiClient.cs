@@ -14,7 +14,7 @@ namespace MirraCloud.Core
         public string BaseUrl { get; private set; }
 
         private readonly CoroutineRunner _coroutineRunner;
-        private readonly IJsonService _jsonService;
+        public readonly IJsonService JsonService;
         private readonly ILogger _logger;
 
         private readonly List<Func<RestRequestConfig, RestRequestConfig>> _requestInterceptors = new();
@@ -24,7 +24,7 @@ namespace MirraCloud.Core
         {
             BaseUrl = options.BaseUrl?.TrimEnd('/');
             _coroutineRunner = coroutineRunner;
-            _jsonService = jsonService;
+            JsonService = jsonService;
             _logger = logger;
         }
 
@@ -122,14 +122,14 @@ namespace MirraCloud.Core
         
         private RestApiOperation SendRequest(RestRequestConfig config)
         {
-            RestApiOperation response = new RestApiOperation(_jsonService);
+            RestApiOperation response = new RestApiOperation(JsonService);
             _coroutineRunner.StartCoroutine(SendRequestInternal(config, response));
             return response;
         }
         
         private RestApiOperation<T> SendRequest<T>(RestRequestConfig config)
         {
-            RestApiOperation<T> response = new RestApiOperation<T>(_jsonService);
+            RestApiOperation<T> response = new RestApiOperation<T>(JsonService);
             _coroutineRunner.StartCoroutine(SendRequestInternal(config, response));
             return response;
         }
@@ -218,7 +218,7 @@ namespace MirraCloud.Core
 
             if (cfg.SerializedBody == null && cfg.Body != null)
             {
-                var bodyJson = _jsonService.ToJson(cfg.Body);
+                var bodyJson = JsonService.ToJson(cfg.Body);
                 cfg.SerializedBody = Encoding.UTF8.GetBytes(bodyJson);
             }
 

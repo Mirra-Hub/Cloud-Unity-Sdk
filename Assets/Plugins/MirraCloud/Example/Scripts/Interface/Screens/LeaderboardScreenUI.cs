@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using MirraCloud.Core;
 using MirraCloud.Example;
+using Plugins.MirraCloud.Example.Scripts.Test;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,7 +17,13 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
         [SerializeField] private string _leaderboardId;
 
         private readonly List<LeaderboardItemUI> _leaderboardItemsUI = new List<LeaderboardItemUI>();
-        
+
+        private void Awake()
+        {
+            var  leaderboardTest = FindObjectOfType<LeaderboardTest>();
+            _leaderboardId = leaderboardTest.LeaderboardId;
+        }
+
         protected override void OnEnableScreen()
         {
             _closeButton.onClick.AddListener(UIController.ShowScreen<LobbyScreenUI>);

@@ -18,5 +18,9 @@ namespace MirraCloud.Core.Auth
         [JsonNameCamel] public DateTime LastLoginDate;
         [JsonNameCamel] public DateTime CreatedDate;
         [JsonNameCamel] public DateTime UpdatedDate;
+        [JsonNameCamel] public int TotalActiveDays;
+        [JsonNameCamel] public int ConsecutiveActiveDays;
+        [JsonNameCamel] public int MaxConsecutiveActiveDays;
+        [JsonNameCamel] public int TotalSessions;
     }
 }

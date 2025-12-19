@@ -5,7 +5,7 @@ namespace MirraCloud.Core.Auth
     public class PlayerAccountInfo
     {
         public string Id { get; private set; }
-        public string Nickname { get; private set; }
+        public string Nickname { get; set; }
         public int Age { get; private set; }
         public string Country { get; private set; }
         public string LanguageCode { get; private set; }
@@ -15,6 +15,11 @@ namespace MirraCloud.Core.Auth
         public DateTime CreatedDate { get; private set; }
         public DateTime UpdatedDate { get; private set; }
         public DateTime LastLoginDate { get; private set; }
+        
+        public int TotalActiveDays { get; private set; }
+        public int ConsecutiveActiveDays { get; private set; }
+        public int MaxConsecutiveActiveDays { get; private set; }
+        public int TotalSessions { get; private set; }
 
         public PlayerAccountInfo(AccountDto dto)
         {
@@ -34,6 +39,10 @@ namespace MirraCloud.Core.Auth
             CreatedDate = dto.CreatedDate;
             UpdatedDate = dto.UpdatedDate;
             LastLoginDate = dto.LastLoginDate;
+            TotalActiveDays = dto.TotalActiveDays;
+            ConsecutiveActiveDays = dto.ConsecutiveActiveDays;
+            MaxConsecutiveActiveDays = dto.MaxConsecutiveActiveDays; 
+            TotalSessions = dto.TotalSessions;
         }
     }
 }

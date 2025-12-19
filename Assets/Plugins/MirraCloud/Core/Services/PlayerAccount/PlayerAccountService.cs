@@ -80,7 +80,17 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/nickname";
             var dto = new { Nickname = nickname };
-            return _restApi.Patch(route, dto);
+            var operation = _restApi.Patch(route, dto);
+
+            operation.UseCompletedCallback(x =>
+            {
+                if (x.IsSuccess)
+                {
+                    PlayerAccountInfo.Nickname = nickname;
+                }
+            });
+
+            return operation;
         }
 
         public RestApiOperation UpdateAgeAsync(int age)

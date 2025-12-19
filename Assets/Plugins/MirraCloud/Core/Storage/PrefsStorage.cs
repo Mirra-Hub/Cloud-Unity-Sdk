@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace MirraCloud.Core.Storage
 {
@@ -17,6 +18,22 @@ namespace MirraCloud.Core.Storage
         public void SaveString(string key, string value)
         {
             PlayerPrefs.SetString(key, value);
+            PlayerPrefs.Save();
+        }
+
+        public void DeleteKey(string key)
+        {
+            PlayerPrefs.DeleteKey(key);
+            PlayerPrefs.Save();
+        }
+
+        public void DeleteKeys(params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                PlayerPrefs.DeleteKey(key);
+            }
+            
             PlayerPrefs.Save();
         }
     }

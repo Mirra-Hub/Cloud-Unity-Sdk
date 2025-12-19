@@ -626,7 +626,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6199371d414d414c9a062402a23e4998, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _eventid: 6911a928223d1912f2946ab9
+  _eventid: 6936ac508f198f12ca94e8ef
 --- !u!4 &329117525
 Transform:
   m_ObjectHideFlags: 0
@@ -808,8 +808,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3871c44ea804d40a340b8784602de6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _score: 1230
-  _leaderboardid: 6918cd57cf7f494f0fa0c7f9
+  _score: 2
+  _leaderboardid: 694535659e0607965834a557
 --- !u!4 &589442096
 Transform:
   m_ObjectHideFlags: 0
@@ -3297,7 +3297,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1928996585
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -56636,7 +56636,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _logiDevicenButton: {fileID: 1178159769}
-  _loginWebIdButton: {fileID: 1818770292}
+  _logiDevicen2Button: {fileID: 1818770292}
 --- !u!224 &9105835023732665022
 RectTransform:
   m_ObjectHideFlags: 0

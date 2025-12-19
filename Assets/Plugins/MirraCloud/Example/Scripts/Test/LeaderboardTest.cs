@@ -7,6 +7,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
     {
         [SerializeField] private double _score = 123;
         [SerializeField] private string _leaderboardid;
+        public string LeaderboardId => _leaderboardid;
 
         private void Update()
         {

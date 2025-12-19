@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
 
@@ -16,4 +17,5 @@ namespace MirraCloud
         public Task Task { get; }
         DownloadHandler DownloadHandler { get; }
     }
+
 }
