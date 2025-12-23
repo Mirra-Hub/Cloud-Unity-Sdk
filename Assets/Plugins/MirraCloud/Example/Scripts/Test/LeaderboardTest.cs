@@ -19,7 +19,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         public void SendEvent()
         {
-            MirraCloudSDK.Leaderboard.SubmitScore(_score, _leaderboardid);
+            MirraCloudSDK.Leaderboard.SubmitScoreAsync(_score, _leaderboardid);
         }
     }
 }

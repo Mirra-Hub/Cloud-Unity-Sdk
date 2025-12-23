@@ -65,11 +65,11 @@ namespace MirraCloud.Example
                 
             
                 
-                if (operation.IsSuccess)
+                if (operation.Result.IsSuccess && operation.Result.Data != null)
                 {
                     if (child.TryGetComponent(out RawImage image))
                     {
-                        var texture = operation.Value;
+                        var texture = operation.Result.Data;
                         
                         image.texture = texture;
                         image.SetNativeSize();
@@ -77,7 +77,7 @@ namespace MirraCloud.Example
                         var rt = image.rectTransform;
                         float parentWidth  = ((RectTransform)rt.parent).rect.width;
                         float parentHeight = ((RectTransform)rt.parent).rect.height;
-                        float texRatio     = (float)operation.Value.width / operation.Value.height;
+                        float texRatio     = (float)texture.width / texture.height;
                         float parentRatio  = parentWidth / parentHeight;
 
                         if (texRatio > parentRatio)

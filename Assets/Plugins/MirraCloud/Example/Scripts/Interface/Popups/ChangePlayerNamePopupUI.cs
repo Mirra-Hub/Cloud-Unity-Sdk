@@ -1,6 +1,8 @@
 using System.Collections;
 using MirraCloud;
+using MirraCloud.Core;
 using MirraCloud.Example;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -38,11 +40,11 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Popups
 
         private IEnumerator ChangeNameRoutine()
         {
-            IBaseRestApiOperation operation = _playerProfile.ChangeName(_nameInputField.text);
+            AsyncOperation<RestApiResult> operation = _playerProfile.ChangeNameAsync(_nameInputField.text);
 
             yield return operation;
 
-            if (operation.IsSuccess)
+            if (operation.Result.IsSuccess)
             {
                 UIController.HideLastPopup();
             }

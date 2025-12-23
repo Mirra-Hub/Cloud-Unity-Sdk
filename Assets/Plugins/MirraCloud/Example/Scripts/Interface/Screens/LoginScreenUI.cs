@@ -36,7 +36,7 @@ namespace MirraCloud.Example
                 await MirraCloudSDK.Segments.LoadConfigAsync().Task;
             
             }
-            else if (authOperation.IsError)
+            else if (authOperation.Result.IsSuccess == false)
             {
                 UIController.ShowPopup<NetworkErrorPopupUI>();
             }
@@ -56,7 +56,7 @@ namespace MirraCloud.Example
                 await MirraCloudSDK.Segments.LoadConfigAsync().Task;
             
             }
-            else if (authOperation.IsError)
+            else if (authOperation.Result.IsSuccess == false)
             {
                 UIController.ShowPopup<NetworkErrorPopupUI>();
             }

@@ -28,7 +28,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private async void Init()
         {
-            await MirraCloudSDK.Tournaments.Initialize().Task;
+            await MirraCloudSDK.Tournaments.InitializeAsync().Task;
 
             _configs = new List<TournamentConfig>(MirraCloudSDK.Tournaments.TournamentConfigs);
         }

@@ -35,7 +35,7 @@ namespace MirraCloud.Example
 
             await operation.Task;
 
-            if (operation.IsSuccess)
+            if (operation.Result.IsSuccess)
             {
                 foreach (var item in MirraCloudSDK.Economy.Items)
                 {

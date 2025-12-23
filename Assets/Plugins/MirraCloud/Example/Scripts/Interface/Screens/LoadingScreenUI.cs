@@ -18,13 +18,8 @@ namespace MirraCloud.Example
 
         private IEnumerator LoadingRoutine()
         {
-            var operation = MirraCloudSDK.Economy.LoadConfigAsync();
-
-            yield return operation;
-            
-            operation = MirraCloudSDK.CloudSave.LoadAsync();
-            
-            yield return operation;
+            yield return MirraCloudSDK.Economy.LoadConfigAsync();
+            yield return MirraCloudSDK.CloudSave.LoadAsync();
             
             Container.Instance.PlayerProfile.Initialize();
             

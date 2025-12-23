@@ -28,9 +28,9 @@ namespace MirraCloud.Example
 
             yield return operation;
 
-            if (operation.IsSuccess)
+            if (operation.Result.IsSuccess && operation.Result.Data != null)
             {
-                var texture = operation.Value;
+                var texture = operation.Result.Data;
                 var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
                 
                 _icon.sprite = sprite;

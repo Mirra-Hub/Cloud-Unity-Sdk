@@ -17,7 +17,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         public void SendEvent()
         {
-            MirraCloudSDK.Analytics.SendEvent(_eventid);
+            MirraCloudSDK.Analytics.SendEventAsync(_eventid);
         }
     }
 }

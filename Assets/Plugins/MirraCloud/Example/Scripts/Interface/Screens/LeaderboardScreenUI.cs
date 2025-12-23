@@ -40,9 +40,9 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
             var operation = MirraCloudSDK.Leaderboard.GetLeaderboardPlayer(_leaderboardId);
             await operation.Task;
 
-            if (operation.IsSuccess)
+            if (operation.Result.IsSuccess && operation.Result.Data != null)
             {
-                _playerLeaderboardItemUI.Initialize(operation.Value);
+                _playerLeaderboardItemUI.Initialize(operation.Result.Data);
             }
 
             foreach (var leaderboardItem in _leaderboardItemsUI)
@@ -53,13 +53,13 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
             var operationTable = MirraCloudSDK.Leaderboard.GetLeaderboardTopEntries(_leaderboardId);
             await operationTable.Task;
 
-            if (operationTable.IsSuccess)
+            if (operationTable.Result.IsSuccess && operationTable.Result.Data != null)
             {
-                Debug.Log(operationTable.DownloadHandler.text);
+                Debug.Log(operationTable.Result.ResponseBody);
                 
-                for (int index = 0; index < operationTable.Value.entries.Length; index++)
+                for (int index = 0; index < operationTable.Result.Data.entries.Length; index++)
                 {
-                    var leaderboardEntry = operationTable.Value.entries[index];
+                    var leaderboardEntry = operationTable.Result.Data.entries[index];
 
                     if (index >= _leaderboardItemsUI.Count)
                     {
