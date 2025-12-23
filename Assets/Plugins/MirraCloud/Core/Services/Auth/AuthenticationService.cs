@@ -389,15 +389,13 @@ namespace MirraCloud.Core.Auth
         public IRestApiOperation LogoutAsync()
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/logout";
-            var dto = new RefreshSessionDto
-            {
-                RefreshToken = _refreshToken
-            };
+            var dto = new LogoutSessionDto { SessionId = _sessionId };
 
             var op = _restApi.Post(route, dto);
             op.UseCompletedCallback(_ =>
             {
                 ClearSession();
+                ClearSessionStorage();
                 OnSessionExpired?.Invoke();
             });
             return op;
@@ -410,6 +408,7 @@ namespace MirraCloud.Core.Auth
             op.UseCompletedCallback(_ =>
             {
                 ClearSession();
+                ClearSessionStorage();
                 OnSessionExpired?.Invoke();
             });
             return op;

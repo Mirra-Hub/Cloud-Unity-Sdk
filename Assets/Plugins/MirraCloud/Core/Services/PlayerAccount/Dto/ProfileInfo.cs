@@ -1,5 +1,6 @@
 using System;
 using MirraCloud.Json;
+using MirraCloud.Core.Auth;
 
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
 {
@@ -9,7 +10,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
         [JsonNameCamel] public string Id;
         [JsonNameCamel] public string AccountId;
         [JsonNameCamel] public string Nickname;
-        [JsonName("iconKey")] public string IconKeyJson;
+        [JsonName("iconKey")] public IconKeyDto IconKey;
         [JsonNameCamel] public string Status;
         [JsonNameCamel] public string[] SegmentIds;
         [JsonNameCamel] public DateTime LastLogin;
@@ -17,4 +18,3 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
         [JsonNameCamel] public DateTime UpdatedDate;
     }
 }
-

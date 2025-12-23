@@ -5,6 +5,7 @@ using MirraCloud.Core;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.Logger;
 using Plugins.MirraCloud.Core.Services.PlayerAccount.Dto;
+using UnityEngine.Networking;
 
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 {
@@ -57,9 +58,14 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             {
                 config.Headers ??= new Dictionary<string, string>();
                 config.Headers["Username"] = PlayerAccountInfo.Nickname;
-                config.Headers["IconKey"] = "";
+                config.Headers["IconKey"] = PlayerAccountInfo.IconKey != null
+                    ? _restApi.JsonService.ToJson(PlayerAccountInfo.IconKey)
+                    : string.Empty;
                 config.Headers["Age"] = PlayerAccountInfo.Age.ToString();
                 config.Headers["Country"] = PlayerAccountInfo.Country;
+                config.Headers["LanguageCode"] = PlayerAccountInfo.LanguageCode;
+                config.Headers["TimeZone"] = PlayerAccountInfo.TimeZone;
+                config.Headers["Status"] = PlayerAccountInfo.Status;
                 config.Headers["AccountSegmentIds"] =  string.Join(',', PlayerAccountInfo.SegmentIds);
                 config.Headers["ProfileSegmentIds"] = string.Join(',', PlayerAccountInfo.SegmentIds);
             }
@@ -144,6 +150,25 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/icon";
             var dto = new { IconKey = iconKeyJson };
             return _restApi.Patch(route, dto);
+        }
+
+        public RestApiOperation UpdateIconWithUploadAsync(byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
+        {
+            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/icon/upload";
+            var form = new List<IMultipartFormSection>
+            {
+                new MultipartFormFileSection("file", fileData, fileName, contentType)
+            };
+
+            var op = _restApi.PatchMultipart(route, form);
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    var _ = GetAccountAsync();
+                }
+            });
+            return op;
         }
 
         public RestApiOperation UpdateSegmentsAsync(string[] segmentIds)
@@ -259,12 +284,15 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return op;
         }
 
-        public RestApiOperation UpdateProfileSegmentsAsync(string profileId, string[] segmentIds)
+        public RestApiOperation UpdateProfileIconWithUploadAsync(string profileId, byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
         {
-            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/segments";
-            var dto = new UpdateProfileSegmentsDto { SegmentIds = segmentIds };
-            var op = _restApi.Patch(route, dto);
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/icon/upload";
+            var form = new List<IMultipartFormSection>
+            {
+                new MultipartFormFileSection("file", fileData, fileName, contentType)
+            };
 
+            var op = _restApi.PatchMultipart(route, form);
             op.UseCompletedCallback(operation =>
             {
                 if (operation.IsSuccess)
@@ -272,14 +300,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                     RefreshProfile(profileId);
                 }
             });
-
             return op;
         }
 
-        public RestApiOperation UpdateProfileStatusAsync(string profileId, string status)
+        public RestApiOperation UpdateProfileSegmentsAsync(string profileId, string[] segmentIds)
         {
-            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/status";
-            var dto = new UpdateProfileStatusDto { Status = status };
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/segments";
+            var dto = new UpdateProfileSegmentsDto { SegmentIds = segmentIds };
             var op = _restApi.Patch(route, dto);
 
             op.UseCompletedCallback(operation =>

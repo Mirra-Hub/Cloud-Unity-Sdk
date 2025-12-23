@@ -106,6 +106,13 @@ namespace MirraCloud.Core
             var finalConfig = BuildConfig(route, "PATCH", body, config);
             return SendRequest(finalConfig);
         }
+
+        public RestApiOperation PatchMultipart(string route, List<IMultipartFormSection> multipartFormSections, RestRequestConfig config = null)
+        {
+            var finalConfig = BuildConfig(route, "PATCH", null, config);
+            finalConfig.MultipartFormSections = multipartFormSections;
+            return SendRequest(finalConfig);
+        }
         
         public RestApiOperation Delete(string route, RestRequestConfig config = null)
         {
@@ -205,6 +212,7 @@ namespace MirraCloud.Core
                 Body = config.Body,
                 SerializedBody = config.SerializedBody,
                 Headers = config.Headers != null ? new Dictionary<string, string>(config.Headers) : null,
+                MultipartFormSections = config.MultipartFormSections != null ? new List<IMultipartFormSection>(config.MultipartFormSections) : null,
                 DownloadHandler = config.DownloadHandler,
                 UploadHandler = config.UploadHandler,
                 TimeoutMs = config.TimeoutMs,
@@ -228,7 +236,16 @@ namespace MirraCloud.Core
         private UnityWebRequest BuildUnityWebRequest(RestRequestConfig config)
         {
             _logger.Log($"Send {config.Method} request: {config.Url}");
-            var request = new UnityWebRequest(config.Url, config.Method);
+            UnityWebRequest request;
+            if (config.MultipartFormSections != null)
+            {
+                request = UnityWebRequest.Post(config.Url, config.MultipartFormSections);
+                request.method = config.Method;
+            }
+            else
+            {
+                request = new UnityWebRequest(config.Url, config.Method);
+            }
 
             if (config.SerializedBody != null && config.SerializedBody.Length > 0)
             {

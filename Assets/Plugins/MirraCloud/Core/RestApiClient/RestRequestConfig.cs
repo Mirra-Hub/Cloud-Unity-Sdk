@@ -10,6 +10,7 @@ namespace MirraCloud.Core
         public object Body;
         public byte[] SerializedBody;
         public Dictionary<string, string> Headers;
+        public List<IMultipartFormSection> MultipartFormSections;
         public DownloadHandler DownloadHandler;
         public UploadHandler UploadHandler;
         public int? TimeoutMs;
@@ -21,4 +22,3 @@ namespace MirraCloud.Core
         internal string Url;
     }
 }
-

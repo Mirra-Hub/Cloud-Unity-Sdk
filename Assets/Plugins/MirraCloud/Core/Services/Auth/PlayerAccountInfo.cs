@@ -7,6 +7,7 @@ namespace MirraCloud.Core.Auth
         public string Id { get; private set; }
         public string Nickname { get; set; }
         public int Age { get; private set; }
+        public IconKeyDto IconKey { get; private set; }
         public string Country { get; private set; }
         public string LanguageCode { get; private set; }
         public string TimeZone { get; private set; }
@@ -31,6 +32,7 @@ namespace MirraCloud.Core.Auth
             Id = dto.Id;
             Nickname = dto.Nickname;
             Age = dto.Age;
+            IconKey = dto.IconKey;
             Country = dto.Country;
             LanguageCode = dto.LanguageCode;
             TimeZone = dto.TimeZone;
@@ -46,4 +48,3 @@ namespace MirraCloud.Core.Auth
         }
     }
 }
-

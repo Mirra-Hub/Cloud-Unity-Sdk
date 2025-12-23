@@ -9,7 +9,7 @@ namespace MirraCloud.Core.Auth
         [JsonNameCamel] public string Id;
         [JsonNameCamel] public string Nickname;
         [JsonNameCamel] public int Age;
-        [JsonName("iconKey")] public string IconKeyJson;
+        [JsonName("iconKey")] public IconKeyDto IconKey;
         [JsonNameCamel] public string Country;
         [JsonNameCamel] public string LanguageCode;
         [JsonNameCamel] public string TimeZone;
