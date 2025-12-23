@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Core.Auth;
-using MirraCloud.Core.Logger;
 using Plugins.MirraCloud.Core.Services.PlayerAccount.Dto;
+using UnityEngine;
 using UnityEngine.Networking;
+using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 {
@@ -145,11 +146,27 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return _restApi.Patch(route, dto);
         }
 
-        public RestApiOperation UpdateIconAsync(string iconKeyJson)
+        public RestApiOperation SetAccountIconUrlAsync(string iconUrl)
         {
+            if (IsValidHttpUrl(iconUrl) == false)
+            {
+                _logger.Error("Invalid iconUrl. Only http/https URL is allowed. Use upload methods to set internal icons.");
+                return CreateCompletedNoopOperation();
+            }
+
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/icon";
-            var dto = new { IconKey = iconKeyJson };
-            return _restApi.Patch(route, dto);
+            var dto = new UpdateAccountIconDto { IconKey = iconUrl };
+            var op = _restApi.Patch(route, dto);
+
+            op.UseCompletedCallback(operation =>
+            {
+                if (operation.IsSuccess)
+                {
+                    var _ = GetAccountAsync();
+                }
+            });
+
+            return op;
         }
 
         public RestApiOperation UpdateIconWithUploadAsync(byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
@@ -169,6 +186,33 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                 }
             });
             return op;
+        }
+
+        public RestApiOperation UpdateIconWithUploadAsync(Texture2D texture, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        {
+            if (TryEncodeTexture(texture, fileName, contentType, jpgQuality, out var encoded, out var resolvedFileName, out var resolvedContentType) == false)
+            {
+                return CreateCompletedNoopOperation();
+            }
+
+            return UpdateIconWithUploadAsync(encoded, resolvedFileName, resolvedContentType);
+        }
+
+        public RestApiOperation UpdateIconWithUploadAsync(Sprite sprite, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        {
+            if (TryGetSpriteTexture(sprite, out var texture) == false)
+            {
+                return CreateCompletedNoopOperation();
+            }
+
+            try
+            {
+                return UpdateIconWithUploadAsync(texture, fileName, contentType, jpgQuality);
+            }
+            finally
+            {
+                UnityEngine.Object.Destroy(texture);
+            }
         }
 
         public RestApiOperation UpdateSegmentsAsync(string[] segmentIds)
@@ -267,10 +311,16 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return op;
         }
 
-        public RestApiOperation UpdateProfileIconAsync(string profileId, string iconKeyJson)
+        public RestApiOperation SetProfileIconUrlAsync(string profileId, string iconUrl)
         {
+            if (IsValidHttpUrl(iconUrl) == false)
+            {
+                _logger.Error("Invalid iconUrl. Only http/https URL is allowed. Use upload methods to set internal icons.");
+                return CreateCompletedNoopOperation();
+            }
+
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/icon";
-            var dto = new UpdateProfileIconDto { IconKeyJson = iconKeyJson };
+            var dto = new UpdateProfileIconDto { IconKey = iconUrl };
             var op = _restApi.Patch(route, dto);
 
             op.UseCompletedCallback(operation =>
@@ -301,6 +351,33 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                 }
             });
             return op;
+        }
+
+        public RestApiOperation UpdateProfileIconWithUploadAsync(string profileId, Texture2D texture, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        {
+            if (TryEncodeTexture(texture, fileName, contentType, jpgQuality, out var encoded, out var resolvedFileName, out var resolvedContentType) == false)
+            {
+                return CreateCompletedNoopOperation();
+            }
+
+            return UpdateProfileIconWithUploadAsync(profileId, encoded, resolvedFileName, resolvedContentType);
+        }
+
+        public RestApiOperation UpdateProfileIconWithUploadAsync(string profileId, Sprite sprite, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        {
+            if (TryGetSpriteTexture(sprite, out var texture) == false)
+            {
+                return CreateCompletedNoopOperation();
+            }
+
+            try
+            {
+                return UpdateProfileIconWithUploadAsync(profileId, texture, fileName, contentType, jpgQuality);
+            }
+            finally
+            {
+                UnityEngine.Object.Destroy(texture);
+            }
         }
 
         public RestApiOperation UpdateProfileSegmentsAsync(string profileId, string[] segmentIds)
@@ -360,6 +437,237 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
             OnProfilesChanged?.Invoke(Profiles);
             OnProfileUpdated?.Invoke(profile);
+        }
+
+        private RestApiOperation CreateCompletedNoopOperation()
+        {
+            var op = new RestApiOperation(_restApi.JsonService);
+            var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
+            {
+                downloadHandler = new DownloadHandlerBuffer()
+            };
+            op.Initialize(dummyRequest);
+            op.Complete();
+            return op;
+        }
+
+        private static bool IsValidHttpUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return false;
+            }
+
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) == false)
+            {
+                return false;
+            }
+
+            return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+        }
+
+        private bool TryEncodeTexture(Texture2D texture, string fileName, string contentType, int jpgQuality, out byte[] encoded, out string resolvedFileName, out string resolvedContentType)
+        {
+            encoded = null;
+            resolvedFileName = null;
+            resolvedContentType = null;
+
+            if (texture == null)
+            {
+                _logger.Error("Texture is null.");
+                return false;
+            }
+
+            var useJpg = false;
+            if (string.IsNullOrWhiteSpace(contentType))
+            {
+                var ext = System.IO.Path.GetExtension(fileName)?.ToLowerInvariant();
+                useJpg = ext == ".jpg" || ext == ".jpeg";
+                resolvedContentType = useJpg ? "image/jpeg" : "image/png";
+            }
+            else
+            {
+                resolvedContentType = contentType;
+                useJpg = contentType == "image/jpeg" || contentType == "image/jpg";
+            }
+
+            resolvedFileName = string.IsNullOrWhiteSpace(fileName)
+                ? (useJpg ? "icon.jpg" : "icon.png")
+                : fileName;
+
+            var sourceTexture = texture;
+            Texture2D readableTexture = null;
+            var createdReadable = false;
+
+            if (sourceTexture.isReadable == false)
+            {
+                if (TryMakeReadableCopy(sourceTexture, out readableTexture) == false)
+                {
+                    _logger.Error("Texture is not readable and readable copy creation failed. Enable Read/Write or use a readable texture.");
+                    return false;
+                }
+
+                createdReadable = true;
+                sourceTexture = readableTexture;
+            }
+
+            try
+            {
+                encoded = useJpg
+                    ? ImageConversion.EncodeToJPG(sourceTexture, Mathf.Clamp(jpgQuality, 1, 100))
+                    : ImageConversion.EncodeToPNG(sourceTexture);
+
+                if (encoded == null || encoded.Length == 0)
+                {
+                    _logger.Error("Failed to encode texture.");
+                    return false;
+                }
+
+                return true;
+            }
+            finally
+            {
+                if (createdReadable && readableTexture != null)
+                {
+                    UnityEngine.Object.Destroy(readableTexture);
+                }
+            }
+        }
+
+        private static bool TryMakeReadableCopy(Texture2D source, out Texture2D readableCopy)
+        {
+            readableCopy = null;
+
+            var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            var previous = RenderTexture.active;
+
+            try
+            {
+                Graphics.Blit(source, rt);
+                RenderTexture.active = rt;
+
+                readableCopy = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+                readableCopy.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+                readableCopy.Apply();
+                return true;
+            }
+            catch
+            {
+                if (readableCopy != null)
+                {
+                    UnityEngine.Object.Destroy(readableCopy);
+                    readableCopy = null;
+                }
+
+                return false;
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(rt);
+            }
+        }
+
+        private bool TryGetSpriteTexture(Sprite sprite, out Texture2D texture)
+        {
+            texture = null;
+
+            if (sprite == null)
+            {
+                _logger.Error("Sprite is null.");
+                return false;
+            }
+
+            var rect = sprite.textureRect;
+            var width = Mathf.RoundToInt(rect.width);
+            var height = Mathf.RoundToInt(rect.height);
+
+            if (width <= 0 || height <= 0)
+            {
+                _logger.Error("Sprite has invalid textureRect.");
+                return false;
+            }
+
+            var source = sprite.texture;
+            if (source == null)
+            {
+                _logger.Error("Sprite texture is null.");
+                return false;
+            }
+
+            if (source.isReadable)
+            {
+                try
+                {
+                    var x = Mathf.RoundToInt(rect.x);
+                    var y = Mathf.RoundToInt(rect.y);
+                    var pixels = source.GetPixels(x, y, width, height);
+
+                    texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                    texture.SetPixels(pixels);
+                    texture.Apply();
+                    return true;
+                }
+                catch
+                {
+                    if (texture != null)
+                    {
+                        UnityEngine.Object.Destroy(texture);
+                        texture = null;
+                    }
+
+                    _logger.Error("Failed to extract sprite pixels from readable texture.");
+                    return false;
+                }
+            }
+
+            Shader shader = Shader.Find("Unlit/Texture");
+            if (shader == null)
+            {
+                _logger.Error("Sprite texture is not readable and shader 'Unlit/Texture' not found for GPU extraction.");
+                return false;
+            }
+
+            var material = new Material(shader)
+            {
+                mainTexture = source
+            };
+
+            var rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+            var previous = RenderTexture.active;
+
+            try
+            {
+                var offset = new Vector2(rect.x / source.width, rect.y / source.height);
+                var scale = new Vector2(rect.width / source.width, rect.height / source.height);
+                material.mainTextureOffset = offset;
+                material.mainTextureScale = scale;
+
+                Graphics.Blit(source, rt, material);
+                RenderTexture.active = rt;
+
+                texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                texture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+                texture.Apply();
+                return true;
+            }
+            catch
+            {
+                if (texture != null)
+                {
+                    UnityEngine.Object.Destroy(texture);
+                    texture = null;
+                }
+
+                _logger.Error("Failed to extract sprite pixels from non-readable texture using GPU copy.");
+                return false;
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                RenderTexture.ReleaseTemporary(rt);
+                UnityEngine.Object.Destroy(material);
+            }
         }
 
         public RestApiOperation SelectProfileAsync(string profileId)

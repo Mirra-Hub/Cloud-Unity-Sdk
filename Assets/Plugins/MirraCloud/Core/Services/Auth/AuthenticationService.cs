@@ -64,7 +64,7 @@ namespace MirraCloud.Core.Auth
             var savedRefresh = _storage.GetString(REFRESH_TOKEN_KEY);
             if (string.IsNullOrWhiteSpace(savedRefresh))
             {
-                ClearSessionStorage();
+                ClearSessionAndStorage();
 
                 var emptyOperation = new RestApiOperation(_restApi.JsonService);
                 var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
@@ -394,8 +394,7 @@ namespace MirraCloud.Core.Auth
             var op = _restApi.Post(route, dto);
             op.UseCompletedCallback(_ =>
             {
-                ClearSession();
-                ClearSessionStorage();
+                ClearSessionAndStorage();
                 OnSessionExpired?.Invoke();
             });
             return op;
@@ -407,8 +406,7 @@ namespace MirraCloud.Core.Auth
             var op = _restApi.Post(route, new { });
             op.UseCompletedCallback(_ =>
             {
-                ClearSession();
-                ClearSessionStorage();
+                ClearSessionAndStorage();
                 OnSessionExpired?.Invoke();
             });
             return op;
@@ -493,6 +491,12 @@ namespace MirraCloud.Core.Auth
             _storage.DeleteKeys(REFRESH_TOKEN_KEY, SESSIONID_KEY, SESSION_EXPIRESAT_KEY);
         }
 
+        private void ClearSessionAndStorage()
+        {
+            ClearSession();
+            ClearSessionStorage();
+        }
+
         private RestRequestConfig AuthTokenInterceptor(RestRequestConfig config)
         {
             if (!string.IsNullOrEmpty(_authToken))
@@ -526,8 +530,7 @@ namespace MirraCloud.Core.Auth
 
         private void HandleSessionExpired()
         {
-            ClearSession();
-            ClearSessionStorage();
+            ClearSessionAndStorage();
             OnSessionExpired?.Invoke();
         }
 

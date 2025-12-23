@@ -4,9 +4,9 @@ using MirraCloud.Json;
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
 {
     [Serializable]
-    public class CreateProfileDto
+    public class UpdateAccountIconDto
     {
-        [JsonNameCamel] public string Nickname;
         [JsonName("iconKey")] public string IconKey;
     }
 }
+
