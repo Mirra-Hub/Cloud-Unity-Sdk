@@ -2,6 +2,7 @@ using MirraCloud.Core.AssetsStorage;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.CloudSave;
 using MirraCloud.Core.Economy;
+using MirraCloud.Core.Friends;
 using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.RemoteConfig;
@@ -20,6 +21,7 @@ namespace MirraCloud.Core
     {
         public static AuthenticationService Authentication { get; private set; }
         public static PlayerAccountService PlayerAccount { get; private set; }
+        public static FriendsService Friends { get; private set; }
         public static EconomyService Economy { get; private set; }
         public static CloudSaveService CloudSave { get; private set; }
         public static LeaderboardService Leaderboard { get; private set; }
@@ -58,6 +60,7 @@ namespace MirraCloud.Core
             
             Authentication = new AuthenticationService(configuration, logger, storage, restApiClient);
             PlayerAccount = new PlayerAccountService(Authentication, restApiClient, configuration, logger);
+            Friends = new FriendsService(configuration, logger, restApiClient);
             Economy = new EconomyService(configuration, logger, restApiClient);
             CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
             Leaderboard = new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient);
