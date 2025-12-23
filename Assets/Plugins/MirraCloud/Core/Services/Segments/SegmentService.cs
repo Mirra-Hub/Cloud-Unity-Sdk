@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Segments.Dto;
 using UnityEngine;
 using ILogger = MirraCloud.Core.Logger.ILogger;
@@ -15,12 +16,11 @@ namespace Plugins.MirraCloud.Core.Services.Segments
         private readonly RestApiClient _restApi;
         private readonly IJsonService _jsonService;
 
-        private const string ControllerApi =  "/segments/v1";
+        private const string ControllerApi = "/segments/v1";
 
         private readonly Dictionary<string, SegmentDto> _segments = new Dictionary<string, SegmentDto>();
-
         private readonly List<SegmentDto> _playerSegments = new List<SegmentDto>();
-        
+
         public SegmentService(Configuration configuration, ILogger logger, RestApiClient restApiClient, IJsonService jsonService)
         {
             _configuration = configuration;
@@ -28,44 +28,51 @@ namespace Plugins.MirraCloud.Core.Services.Segments
             _restApi = restApiClient;
             _jsonService = jsonService;
         }
-        
-        public IRestApiOperation LoadConfigAsync()
+
+        public AsyncOperation<RestApiResult<SegmentDto[]>> LoadConfigAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/segments";
-            
-            var response = _restApi.Get(route);
 
-            response.UseCompletedCallback(result =>
+            var op = _restApi.GetAsync<SegmentDto[]>(route);
+            op.OnCompleted += completed =>
             {
-                _logger.Log(result.DownloadHandler.text);
-
-                var segments = _jsonService.FromJson<SegmentDto[]>(result.DownloadHandler.text);
-
-                foreach (var segment in segments)
+                if (!completed.Result.IsSuccess || completed.Result.Data == null)
                 {
-                    _segments.Add(segment.id, segment);
+                    _logger.Error(completed.Result.Error?.Message ?? "Segments request failed.");
+                    return;
                 }
-                
-                _logger.Log(_jsonService.ToJson(segments));
-                
+
+                _segments.Clear();
+                _playerSegments.Clear();
+
+                foreach (var segment in completed.Result.Data)
+                {
+                    if (segment == null || string.IsNullOrEmpty(segment.id))
+                    {
+                        continue;
+                    }
+
+                    _segments[segment.id] = segment;
+                }
+
+                _logger.Log(_jsonService.ToJson(completed.Result.Data));
                 CalculateSegments();
-            });
-            
-            return response;
+            };
+
+            return op;
         }
 
         private void CalculateSegments()
         {
             Debug.Log("calculate segments");
-            
+
             foreach (var segment in _segments.Values)
             {
                 if (segment.isEnable)
                 {
                     Debug.Log($"calculate segment {segment.name}");
-                    
-                    var ruleResult = MirraCloudSDK.RuleConstructor.ExecuteRule(segment.ruleTreeId);
 
+                    var ruleResult = MirraCloudSDK.RuleConstructor.ExecuteRule(segment.ruleTreeId);
                     if (ruleResult)
                     {
                         _playerSegments.Add(segment);

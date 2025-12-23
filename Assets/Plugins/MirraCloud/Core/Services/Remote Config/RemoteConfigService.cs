@@ -1,4 +1,5 @@
-﻿using MirraCloud.Core.RemoteConfig.Responses;
+using MirraCloud.Core.RemoteConfig.Responses;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 using ILogger = MirraCloud.Core.Logger.ILogger;
 
@@ -13,7 +14,7 @@ namespace MirraCloud.Core.RemoteConfig
         public RemoteConfig Config { get; private set; }
 
         private const string SERVICE_ROUTE = "/remote-config/v1";
-        
+
         public RemoteConfigService(RestApiClient restApi, Configuration configuration, ILogger logger)
         {
             _logger = logger;
@@ -21,24 +22,28 @@ namespace MirraCloud.Core.RemoteConfig
             _configuration = configuration;
         }
 
-        public IRestApiOperation LoadConfigAsync()
+        public AsyncOperation<RestApiResult<FetchRemoteConfigResponse>> LoadConfigAsync()
         {
-            var request = _restApi.Get($"{SERVICE_ROUTE}/projects/{_configuration.ProjectId}/config");
-            
-            request.UseCompletedCallback(response =>
-            {
-                if (request.IsSuccess)
-                {
-                    Debug.Log(request.DownloadHandler.text);
-                    
-                    var configResponse = response.GetData<FetchRemoteConfigResponse>();
+            var request = _restApi.GetAsync<FetchRemoteConfigResponse>($"{SERVICE_ROUTE}/projects/{_configuration.ProjectId}/config");
 
-                    
-                    Config = new RemoteConfig(configResponse.configs[0]);
+            request.OnCompleted += completed =>
+            {
+                if (!completed.Result.IsSuccess)
+                {
+                    _logger.Error(completed.Result.Error?.Message ?? "Remote config request failed.");
+                    return;
                 }
-            });
-            
+
+                if (completed.Result.Data?.configs == null || completed.Result.Data.configs.Length == 0)
+                {
+                    return;
+                }
+
+                Config = new RemoteConfig(completed.Result.Data.configs[0]);
+            };
+
             return request;
         }
     }
 }
+

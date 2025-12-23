@@ -4,6 +4,7 @@ using MirraCloud.Core.Leaderboard.Dto;
 using MirraCloud.Core.Leaderboard.Entities;
 using MirraCloud.Core.Logger;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 
 namespace MirraCloud.Core.Leaderboard
@@ -30,40 +31,40 @@ namespace MirraCloud.Core.Leaderboard
             _jsonService = jsonService;
         }
 
-        public IBaseRestApiOperation Initialize()
+        public AsyncOperation<RestApiResult<LeaderboardConfigDto[]>> InitializeAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards";
 
-            var operation = _restApi.Get<LeaderboardConfigDto[]>(route);
+            var operation = _restApi.GetAsync<LeaderboardConfigDto[]>(route);
 
-            operation.UseCompletedCallback(response =>
+            operation.OnCompleted += completed =>
             {
                 _leaderboardConfigs.Clear();
 
-                if (response.IsSuccess)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    foreach (var leaderboardConfigDto in response.Value)
+                    foreach (var leaderboardConfigDto in completed.Result.Data)
                     {
                         _leaderboardConfigs.Add(new LeaderboardConfig(leaderboardConfigDto));
                     }
                 }
-            });
+            };
             
             return operation;
         }
 
-        public IRestApiOperation<LeaderboardConfigDto> GetConfigAsync(string leaderboardId)
+        public AsyncOperation<RestApiResult<LeaderboardConfigDto>> GetConfigAsync(string leaderboardId)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}";
-            return _restApi.Get<LeaderboardConfigDto>(route);
+            return _restApi.GetAsync<LeaderboardConfigDto>(route);
         }
 
-        public IBaseRestApiOperation SubmitScore(DateTime score, string leaderboardId)
+        public AsyncOperation<RestApiResult> SubmitScoreAsync(DateTime score, string leaderboardId)
         {
-            return SubmitScore(score.ToOADate(), leaderboardId);
+            return SubmitScoreAsync(score.ToOADate(), leaderboardId);
         }
         
-        public IBaseRestApiOperation SubmitScore(double score, string leaderboardId)
+        public AsyncOperation<RestApiResult> SubmitScoreAsync(double score, string leaderboardId)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries";
 
@@ -73,70 +74,70 @@ namespace MirraCloud.Core.Leaderboard
                 Value = score,
             };
             
-            var operation = _restApi.Post(route, submitScoreDto);
+            var operation = _restApi.PostAsync(route, submitScoreDto);
 
             return operation; 
         }
         
-        public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntries(string leaderboardId, int top = 100)
+        public AsyncOperation<RestApiResult<LeaderboardEntriesDto>> GetLeaderboardTopEntries(string leaderboardId, int top = 100)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top?entriesCount={top}";
 
-            var operation = _restApi.Get<LeaderboardEntriesDto>(route);
+            var operation = _restApi.GetAsync<LeaderboardEntriesDto>(route);
 
             return operation;
         }
 
-        public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntriesByCountry(string leaderboardId, int entriesCount = 100)
+        public AsyncOperation<RestApiResult<LeaderboardEntriesDto>> GetLeaderboardTopEntriesByCountry(string leaderboardId, int entriesCount = 100)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-by-country?entriesCount={entriesCount}";
-            return _restApi.Get<LeaderboardEntriesDto>(route);
+            return _restApi.GetAsync<LeaderboardEntriesDto>(route);
         }
 
-        public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntriesByFriends(string leaderboardId, string[] friendIds)
+        public AsyncOperation<RestApiResult<LeaderboardEntriesDto>> GetLeaderboardTopEntriesByFriends(string leaderboardId, string[] friendIds)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-by-friends";
             var dto = new FriendsTopRequestDto { FriendIds = friendIds ?? Array.Empty<string>() };
-            return _restApi.Post<LeaderboardEntriesDto>(route, dto);
+            return _restApi.PostAsync<LeaderboardEntriesDto>(route, dto);
         }
         
-        public IRestApiOperation<LeaderboardAroundEntriesDto> GetLeaderboardPlayerAroundEntries(string leaderboardId, int around = 10)
+        public AsyncOperation<RestApiResult<LeaderboardAroundEntriesDto>> GetLeaderboardPlayerAroundEntries(string leaderboardId, int around = 10)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/around?entriesRange={around}";
 
-            var operation = _restApi.Get<LeaderboardAroundEntriesDto>(route);
+            var operation = _restApi.GetAsync<LeaderboardAroundEntriesDto>(route);
 
             return operation;
         }
         
-        public IRestApiOperation<LeaderboardTopAndPlayersAroundDto> GetLeaderboardEntries(string leaderboardId, int top = 100, int around = 10)
+        public AsyncOperation<RestApiResult<LeaderboardTopAndPlayersAroundDto>> GetLeaderboardEntries(string leaderboardId, int top = 100, int around = 10)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-and-around?topEntriesCount={top}&aroundEntriesRange={around}";
 
-            var operation = _restApi.Get<LeaderboardTopAndPlayersAroundDto>(route);
+            var operation = _restApi.GetAsync<LeaderboardTopAndPlayersAroundDto>(route);
 
             return operation;
         }
         
-        public IRestApiOperation<LeaderboardEntryDto> GetLeaderboardPlayer(string leaderboardId)
+        public AsyncOperation<RestApiResult<LeaderboardEntryDto>> GetLeaderboardPlayer(string leaderboardId)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries";
 
-            var operation = _restApi.Get<LeaderboardEntryDto>(route);
+            var operation = _restApi.GetAsync<LeaderboardEntryDto>(route);
 
             return operation;
         }
 
-        public IRestApiOperation<PlayerRewardsDto> GetRewardsAsync(bool reset = true)
+        public AsyncOperation<RestApiResult<PlayerRewardsDto>> GetRewardsAsync(bool reset = true)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards?reset={reset.ToString().ToLowerInvariant()}";
-            return _restApi.Get<PlayerRewardsDto>(route);
+            return _restApi.GetAsync<PlayerRewardsDto>(route);
         }
 
-        public IRestApiOperation SubmitRewardsAsync()
+        public AsyncOperation<RestApiResult> SubmitRewardsAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards";
-            return _restApi.Post(route, new { });
+            return _restApi.PostAsync(route, new { });
         }
     }
 }

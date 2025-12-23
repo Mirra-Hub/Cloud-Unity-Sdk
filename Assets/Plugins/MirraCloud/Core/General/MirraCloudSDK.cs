@@ -1,3 +1,4 @@
+using MirraCloud;
 using MirraCloud.Core.AssetsStorage;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.CloudSave;
@@ -67,8 +68,8 @@ namespace MirraCloud.Core
             Tournaments = new TournamentsService(configuration, restApiClient);
             RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
-            Analytics = new AnalyticsService(configuration, logger, restApiClient, jsonService);
-            Deployment = new DeploymentService(configuration, logger, restApiClient, jsonService);
+            Analytics = new AnalyticsService(configuration, logger, restApiClient);
+            Deployment = new DeploymentService(configuration, logger, restApiClient);
 
             RuleConstructor = new RuleConstructorService(configuration, logger, restApiClient, jsonService);
             Segments = new SegmentService(configuration, logger, restApiClient, jsonService);

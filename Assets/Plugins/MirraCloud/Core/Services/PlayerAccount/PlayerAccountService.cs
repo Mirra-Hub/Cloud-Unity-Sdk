@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Core.Auth;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.PlayerAccount.Dto;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -88,88 +89,88 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
         #region Account
 
-        public RestApiOperation<PlayerAccountInfo> GetAccountAsync()
+        public AsyncOperation<RestApiResult<PlayerAccountInfo>> GetAccountAsync()
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts";
-            var op = _restApi.Get<PlayerAccountInfo>(route);
+            var raw = _restApi.GetAsync<AccountDto>(route);
+            var mapped = new AsyncOperation<RestApiResult<PlayerAccountInfo>>();
 
-            op.UseExtractDataCallback(response =>
+            raw.OnCompleted += completed =>
             {
-                var dto = response.GetData<AccountDto>();
-                if (dto == null)
+                if (!completed.Result.IsSuccess || completed.Result.Data == null)
                 {
-                    return PlayerAccountInfo;
+                    mapped.Complete(RestApiResult<PlayerAccountInfo>.Fail(completed.Result.Error).WithMetaFrom(completed.Result));
+                    return;
                 }
 
-                PlayerAccountInfo = new PlayerAccountInfo(dto);
-                return PlayerAccountInfo;
-            });
+                PlayerAccountInfo = new PlayerAccountInfo(completed.Result.Data);
+                mapped.Complete(RestApiResult<PlayerAccountInfo>.Success(PlayerAccountInfo).WithMetaFrom(completed.Result));
+            };
 
-            return op;
+            return mapped;
         }
 
-        public RestApiOperation UpdateNicknameAsync(string nickname)
+        public AsyncOperation<RestApiResult> UpdateNicknameAsync(string nickname)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/nickname";
             var dto = new { Nickname = nickname };
-            var operation = _restApi.Patch(route, dto);
+            var operation = _restApi.PatchAsync(route, dto);
 
-            operation.UseCompletedCallback(x =>
+            operation.OnCompleted += completed =>
             {
-                if (x.IsSuccess)
+                if (completed.Result.IsSuccess && PlayerAccountInfo != null)
                 {
                     PlayerAccountInfo.Nickname = nickname;
                 }
-            });
+            };
 
             return operation;
         }
 
-        public RestApiOperation UpdateAgeAsync(int age)
+        public AsyncOperation<RestApiResult> UpdateAgeAsync(int age)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/age";
             var dto = new { Age = age };
-            return _restApi.Patch(route, dto);
+            return _restApi.PatchAsync(route, dto);
         }
 
-        public RestApiOperation UpdateCountryAsync(string country)
+        public AsyncOperation<RestApiResult> UpdateCountryAsync(string country)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/country";
             var dto = new { Country = country };
-            return _restApi.Patch(route, dto);
+            return _restApi.PatchAsync(route, dto);
         }
 
-        public RestApiOperation UpdateLanguageAsync(string languageCode)
+        public AsyncOperation<RestApiResult> UpdateLanguageAsync(string languageCode)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/language";
             var dto = new { LanguageCode = languageCode };
-            return _restApi.Patch(route, dto);
+            return _restApi.PatchAsync(route, dto);
         }
 
-        public RestApiOperation SetAccountIconUrlAsync(string iconUrl)
+        public AsyncOperation<RestApiResult> SetAccountIconUrlAsync(string iconUrl)
         {
             if (IsValidHttpUrl(iconUrl) == false)
             {
-                _logger.Error("Invalid iconUrl. Only http/https URL is allowed. Use upload methods to set internal icons.");
-                return CreateCompletedNoopOperation();
+                return CreateValidationErrorOperation("Invalid iconUrl. Only http/https URL is allowed. Use upload methods to set internal icons.");
             }
 
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/icon";
             var dto = new UpdateAccountIconDto { IconKey = iconUrl };
-            var op = _restApi.Patch(route, dto);
+            var op = _restApi.PatchAsync(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     var _ = GetAccountAsync();
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation UpdateIconWithUploadAsync(byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
+        public AsyncOperation<RestApiResult> UpdateIconWithUploadAsync(byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/icon/upload";
             var form = new List<IMultipartFormSection>
@@ -177,32 +178,32 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                 new MultipartFormFileSection("file", fileData, fileName, contentType)
             };
 
-            var op = _restApi.PatchMultipart(route, form);
-            op.UseCompletedCallback(operation =>
+            var op = _restApi.PatchMultipartAsync(route, form);
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     var _ = GetAccountAsync();
                 }
-            });
+            };
             return op;
         }
 
-        public RestApiOperation UpdateIconWithUploadAsync(Texture2D texture, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        public AsyncOperation<RestApiResult> UpdateIconWithUploadAsync(Texture2D texture, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
         {
             if (TryEncodeTexture(texture, fileName, contentType, jpgQuality, out var encoded, out var resolvedFileName, out var resolvedContentType) == false)
             {
-                return CreateCompletedNoopOperation();
+                return CreateValidationErrorOperation("Failed to encode texture.");
             }
 
             return UpdateIconWithUploadAsync(encoded, resolvedFileName, resolvedContentType);
         }
 
-        public RestApiOperation UpdateIconWithUploadAsync(Sprite sprite, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        public AsyncOperation<RestApiResult> UpdateIconWithUploadAsync(Sprite sprite, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
         {
             if (TryGetSpriteTexture(sprite, out var texture) == false)
             {
-                return CreateCompletedNoopOperation();
+                return CreateValidationErrorOperation("Failed to extract texture from sprite.");
             }
 
             try
@@ -215,126 +216,125 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             }
         }
 
-        public RestApiOperation UpdateSegmentsAsync(string[] segmentIds)
+        public AsyncOperation<RestApiResult> UpdateSegmentsAsync(string[] segmentIds)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/segments";
             var dto = new { SegmentIds = segmentIds };
-            return _restApi.Patch(route, dto);
+            return _restApi.PatchAsync(route, dto);
         }
 
         #endregion
 
         #region Profiles
 
-        public RestApiOperation<ProfileInfo[]> GetProfilesAsync()
+        public AsyncOperation<RestApiResult<ProfileInfo[]>> GetProfilesAsync()
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles";
-            var op = _restApi.Get<ProfileInfo[]>(route);
+            var op = _restApi.GetAsync<ProfileInfo[]>(route);
 
-            op.UseExtractDataCallback(response =>
+            op.OnCompleted += completed =>
             {
-                var data = response.GetData<ProfileInfo[]>() ?? Array.Empty<ProfileInfo>();
-                _profiles = new List<ProfileInfo>(data);
-                OnProfilesChanged?.Invoke(Profiles);
-                return data;
-            });
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
+                {
+                    _profiles = new List<ProfileInfo>(completed.Result.Data);
+                    OnProfilesChanged?.Invoke(Profiles);
+                }
+            };
 
             return op;
         }
 
-        public RestApiOperation<ProfileInfo> GetProfileAsync(string profileId)
+        public AsyncOperation<RestApiResult<ProfileInfo>> GetProfileAsync(string profileId)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
-            var op = _restApi.Get<ProfileInfo>(route);
+            var op = _restApi.GetAsync<ProfileInfo>(route);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    var profile = operation.Value;
-                    UpdateLocalProfile(profile);
+                    UpdateLocalProfile(completed.Result.Data);
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation<ProfileInfo> CreateProfileAsync(CreateProfileDto dto, bool autoSelect = false)
+        public AsyncOperation<RestApiResult<ProfileInfo>> CreateProfileAsync(CreateProfileDto dto, bool autoSelect = false)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles?autoSelect={autoSelect}";
-            var op = _restApi.Post<ProfileInfo>(route, dto);
+            var op = _restApi.PostAsync<ProfileInfo>(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess && operation.Value != null)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    _profiles.Add(operation.Value);
+                    _profiles.Add(completed.Result.Data);
                     OnProfilesChanged?.Invoke(Profiles);
-                    OnProfileUpdated?.Invoke(operation.Value);
+                    OnProfileUpdated?.Invoke(completed.Result.Data);
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation DeleteProfileAsync(string profileId)
+        public AsyncOperation<RestApiResult> DeleteProfileAsync(string profileId)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
-            var op = _restApi.Delete(route);
+            var op = _restApi.DeleteAsync(route);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     _profiles.RemoveAll(p => p.Id == profileId);
                     OnProfilesChanged?.Invoke(Profiles);
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation UpdateProfileNicknameAsync(string profileId, string username)
+        public AsyncOperation<RestApiResult> UpdateProfileNicknameAsync(string profileId, string username)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/nickname";
             var dto = new UpdateProfileNicknameDto { Username = username };
-            var op = _restApi.Patch(route, dto);
+            var op = _restApi.PatchAsync(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation SetProfileIconUrlAsync(string profileId, string iconUrl)
+        public AsyncOperation<RestApiResult> SetProfileIconUrlAsync(string profileId, string iconUrl)
         {
             if (IsValidHttpUrl(iconUrl) == false)
             {
-                _logger.Error("Invalid iconUrl. Only http/https URL is allowed. Use upload methods to set internal icons.");
-                return CreateCompletedNoopOperation();
+                return CreateValidationErrorOperation("Invalid iconUrl. Only http/https URL is allowed. Use upload methods to set internal icons.");
             }
 
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/icon";
             var dto = new UpdateProfileIconDto { IconKey = iconUrl };
-            var op = _restApi.Patch(route, dto);
+            var op = _restApi.PatchAsync(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation UpdateProfileIconWithUploadAsync(string profileId, byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
+        public AsyncOperation<RestApiResult> UpdateProfileIconWithUploadAsync(string profileId, byte[] fileData, string fileName = "icon.png", string contentType = "image/png")
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/icon/upload";
             var form = new List<IMultipartFormSection>
@@ -342,32 +342,32 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                 new MultipartFormFileSection("file", fileData, fileName, contentType)
             };
 
-            var op = _restApi.PatchMultipart(route, form);
-            op.UseCompletedCallback(operation =>
+            var op = _restApi.PatchMultipartAsync(route, form);
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            });
+            };
             return op;
         }
 
-        public RestApiOperation UpdateProfileIconWithUploadAsync(string profileId, Texture2D texture, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        public AsyncOperation<RestApiResult> UpdateProfileIconWithUploadAsync(string profileId, Texture2D texture, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
         {
             if (TryEncodeTexture(texture, fileName, contentType, jpgQuality, out var encoded, out var resolvedFileName, out var resolvedContentType) == false)
             {
-                return CreateCompletedNoopOperation();
+                return CreateValidationErrorOperation("Failed to encode texture.");
             }
 
             return UpdateProfileIconWithUploadAsync(profileId, encoded, resolvedFileName, resolvedContentType);
         }
 
-        public RestApiOperation UpdateProfileIconWithUploadAsync(string profileId, Sprite sprite, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
+        public AsyncOperation<RestApiResult> UpdateProfileIconWithUploadAsync(string profileId, Sprite sprite, string fileName = "icon.png", string contentType = null, int jpgQuality = 75)
         {
             if (TryGetSpriteTexture(sprite, out var texture) == false)
             {
-                return CreateCompletedNoopOperation();
+                return CreateValidationErrorOperation("Failed to extract texture from sprite.");
             }
 
             try
@@ -380,35 +380,35 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             }
         }
 
-        public RestApiOperation UpdateProfileSegmentsAsync(string profileId, string[] segmentIds)
+        public AsyncOperation<RestApiResult> UpdateProfileSegmentsAsync(string profileId, string[] segmentIds)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/segments";
             var dto = new UpdateProfileSegmentsDto { SegmentIds = segmentIds };
-            var op = _restApi.Patch(route, dto);
+            var op = _restApi.PatchAsync(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            });
+            };
 
             return op;
         }
 
-        public RestApiOperation<ProfileInfo> ReplaceProfileAsync(string profileId, CreateProfileDto dto)
+        public AsyncOperation<RestApiResult<ProfileInfo>> ReplaceProfileAsync(string profileId, CreateProfileDto dto)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
-            var op = _restApi.Put<ProfileInfo>(route, dto);
+            var op = _restApi.PutAsync<ProfileInfo>(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess && operation.Value != null)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    UpdateLocalProfile(operation.Value);
+                    UpdateLocalProfile(completed.Result.Data);
                 }
-            });
+            };
 
             return op;
         }
@@ -439,16 +439,9 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             OnProfileUpdated?.Invoke(profile);
         }
 
-        private RestApiOperation CreateCompletedNoopOperation()
+        private static AsyncOperation<RestApiResult> CreateValidationErrorOperation(string message)
         {
-            var op = new RestApiOperation(_restApi.JsonService);
-            var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
-            {
-                downloadHandler = new DownloadHandlerBuffer()
-            };
-            op.Initialize(dummyRequest);
-            op.Complete();
-            return op;
+            return AsyncOperation<RestApiResult>.Completed(RestApiResult.ValidationFail(message));
         }
 
         private static bool IsValidHttpUrl(string url)
@@ -670,19 +663,19 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             }
         }
 
-        public RestApiOperation SelectProfileAsync(string profileId)
+        public AsyncOperation<RestApiResult> SelectProfileAsync(string profileId)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/profile";
             var dto = new { ProfileId = profileId };
-            var op = _restApi.Patch(route, dto);
+            var op = _restApi.PatchAsync(route, dto);
 
-            op.UseCompletedCallback(operation =>
+            op.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess)
                 {
                     OnProfileSelected?.Invoke(profileId);
                 }
-            });
+            };
 
             return op;
         }

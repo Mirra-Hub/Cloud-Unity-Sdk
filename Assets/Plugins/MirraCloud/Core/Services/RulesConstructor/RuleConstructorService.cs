@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.RulesConstructor.Dto;
 using UnityEngine;
 using ILogger = MirraCloud.Core.Logger.ILogger;
@@ -15,10 +16,10 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor
         private readonly RestApiClient _restApi;
         private readonly IJsonService _jsonService;
 
-        private const string ControllerApi =  "/rules-constructor/v1";
+        private const string ControllerApi = "/rules-constructor/v1";
 
-        private readonly Dictionary<string, RulesTreeDto> _rules = new Dictionary<string, RulesTreeDto>(); 
-        
+        private readonly Dictionary<string, RulesTreeDto> _rules = new Dictionary<string, RulesTreeDto>();
+
         public RuleConstructorService(Configuration configuration, ILogger logger, RestApiClient restApiClient, IJsonService jsonService)
         {
             _configuration = configuration;
@@ -26,29 +27,36 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor
             _restApi = restApiClient;
             _jsonService = jsonService;
         }
-        
-        public IRestApiOperation LoadConfigAsync()
+
+        public AsyncOperation<RestApiResult<RulesTreeDto[]>> LoadConfigAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rules";
-            
-            var response = _restApi.Get(route);
 
-            response.UseCompletedCallback(result =>
+            var op = _restApi.GetAsync<RulesTreeDto[]>(route);
+            op.OnCompleted += completed =>
             {
-                _logger.Log(result.DownloadHandler.text);
-                
-                var rulesTreeDto = _jsonService.FromJson<RulesTreeDto[]>(response.DownloadHandler.text);
-
-                foreach (var rulesTree in rulesTreeDto)
+                if (!completed.Result.IsSuccess || completed.Result.Data == null)
                 {
-                    _rules.Add(rulesTree.id, rulesTree);
+                    _logger.Error(completed.Result.Error?.Message ?? "RulesConstructor request failed.");
+                    return;
                 }
-                
-                Debug.Log(rulesTreeDto);
-                Debug.Log(_jsonService.ToJson(rulesTreeDto));
-            });
-            
-            return response;
+
+                _rules.Clear();
+
+                foreach (var rulesTree in completed.Result.Data)
+                {
+                    if (rulesTree == null || string.IsNullOrEmpty(rulesTree.id))
+                    {
+                        continue;
+                    }
+
+                    _rules[rulesTree.id] = rulesTree;
+                }
+
+                Debug.Log(_jsonService.ToJson(completed.Result.Data));
+            };
+
+            return op;
         }
 
         public bool ExecuteRule(string ruleId)
@@ -57,9 +65,8 @@ namespace Plugins.MirraCloud.Core.Services.RulesConstructor
             {
                 return rule.root.Execute();
             }
-            
-            Debug.LogError($"not found rule from id: {ruleId}");
 
+            Debug.LogError($"not found rule from id: {ruleId}");
             return false;
         }
     }

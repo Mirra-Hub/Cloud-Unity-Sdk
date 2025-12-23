@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Tournaments.Dto;
 
 namespace Plugins.MirraCloud.Core.Services.Tournaments
@@ -23,75 +24,75 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
             _configuration = configuration;
         }
 
-        public IBaseRestApiOperation Initialize()
+        public AsyncOperation<RestApiResult<TournamentConfigDto[]>> InitializeAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments";
 
-            var operation = _restApi.Get<TournamentConfigDto[]>(route);
+            var operation = _restApi.GetAsync<TournamentConfigDto[]>(route);
 
-            operation.UseCompletedCallback(response =>
+            operation.OnCompleted += completed =>
             {
                 
                 _tournamentConfigs.Clear();
 
-                if (response.IsSuccess)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    foreach (var tournamentConfigDto in response.Value)
+                    foreach (var tournamentConfigDto in completed.Result.Data)
                     {
                         _tournamentConfigs.Add(new TournamentConfig(tournamentConfigDto));
                     }
                 }
 
                 IsInitialized = true;
-            });
+            };
             
             return operation;
         }
 
-        public IRestApiOperation<TournamentConfigDto> GetConfigAsync(string tournamentId)
+        public AsyncOperation<RestApiResult<TournamentConfigDto>> GetConfigAsync(string tournamentId)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}";
-            return _restApi.Get<TournamentConfigDto>(route);
+            return _restApi.GetAsync<TournamentConfigDto>(route);
         }
 
-        public IRestApiOperation<TournamentEntriesDto> GetTopAsync(string tournamentId, string tableId, int entriesCount = 100)
+        public AsyncOperation<RestApiResult<TournamentEntriesDto>> GetTopAsync(string tournamentId, string tableId, int entriesCount = 100)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries/top?tableId={tableId}&entriesCount={entriesCount}";
-            return _restApi.Get<TournamentEntriesDto>(route);
+            return _restApi.GetAsync<TournamentEntriesDto>(route);
         }
 
-        public IRestApiOperation<TournamentEntriesDto> GetTopByCountryAsync(string tournamentId, string tableId, int entriesCount = 100)
+        public AsyncOperation<RestApiResult<TournamentEntriesDto>> GetTopByCountryAsync(string tournamentId, string tableId, int entriesCount = 100)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries/top-by-country?tableId={tableId}&entriesCount={entriesCount}";
-            return _restApi.Get<TournamentEntriesDto>(route);
+            return _restApi.GetAsync<TournamentEntriesDto>(route);
         }
 
-        public IRestApiOperation<TournamentEntriesDto> GetTopByFriendsAsync(string tournamentId, string tableId, string[] friendIds)
+        public AsyncOperation<RestApiResult<TournamentEntriesDto>> GetTopByFriendsAsync(string tournamentId, string tableId, string[] friendIds)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries/top-by-friends?tableId={tableId}";
             var dto = new FriendsTopRequestDto { friendIds = friendIds ?? Array.Empty<string>() };
-            return _restApi.Post<TournamentEntriesDto>(route, dto);
+            return _restApi.PostAsync<TournamentEntriesDto>(route, dto);
         }
 
-        public IRestApiOperation<TournamentPlayersAroundDto> GetAroundAsync(string tournamentId, string tableId, int entriesRange = 10)
+        public AsyncOperation<RestApiResult<TournamentPlayersAroundDto>> GetAroundAsync(string tournamentId, string tableId, int entriesRange = 10)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries/around?tableId={tableId}&entriesRange={entriesRange}";
-            return _restApi.Get<TournamentPlayersAroundDto>(route);
+            return _restApi.GetAsync<TournamentPlayersAroundDto>(route);
         }
 
-        public IRestApiOperation<TournamentTopAndPlayersAroundDto> GetTopAndAroundAsync(string tournamentId, string tableId, int topEntriesCount = 100, int aroundEntriesRange = 10)
+        public AsyncOperation<RestApiResult<TournamentTopAndPlayersAroundDto>> GetTopAndAroundAsync(string tournamentId, string tableId, int topEntriesCount = 100, int aroundEntriesRange = 10)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries/top-and-around?tableId={tableId}&topEntriesCount={topEntriesCount}&aroundEntriesRange={aroundEntriesRange}";
-            return _restApi.Get<TournamentTopAndPlayersAroundDto>(route);
+            return _restApi.GetAsync<TournamentTopAndPlayersAroundDto>(route);
         }
 
-        public IRestApiOperation<TournamentEntryDto> GetPlayerAsync(string tournamentId, string tableId)
+        public AsyncOperation<RestApiResult<TournamentEntryDto>> GetPlayerAsync(string tournamentId, string tableId)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries?tableId={tableId}";
-            return _restApi.Get<TournamentEntryDto>(route);
+            return _restApi.GetAsync<TournamentEntryDto>(route);
         }
 
-        public IRestApiOperation SubmitScoreAsync(string tournamentId, double score, string playerName = null)
+        public AsyncOperation<RestApiResult> SubmitScoreAsync(string tournamentId, double score, string playerName = null)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries";
 
@@ -103,25 +104,25 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
                 value = score,
             };
 
-            return _restApi.Post(route, dto);
+            return _restApi.PostAsync(route, dto);
         }
 
-        public IRestApiOperation<PlayerLeagueMetaDto> GetPlayerLeagueMetaAsync(string tournamentId)
+        public AsyncOperation<RestApiResult<PlayerLeagueMetaDto>> GetPlayerLeagueMetaAsync(string tournamentId)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/players-league";
-            return _restApi.Get<PlayerLeagueMetaDto>(route);
+            return _restApi.GetAsync<PlayerLeagueMetaDto>(route);
         }
 
-        public IRestApiOperation<PlayerRewardsDto> GetRewardsAsync(bool reset = true)
+        public AsyncOperation<RestApiResult<PlayerRewardsDto>> GetRewardsAsync(bool reset = true)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards?reset={reset.ToString().ToLowerInvariant()}";
-            return _restApi.Get<PlayerRewardsDto>(route);
+            return _restApi.GetAsync<PlayerRewardsDto>(route);
         }
 
-        public IRestApiOperation SubmitRewardsAsync()
+        public AsyncOperation<RestApiResult> SubmitRewardsAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards";
-            return _restApi.Post(route, new { });
+            return _restApi.PostAsync(route, new { });
         }
     }
 }

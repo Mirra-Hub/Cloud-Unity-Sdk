@@ -1,8 +1,8 @@
-﻿using System.Globalization;
+using System.Globalization;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Core.Logger;
-using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Analytics.Dto;
 
 namespace Plugins.MirraCloud.Core.Services.Analytics
@@ -12,52 +12,53 @@ namespace Plugins.MirraCloud.Core.Services.Analytics
         private readonly Configuration _configuration;
         private readonly ILogger _logger;
         private readonly RestApiClient _restApi;
-        private readonly IJsonService _jsonService;
-        
-        private const string ControllerApi =  "/analytics/v1";
 
-        
-        public AnalyticsService(Configuration configuration, ILogger logger, RestApiClient restApiClient, IJsonService jsonService)
+        private const string ControllerApi = "/analytics/v1";
+
+        public AnalyticsService(Configuration configuration, ILogger logger, RestApiClient restApiClient)
         {
             _configuration = configuration;
             _logger = logger;
             _restApi = restApiClient;
-            _jsonService = jsonService;
         }
 
-        public IBaseRestApiOperation SendEvent(string metricId)
+        public AsyncOperation<RestApiResult> SendEventAsync(string metricId)
         {
-            return SubmitEvent(metricId);
+            return SubmitEventAsync(metricId);
         }
-        
-        public IBaseRestApiOperation SendEvent(string metricId, string value)
+
+        public AsyncOperation<RestApiResult> SendEventAsync(string metricId, string value)
         {
-            return SubmitEvent(metricId, value);
+            return SubmitEventAsync(metricId, value);
         }
-        
-        public IBaseRestApiOperation SendEvent(string metricId, int value)
+
+        public AsyncOperation<RestApiResult> SendEventAsync(string metricId, int value)
         {
-            return SubmitEvent(metricId, value.ToString());
+            return SubmitEventAsync(metricId, value.ToString());
         }
-        
-        public IBaseRestApiOperation SendEvent(string metricId, float value)
+
+        public AsyncOperation<RestApiResult> SendEventAsync(string metricId, float value)
         {
-            return SubmitEvent(metricId, value.ToString(CultureInfo.InvariantCulture));
+            return SubmitEventAsync(metricId, value.ToString(CultureInfo.InvariantCulture));
         }
-        
-        public IBaseRestApiOperation SendEvent(string metricId, bool value)
+
+        public AsyncOperation<RestApiResult> SendEventAsync(string metricId, bool value)
         {
-            return SubmitEvent(metricId, value.ToString());
+            return SubmitEventAsync(metricId, value.ToString());
         }
-        
-        private IBaseRestApiOperation SubmitEvent(string metricId, string value = null)
+
+        private AsyncOperation<RestApiResult> SubmitEventAsync(string metricId, string value = null)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/platforms/{_configuration.AnalyticsPlatformId}/custom-metrics/{metricId}";
-            
-            var response = _restApi.Post(route, new SendEventDto()
+
+            var response = _restApi.PostAsync(route, new SendEventDto { Value = value });
+            response.OnCompleted += completed =>
             {
-                Value = value,
-            });
+                if (!completed.Result.IsSuccess)
+                {
+                    _logger.Error(completed.Result.Error?.Message ?? "Analytics request failed.");
+                }
+            };
 
             return response;
         }

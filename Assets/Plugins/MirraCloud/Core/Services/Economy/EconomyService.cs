@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace MirraCloud.Core.Economy
 {
-    public class EconomyService 
+    public class EconomyService
     {
         private readonly ILogger _logger;
         private readonly Configuration _configuration;
@@ -15,11 +16,11 @@ namespace MirraCloud.Core.Economy
         private readonly List<CurrencyEconomyDefinition> _currencies = new List<CurrencyEconomyDefinition>();
         private readonly List<ItemEconomyDefinition> _items = new List<ItemEconomyDefinition>();
         private readonly List<TradeEconomyDefinition> _trades = new List<TradeEconomyDefinition>();
-        
+
         public IReadOnlyCollection<CurrencyEconomyDefinition> Currencies => _currencies;
         public IReadOnlyCollection<ItemEconomyDefinition> Items => _items;
         public IReadOnlyCollection<TradeEconomyDefinition> Trades => _trades;
-     
+
         public EconomyService(Configuration configuration, ILogger logger, RestApiClient restApi)
         {
             _configuration = configuration;
@@ -27,26 +28,24 @@ namespace MirraCloud.Core.Economy
             _logger = logger;
         }
 
-        public IRestApiOperation LoadConfigAsync()
+        public AsyncOperation<RestApiResult<EconomyConfigDto>> LoadConfigAsync()
         {
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/configs";
-            
-            var operation = _restApi.Get(route);
+
+            var operation = _restApi.GetAsync<EconomyConfigDto>(route);
 
             _currencies.Clear();
             _items.Clear();
             _trades.Clear();
-            
-            operation.UseCompletedCallback(requestOperation =>
+
+            operation.OnCompleted += completed =>
             {
-                if (operation.IsSuccess)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    Debug.Log(requestOperation.DownloadHandler.text);
-                    
-                    var config = requestOperation.GetData<EconomyConfigDto>();
-                    
+                    var config = completed.Result.Data;
+
                     Debug.Log(JsonUtility.ToJson(config));
-                    
+
                     foreach (var currencyDefinitionDto in config.currencies)
                     {
                         _currencies.Add(new CurrencyEconomyDefinition(currencyDefinitionDto));
@@ -57,60 +56,31 @@ namespace MirraCloud.Core.Economy
                         _items.Add(new ItemEconomyDefinition(itemDefinitionDto));
                     }
                 }
-            });
+            };
 
             return operation;
         }
-        
-        public IRestApiOperation<ResultCurrencyOperationDto> AddCurrencyAsync(string currencyId, int amount)
+
+        public AsyncOperation<RestApiResult<ResultCurrencyOperationDto>> AddCurrencyAsync(string currencyId, int amount)
         {
-            ChangeCurrencyOperationDto operationDto = new ChangeCurrencyOperationDto()
-            {
-                CurrencyId = currencyId,
-                Amount = amount,
-            };
- 
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/add";
-            
-            var operation = _restApi.Patch<ResultCurrencyOperationDto>(route, operationDto);
-
-            operation.UseExtractDataCallback(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
-            
-            return operation;
+            var dto = new ChangeCurrencyOperationDto { CurrencyId = currencyId, Amount = amount };
+            return _restApi.PatchAsync<ResultCurrencyOperationDto>(route, dto);
         }
 
-        public IRestApiOperation<ResultCurrencyOperationDto> SubtractCurrencyAsync(string currencyId, int amount)
+        public AsyncOperation<RestApiResult<ResultCurrencyOperationDto>> SubtractCurrencyAsync(string currencyId, int amount)
         {
-            ChangeCurrencyOperationDto operationDto = new ChangeCurrencyOperationDto()
-            {
-                CurrencyId = currencyId,
-                Amount = amount,
-            };
- 
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/subtract";
-            
-            var operation = _restApi.Patch<ResultCurrencyOperationDto>(route, operationDto);
-
-            operation.UseExtractDataCallback(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
-            
-            return operation;
+            var dto = new ChangeCurrencyOperationDto { CurrencyId = currencyId, Amount = amount };
+            return _restApi.PatchAsync<ResultCurrencyOperationDto>(route, dto);
         }
 
-        public IRestApiOperation<ResultCurrencyOperationDto> SetCurrencyAsync(string currencyId, int amount)
+        public AsyncOperation<RestApiResult<ResultCurrencyOperationDto>> SetCurrencyAsync(string currencyId, int amount)
         {
-            ChangeCurrencyOperationDto operationDto = new ChangeCurrencyOperationDto()
-            {
-                CurrencyId = currencyId,
-                Amount = amount,
-            };
- 
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/set";
-            
-            var operation = _restApi.Put<ResultCurrencyOperationDto>(route, operationDto);
-
-            operation.UseExtractDataCallback(apiOperation => operation.GetData<ResultCurrencyOperationDto>());
-            
-            return operation;
+            var dto = new ChangeCurrencyOperationDto { CurrencyId = currencyId, Amount = amount };
+            return _restApi.PutAsync<ResultCurrencyOperationDto>(route, dto);
         }
     }
 }
+

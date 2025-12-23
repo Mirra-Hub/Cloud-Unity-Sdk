@@ -1,5 +1,6 @@
 using MirraCloud.Core.CloudSave.Responses;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.CloudSave
 {
@@ -22,54 +23,46 @@ namespace MirraCloud.Core.CloudSave
             _jsonService = jsonService;
         }
 
-        public IRestApiOperation LoadAsync()
+        public AsyncOperation<RestApiResult<PlayerDataResponse>> LoadAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/load";
             
-            var request = _restApi.Get(route);
+            var request = _restApi.GetAsync<PlayerDataResponse>(route);
             
-            request.UseCompletedCallback(response =>
+            request.OnCompleted += completed =>
             {
-                if (response.IsSuccess)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    _logger.Log(request.DownloadHandler.text);
-                    
-                    var playerDataResponse = request.GetData<PlayerDataResponse>();
-
-                    PlayerData = new PlayerData(playerDataResponse);
+                    PlayerData = new PlayerData(completed.Result.Data);
                     
                     foreach (var field in PlayerData.Fields)
                     {
                         _logger.Log($"key {field.Key} value {field.CurrentValue}");
                     }
                 }
-            });
+            };
 
             return request;
         }
 
-        public IRestApiOperation SaveAsync(UpdateDataContainer data)
+        public AsyncOperation<RestApiResult<PlayerDataResponse>> SaveAsync(UpdateDataContainer data)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/update";
             
-            var request = _restApi.Post(route, data);
+            var request = _restApi.PostAsync<PlayerDataResponse>(route, data);
 
-            request.UseCompletedCallback(response =>
+            request.OnCompleted += completed =>
             {
-                if (response.IsSuccess)
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
-                    _logger.Log(request.DownloadHandler.text);
-                    
-                    var playerDataResponse = request.GetData<PlayerDataResponse>();
-
-                    PlayerData = new PlayerData(playerDataResponse);
+                    PlayerData = new PlayerData(completed.Result.Data);
                     
                     foreach (var field in PlayerData.Fields)
                     {
                         _logger.Log($"key {field.Key} value {field.CurrentValue}");
                     }
                 }
-            });
+            };
             
             return request;
         }

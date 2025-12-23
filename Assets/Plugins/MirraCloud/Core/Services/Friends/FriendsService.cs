@@ -1,4 +1,5 @@
 using MirraCloud;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using MirraCloud.Core.Friends.Dto;
 using MirraCloud.Core.Logger;
 
@@ -21,117 +22,116 @@ namespace MirraCloud.Core.Friends
 
         #region Friends
 
-        public IRestApiOperation<GetPlayerDto[]> GetFriendsAsync()
+        public AsyncOperation<RestApiResult<GetPlayerDto[]>> GetFriendsAsync()
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/friends";
-            return _restApi.Get<GetPlayerDto[]>(route);
+            return _restApi.GetAsync<GetPlayerDto[]>(route);
         }
 
-        public IRestApiOperation RemoveFriendAsync(string targetPlayerId)
+        public AsyncOperation<RestApiResult> RemoveFriendAsync(string targetPlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/friends/{targetPlayerId}";
-            return _restApi.Delete(route);
+            return _restApi.DeleteAsync(route);
         }
 
-        public IRestApiOperation BanAsync(string targetPlayerId)
+        public AsyncOperation<RestApiResult> BanAsync(string targetPlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/ban/{targetPlayerId}";
-            return _restApi.Post(route);
+            return _restApi.PostAsync(route);
         }
 
-        public IRestApiOperation BanManyAsync(string[] targetPlayerIds)
+        public AsyncOperation<RestApiResult> BanManyAsync(string[] targetPlayerIds)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/ban";
-            return _restApi.Post(route, targetPlayerIds);
+            return _restApi.PostAsync(route, targetPlayerIds);
         }
 
         #endregion
 
         #region Requests
 
-        public IRestApiOperation SendAsync(string targetPlayerId)
+        public AsyncOperation<RestApiResult> SendAsync(string targetPlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/{targetPlayerId}/send";
-            return _restApi.Post(route);
+            return _restApi.PostAsync(route);
         }
 
-        public IRestApiOperation SendManyAsync(string[] targetPlayerIds)
+        public AsyncOperation<RestApiResult> SendManyAsync(string[] targetPlayerIds)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/send";
-            return _restApi.Post(route, targetPlayerIds);
+            return _restApi.PostAsync(route, targetPlayerIds);
         }
 
-        public IRestApiOperation RevokeAsync(string targetPlayerId)
+        public AsyncOperation<RestApiResult> RevokeAsync(string targetPlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/{targetPlayerId}/revoke";
-            return _restApi.Post(route);
+            return _restApi.PostAsync(route);
         }
 
-        public IRestApiOperation RevokeManyAsync(string[] targetPlayerIds)
+        public AsyncOperation<RestApiResult> RevokeManyAsync(string[] targetPlayerIds)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/revoke";
-            return _restApi.Post(route, targetPlayerIds);
+            return _restApi.PostAsync(route, targetPlayerIds);
         }
 
-        public IRestApiOperation AcceptAsync(string sourcePlayerId)
+        public AsyncOperation<RestApiResult> AcceptAsync(string sourcePlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/{sourcePlayerId}/accept";
-            return _restApi.Post(route);
+            return _restApi.PostAsync(route);
         }
 
-        public IRestApiOperation AcceptManyAsync(string[] sourcePlayerIds)
+        public AsyncOperation<RestApiResult> AcceptManyAsync(string[] sourcePlayerIds)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/accept";
-            return _restApi.Post(route, sourcePlayerIds);
+            return _restApi.PostAsync(route, sourcePlayerIds);
         }
 
-        public IRestApiOperation RejectAsync(string sourcePlayerId)
+        public AsyncOperation<RestApiResult> RejectAsync(string sourcePlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/{sourcePlayerId}/reject";
-            return _restApi.Post(route);
+            return _restApi.PostAsync(route);
         }
 
-        public IRestApiOperation RejectManyAsync(string[] sourcePlayerIds)
+        public AsyncOperation<RestApiResult> RejectManyAsync(string[] sourcePlayerIds)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/reject";
-            return _restApi.Post(route, sourcePlayerIds);
+            return _restApi.PostAsync(route, sourcePlayerIds);
         }
 
-        public IRestApiOperation<GetFriendRequestDto[]> GetRequestsAsync()
+        public AsyncOperation<RestApiResult<GetFriendRequestDto[]>> GetRequestsAsync()
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests";
-            return _restApi.Get<GetFriendRequestDto[]>(route);
+            return _restApi.GetAsync<GetFriendRequestDto[]>(route);
         }
 
-        public IRestApiOperation<GetFriendRequestDto[]> GetOutgoingAsync()
+        public AsyncOperation<RestApiResult<GetFriendRequestDto[]>> GetOutgoingAsync()
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/outgoing";
-            return _restApi.Get<GetFriendRequestDto[]>(route);
+            return _restApi.GetAsync<GetFriendRequestDto[]>(route);
         }
 
-        public IRestApiOperation<GetFriendRequestDto[]> GetIncomingAsync()
+        public AsyncOperation<RestApiResult<GetFriendRequestDto[]>> GetIncomingAsync()
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/incoming";
-            return _restApi.Get<GetFriendRequestDto[]>(route);
+            return _restApi.GetAsync<GetFriendRequestDto[]>(route);
         }
 
-        public IRestApiOperation DeleteAsync(string targetPlayerId)
+        public AsyncOperation<RestApiResult> DeleteAsync(string targetPlayerId)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests/{targetPlayerId}";
-            return _restApi.Delete(route);
+            return _restApi.DeleteAsync(route);
         }
 
-        public IRestApiOperation DeleteManyAsync(string[] targetPlayerIds)
+        public AsyncOperation<RestApiResult> DeleteManyAsync(string[] targetPlayerIds)
         {
             var route = $"{ControllerApi}/{_configuration.ProjectId}/players/requests";
             var config = new RestRequestConfig
             {
                 Body = targetPlayerIds
             };
-            return _restApi.Delete(route, config);
+            return _restApi.DeleteAsync(route, config);
         }
 
         #endregion
     }
 }
-

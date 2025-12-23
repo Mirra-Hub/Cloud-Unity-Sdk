@@ -1,7 +1,7 @@
-﻿using MirraCloud;
+using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Core.Logger;
-using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Deployment.Dto;
 
 namespace Plugins.MirraCloud.Core.Services.Deployment
@@ -11,34 +11,34 @@ namespace Plugins.MirraCloud.Core.Services.Deployment
         private readonly Configuration _configuration;
         private readonly ILogger _logger;
         private readonly RestApiClient _restApi;
-        private readonly IJsonService _jsonService;
-        
-        private const string ControllerApi =  "/deployment/v1";
 
-        
-        public DeploymentService(Configuration configuration, ILogger logger, RestApiClient restApiClient, IJsonService jsonService)
+        private const string ControllerApi = "/deployment/v1";
+
+        public DeploymentService(Configuration configuration, ILogger logger, RestApiClient restApiClient)
         {
             _configuration = configuration;
             _logger = logger;
             _restApi = restApiClient;
-            _jsonService = jsonService;
         }
 
-        public IBaseRestApiOperation ResolveBranchAsync(string environmentId, string version)
+        public AsyncOperation<RestApiResult<ResolveBranchResponseDto>> ResolveBranchAsync(string environmentId, string version)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/resolve-branch";
-            
-            var response = _restApi.Post<ResolveBranchResponseDto>(route, new ResolveBranchRequestDto()
+
+            var response = _restApi.PostAsync<ResolveBranchResponseDto>(route, new ResolveBranchRequestDto
             {
                 EnvironmentId = environmentId,
                 ClientVersion = version,
             });
 
-            response.UseCompletedCallback(result =>
+            response.OnCompleted += completed =>
             {
-                _logger.Log(result.DownloadHandler.text);
-            });
-            
+                if (!completed.Result.IsSuccess)
+                {
+                    _logger.Error(completed.Result.Error?.Message ?? "ResolveBranch request failed.");
+                }
+            };
+
             return response;
         }
     }

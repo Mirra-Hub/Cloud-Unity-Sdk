@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using MirraCloud.Core;
 using MirraCloud.Core.Storage;
-using MirraCloud.Json;
-using UnityEngine;
-using UnityEngine.Networking;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Auth
 {
-    public class AuthenticationService
+    public class AuthenticationService : ISessionRefresher
     {
         private readonly Logger.ILogger _logger;
         private readonly IStorage _storage;
@@ -44,371 +41,266 @@ namespace MirraCloud.Core.Auth
             _storage = storage;
 
             _restApi.UseRequestInterceptor(AuthTokenInterceptor);
-            _restApi.UseResponseInterceptor(SessionRefreshInterceptor);
+            _restApi.SetSessionRefresher(this);
         }
-        
-        public IRestApiOperation InitializeAsync()
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> InitializeAsync()
         {
             if (_storage.HasKey(REFRESH_TOKEN_KEY) == false)
             {
-                var emptyOperation = new RestApiOperation(_restApi.JsonService);
-                var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
-                {
-                    downloadHandler = new DownloadHandlerBuffer()
-                };
-                emptyOperation.Initialize(dummyRequest);
-                emptyOperation.Complete();
-                return emptyOperation;
+                return AsyncOperation<RestApiResult<GetAuthDataDto>>.Completed(RestApiResult<GetAuthDataDto>.Success(null));
             }
 
             var savedRefresh = _storage.GetString(REFRESH_TOKEN_KEY);
             if (string.IsNullOrWhiteSpace(savedRefresh))
             {
                 ClearSessionAndStorage();
-
-                var emptyOperation = new RestApiOperation(_restApi.JsonService);
-                var dummyRequest = new UnityWebRequest(_restApi.GetUrl(string.Empty), UnityWebRequest.kHttpVerbGET)
-                {
-                    downloadHandler = new DownloadHandlerBuffer()
-                };
-                emptyOperation.Initialize(dummyRequest);
-                emptyOperation.Complete();
-                return emptyOperation;
+                return AsyncOperation<RestApiResult<GetAuthDataDto>>.Completed(RestApiResult<GetAuthDataDto>.Success(null));
             }
 
             _refreshToken = savedRefresh;
 
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/session";
-            var dto = new RefreshSessionDto
-            {
-                RefreshToken = _refreshToken
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new RefreshSessionDto { RefreshToken = _refreshToken };
+            return PostAuthAsync(route, dto, noAuth: true);
         }
-        
+
         #region Login
 
-        public IRestApiOperation LoginGuestAsync(bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true)
         {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/guest";
-            var dto = new LoginAsGuestDto
-            {
-                CreateAccount = createAccount
-            };
+            var dto = new LoginAsGuestDto { CreateAccount = createAccount };
 
             if (_storage.HasKey(GUESTID_KEY))
             {
                 dto.GuestId = _storage.GetString(GUESTID_KEY);
             }
-            
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+
+            return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public IRestApiOperation LoginDeviceAsync(string deviceId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginDeviceAsync(string deviceId, bool createAccount = true)
         {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/device";
-            var dto = new LoginByDeviceIdDto
-            {
-                DeviceId = deviceId,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByDeviceIdDto { DeviceId = deviceId, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public IRestApiOperation LoginEmailAsync(string email, string password, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginEmailAsync(string email, string password, bool createAccount = true)
         {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/email";
-            var dto = new LoginByEmailDto
-            {
-                Email = email,
-                Password = password,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByEmailDto { Email = email, Password = password, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public IRestApiOperation LoginUsernameAsync(string username, string password, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginUsernameAsync(string username, string password, bool createAccount = true)
         {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/username";
-            var dto = new LoginByUsernameDto
-            {
-                Login = username,
-                Password = password,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByUsernameDto { Login = username, Password = password, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public IRestApiOperation LoginVkGamesAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginVkGamesAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/vk-games", userId, createAccount);
         }
 
-        public IRestApiOperation LoginYandexGamesAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexGamesAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex-games", userId, createAccount);
         }
 
-        public IRestApiOperation LoginGooglePlayAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGooglePlayAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google-play", userId, createAccount);
         }
 
-        public IRestApiOperation LoginAppleGameCenterAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginAppleGameCenterAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/apple-game-center", userId, createAccount);
         }
 
-        public IRestApiOperation LoginGoogleAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGoogleAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google", userId, createAccount);
         }
 
-        public IRestApiOperation LoginAppleAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginAppleAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/apple", userId, createAccount);
         }
 
-        public IRestApiOperation LoginYandexAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexAsync(string userId, bool createAccount = true)
         {
             return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex", userId, createAccount);
         }
 
-     
-        public IRestApiOperation StartOpenIdLoginAsync(int providerId, string successUrl)
+        public AsyncOperation<RestApiResult> StartOpenIdLoginAsync(int providerId, string successUrl)
         {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/openid/{providerId}";
-            var dto = new RegisterOpenIdProviderDto
-            {
-                SuccessUrl = successUrl
-            };
-
-            return _restApi.Post(route, dto);
+            var dto = new { SuccessUrl = successUrl };
+            return _restApi.PostAsync(route, dto, new RestRequestConfig { NoAuth = true });
         }
 
-        private IRestApiOperation LoginByUserIdAsync(string route, string userId, bool createAccount)
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> LoginByUserIdAsync(string route, string userId, bool createAccount)
         {
-            var dto = new LoginByUserIdDto
-            {
-                UserId = userId,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByUserIdDto { UserId = userId, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto, noAuth: true);
         }
 
         #endregion
 
         #region Link
 
-        public IRestApiOperation LinkGuestAsync(bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGuestAsync(bool createAccount = false)
         {
             var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/guest";
-            var dto = new LoginAsGuestDto
-            {
-                CreateAccount = createAccount
-            };
-            
+            var dto = new LoginAsGuestDto { CreateAccount = createAccount };
+
             if (_storage.HasKey(GUESTID_KEY))
             {
                 dto.GuestId = _storage.GetString(GUESTID_KEY);
             }
 
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            return PostAuthAsync(route, dto);
         }
 
-        public IRestApiOperation LinkDeviceAsync(string deviceId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkDeviceAsync(string deviceId, bool createAccount = false)
         {
             var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/device";
-            var dto = new LoginByDeviceIdDto
-            {
-                DeviceId = deviceId,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByDeviceIdDto { DeviceId = deviceId, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto);
         }
 
-        public IRestApiOperation LinkEmailAsync(string email, string password, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkEmailAsync(string email, string password, bool createAccount = false)
         {
             var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/email";
-            var dto = new LoginByEmailDto
-            {
-                Email = email,
-                Password = password,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByEmailDto { Email = email, Password = password, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto);
         }
 
-        public IRestApiOperation LinkUsernameAsync(string username, string password, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkUsernameAsync(string username, string password, bool createAccount = false)
         {
             var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/username";
-            var dto = new LoginByUsernameDto
-            {
-                Login = username,
-                Password = password,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByUsernameDto { Login = username, Password = password, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto);
         }
 
-        public IRestApiOperation LinkVkGamesAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkVkGamesAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/vk-games", userId, createAccount);
         }
 
-        public IRestApiOperation LinkYandexGamesAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkYandexGamesAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/yandex-games", userId, createAccount);
         }
 
-        public IRestApiOperation LinkGooglePlayAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGooglePlayAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/google-play", userId, createAccount);
         }
 
-        public IRestApiOperation LinkAppleGameCenterAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkAppleGameCenterAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/apple-game-center", userId, createAccount);
         }
 
-        public IRestApiOperation LinkGoogleAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGoogleAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/google", userId, createAccount);
         }
 
-        public IRestApiOperation LinkAppleAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkAppleAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/apple", userId, createAccount);
         }
 
-        public IRestApiOperation LinkYandexAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkYandexAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/yandex", userId, createAccount);
         }
 
-        public IRestApiOperation LinkOpenIdAsync(string userId, bool createAccount = false)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkOpenIdAsync(string userId, bool createAccount = false)
         {
             return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/openid", userId, createAccount);
         }
 
-        private IRestApiOperation LinkByUserIdAsync(string route, string userId, bool createAccount)
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> LinkByUserIdAsync(string route, string userId, bool createAccount)
         {
-            var dto = new LoginByUserIdDto
-            {
-                UserId = userId,
-                CreateAccount = createAccount
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LoginByUserIdDto { UserId = userId, CreateAccount = createAccount };
+            return PostAuthAsync(route, dto);
         }
 
-        public IRestApiOperation ResolveLinkConflictAsync(int providerType, string targetAccountId)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> ResolveLinkConflictAsync(int providerType, string targetAccountId)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/link-conflict/resolve";
-            var dto = new LinkAuthProviderDto
-            {
-                ProviderType = providerType,
-                TargetAccountId = targetAccountId
-            };
-
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(HandleAuthCompleted);
-            return op;
+            var dto = new LinkAuthProviderDto { ProviderType = providerType, TargetAccountId = targetAccountId };
+            return PostAuthAsync(route, dto);
         }
 
         #endregion
 
         #region Session
 
-        public IRestApiOperation RefreshSessionAsync()
+        public AsyncOperation<RestApiResult> RefreshSessionAsync()
         {
             if (string.IsNullOrEmpty(_refreshToken))
             {
                 _logger.Log("RefreshSessionAsync called without refresh token.");
+                return AsyncOperation<RestApiResult>.Completed(RestApiResult.ValidationFail("Refresh token is empty."));
             }
 
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/refresh";
-            var dto = new RefreshSessionDto
+            var dto = new RefreshSessionDto { RefreshToken = _refreshToken };
+
+            var refreshOp = _restApi.PostAsync<SessionRefreshResultDto>(route, dto, new RestRequestConfig { NoAuth = true, DisableRetry = true });
+            var resultOp = new AsyncOperation<RestApiResult>();
+
+            refreshOp.OnCompleted += completed =>
             {
-                RefreshToken = _refreshToken
+                if (!completed.Result.IsSuccess || completed.Result.Data?.Session == null)
+                {
+                    HandleSessionExpired();
+                    resultOp.Complete(completed.Result.IsSuccess
+                        ? RestApiResult.Fail(RestApiError.Validation("Refresh response without session."))
+                        : completed.Result);
+                    return;
+                }
+
+                ApplySession(completed.Result.Data.Session);
+                SaveSessionToStorage();
+                OnSessionRefreshed?.Invoke();
+                resultOp.Complete(RestApiResult.Success());
             };
 
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(operation =>
-            {
-                if (!operation.IsSuccess)
-                {
-                    HandleSessionExpired();
-                    return;
-                }
-
-                var result = operation.GetData<SessionRefreshResultDto>();
-                if (result == null || result.Session == null)
-                {
-                    HandleSessionExpired();
-                    return;
-                }
-
-                ApplySession(result.Session);
-                OnSessionRefreshed?.Invoke();
-            });
-
-            return op;
+            return resultOp;
         }
 
-        public IRestApiOperation LogoutAsync()
+        public AsyncOperation<RestApiResult> LogoutAsync()
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/logout";
             var dto = new LogoutSessionDto { SessionId = _sessionId };
 
-            var op = _restApi.Post(route, dto);
-            op.UseCompletedCallback(_ =>
+            var op = _restApi.PostAsync(route, dto);
+            op.OnCompleted += _ =>
             {
                 ClearSessionAndStorage();
                 OnSessionExpired?.Invoke();
-            });
+            };
             return op;
         }
 
-        public IRestApiOperation LogoutAllAsync()
+        public AsyncOperation<RestApiResult> LogoutAllAsync()
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/logout/all";
-            var op = _restApi.Post(route, new { });
-            op.UseCompletedCallback(_ =>
+            var op = _restApi.PostAsync(route, new { });
+            op.OnCompleted += _ =>
             {
                 ClearSessionAndStorage();
                 OnSessionExpired?.Invoke();
-            });
+            };
             return op;
         }
 
@@ -416,15 +308,23 @@ namespace MirraCloud.Core.Auth
 
         #region Internal handlers
 
-        private void HandleAuthCompleted(RestApiOperation operation)
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> PostAuthAsync(string route, object dto, bool noAuth = false)
         {
-            if (operation.IsSuccess == false)
+            var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
+            var op = _restApi.PostAsync<GetAuthDataDto>(route, dto, config);
+            op.OnCompleted += completed => HandleAuthCompleted(completed.Result);
+            return op;
+        }
+
+        private void HandleAuthCompleted(RestApiResult<GetAuthDataDto> result)
+        {
+            if (!result.IsSuccess)
             {
-                _logger.Error(operation.ErrorMessage);
+                _logger.Error(result.Error?.Message ?? "Auth request failed.");
                 return;
             }
 
-            var data = operation.GetData<GetAuthDataDto>();
+            var data = result.Data;
             if (data == null)
             {
                 _logger.Error("Empty auth response");
@@ -446,12 +346,13 @@ namespace MirraCloud.Core.Auth
             _authToken = data.Token;
             ApplySession(data.Session);
             IsAuth = true;
+
             if (string.IsNullOrEmpty(data.GuestId) == false)
             {
                 _storage.SaveString(GUESTID_KEY, data.GuestId);
             }
-            SaveSessionToStorage();
 
+            SaveSessionToStorage();
             OnLogin?.Invoke(data);
         }
 
@@ -508,30 +409,17 @@ namespace MirraCloud.Core.Auth
             return config;
         }
 
-        private System.Collections.IEnumerator SessionRefreshInterceptor(RestResponseContext context)
-        {
-            var code = context.Request.responseCode;
-            if ((code == 401 || code == 403) && !string.IsNullOrEmpty(_refreshToken))
-            {
-                var refreshOperation = RefreshSessionAsync();
-                yield return refreshOperation.Task;
-
-                if (refreshOperation.IsSuccess)
-                {
-                    context.RetryRequested = true;
-                    SaveSessionToStorage();
-                }
-                else
-                {
-                    HandleSessionExpired();
-                }
-            }
-        }
-
         private void HandleSessionExpired()
         {
             ClearSessionAndStorage();
             OnSessionExpired?.Invoke();
+        }
+
+        bool ISessionRefresher.CanRefresh => string.IsNullOrEmpty(_refreshToken) == false;
+
+        AsyncOperation<RestApiResult> ISessionRefresher.RefreshSessionAsync()
+        {
+            return RefreshSessionAsync();
         }
 
         #endregion

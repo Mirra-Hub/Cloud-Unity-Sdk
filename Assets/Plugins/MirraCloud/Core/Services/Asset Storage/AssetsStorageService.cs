@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 using UnityEngine.Networking;
 using ILogger = MirraCloud.Core.Logger.ILogger;
@@ -26,23 +27,22 @@ namespace MirraCloud.Core.AssetsStorage
             _logger = logger;
         }
 
-        public IRestApiOperation LoadConfigAsync()
+        public AsyncOperation<RestApiResult<AssetStorageStructureDto>> LoadConfigAsync()
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/config";
             
-            var response = _restApi.Get(route);
+            var response = _restApi.GetAsync<AssetStorageStructureDto>(route);
             
             _assets.Clear();
             _folders.Clear();
             
-            response.UseCompletedCallback(result =>
+            response.OnCompleted += completed =>
             {
-                var structureDto = result.GetData<AssetStorageStructureDto>();
-
-                Debug.Log(response.DownloadHandler.text);
-                
-                AddStorageItems(structureDto);
-            });
+                if (completed.Result.IsSuccess && completed.Result.Data != null)
+                {
+                    AddStorageItems(completed.Result.Data);
+                }
+            };
             
             return response;
         }
@@ -62,18 +62,29 @@ namespace MirraCloud.Core.AssetsStorage
             return assets;
         }
         
-        public IRestApiOperation<TextFile> LoadTextFromId(string id, ExtractTextFileType textFileType = ExtractTextFileType.Text)
+        public AsyncOperation<RestApiResult<TextFile>> LoadTextFromId(string id, ExtractTextFileType textFileType = ExtractTextFileType.Text)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
 
-            var response = _restApi.Get<TextFile>(route);
-            
-            response.UseExtractDataCallback((operation => ExtractTextFile(operation, textFileType)));
-            
-            return response;
+            return _restApi.GetAsync<TextFile>(route, null, request =>
+            {
+                var textFile = new TextFile();
+
+                if (textFileType == ExtractTextFileType.All || textFileType == ExtractTextFileType.Text)
+                {
+                    textFile.Text = request.downloadHandler.text;
+                }
+
+                if (textFileType == ExtractTextFileType.All || textFileType == ExtractTextFileType.Data)
+                {
+                    textFile.Data = request.downloadHandler.data;
+                }
+
+                return textFile;
+            });
         }
 
-        public IRestApiOperation<Texture2D> LoadTextureFromId(string id, bool readable = false)
+        public AsyncOperation<RestApiResult<Texture2D>> LoadTextureFromId(string id, bool readable = false)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
@@ -82,15 +93,11 @@ namespace MirraCloud.Core.AssetsStorage
                 DownloadHandler = new DownloadHandlerTexture(readable)
             };
             
-            var response = _restApi.Get<Texture2D>(route, config);
-            
-            response.UseExtractDataCallback(ExtractTexture);
-            
-            return response;
+            return _restApi.GetAsync<Texture2D>(route, config, request => DownloadHandlerTexture.GetContent(request));
         }
 
 
-        public IRestApiOperation<AudioClip> LoadAudioFromId(string id, AudioType audioType)
+        public AsyncOperation<RestApiResult<AudioClip>> LoadAudioFromId(string id, AudioType audioType)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
@@ -99,14 +106,10 @@ namespace MirraCloud.Core.AssetsStorage
                 DownloadHandler = new DownloadHandlerAudioClip(_restApi.GetUrl(route), audioType),
             };
             
-            var response = _restApi.Get<AudioClip>(route, config);
-            
-            response.UseExtractDataCallback(ExtractAudio);
-            
-            return response;
+            return _restApi.GetAsync<AudioClip>(route, config, request => DownloadHandlerAudioClip.GetContent(request));
         }
         
-        public IRestApiOperation<AssetBundle> LoadAssetBundleFromId(string id)
+        public AsyncOperation<RestApiResult<AssetBundle>> LoadAssetBundleFromId(string id)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
             
@@ -115,65 +118,7 @@ namespace MirraCloud.Core.AssetsStorage
                 DownloadHandler = new DownloadHandlerAssetBundle(_restApi.GetUrl(route), 0),
             };
             
-            var response = _restApi.Get<AssetBundle>(route, config);
-            
-            response.UseExtractDataCallback(ExtractAssetBundle);
-            
-            return response;
-        }
-
-        private AssetBundle ExtractAssetBundle(RestApiOperation<AssetBundle> result)
-        {
-            if (result.IsSuccess)
-            {
-                return DownloadHandlerAssetBundle.GetContent(result.WebRequest);
-            }
-
-            return null;
-        }
-
-        private Texture2D ExtractTexture(RestApiOperation<Texture2D> result)
-        {
-            if (result.IsSuccess)
-            {
-                return DownloadHandlerTexture.GetContent(result.WebRequest);
-            }
-
-            return null;
-        }
-        
-        
-        private TextFile ExtractTextFile(RestApiOperation<TextFile> result, ExtractTextFileType extractType)
-        {
-            if (result.IsSuccess)
-            {
-                var textFile = new TextFile();
-
-                if (extractType == ExtractTextFileType.All || extractType == ExtractTextFileType.Text)
-                {
-                    textFile.Text = result.DownloadHandler.text;
-                }
-
-                if (extractType == ExtractTextFileType.All || extractType == ExtractTextFileType.Data)
-                {
-                    textFile.Data = result.DownloadHandler.data;
-                }
-
-                return textFile;
-               
-            }
-
-            return null;
-        }
-
-        private AudioClip ExtractAudio(RestApiOperation<AudioClip> result)
-        {
-            if (result.IsSuccess)
-            {
-                return DownloadHandlerAudioClip.GetContent(result.WebRequest);
-            }
-
-            return null;
+            return _restApi.GetAsync<AssetBundle>(route, config, request => DownloadHandlerAssetBundle.GetContent(request));
         }
 
         private void AddStorageItems(AssetStorageStructureDto structureDto)
