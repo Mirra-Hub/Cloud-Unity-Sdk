@@ -52,6 +52,12 @@ namespace MirraCloud.Core.Leaderboard
             return operation;
         }
 
+        public IRestApiOperation<LeaderboardConfigDto> GetConfigAsync(string leaderboardId)
+        {
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}";
+            return _restApi.Get<LeaderboardConfigDto>(route);
+        }
+
         public IBaseRestApiOperation SubmitScore(DateTime score, string leaderboardId)
         {
             return SubmitScore(score.ToOADate(), leaderboardId);
@@ -74,16 +80,29 @@ namespace MirraCloud.Core.Leaderboard
         
         public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntries(string leaderboardId, int top = 100)
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top?entriesCount={top}";
 
             var operation = _restApi.Get<LeaderboardEntriesDto>(route);
 
             return operation;
         }
+
+        public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntriesByCountry(string leaderboardId, int entriesCount = 100)
+        {
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-by-country?entriesCount={entriesCount}";
+            return _restApi.Get<LeaderboardEntriesDto>(route);
+        }
+
+        public IRestApiOperation<LeaderboardEntriesDto> GetLeaderboardTopEntriesByFriends(string leaderboardId, string[] friendIds)
+        {
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-by-friends";
+            var dto = new FriendsTopRequestDto { FriendIds = friendIds ?? Array.Empty<string>() };
+            return _restApi.Post<LeaderboardEntriesDto>(route, dto);
+        }
         
         public IRestApiOperation<LeaderboardAroundEntriesDto> GetLeaderboardPlayerAroundEntries(string leaderboardId, int around = 10)
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/around";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/around?entriesRange={around}";
 
             var operation = _restApi.Get<LeaderboardAroundEntriesDto>(route);
 
@@ -92,7 +111,7 @@ namespace MirraCloud.Core.Leaderboard
         
         public IRestApiOperation<LeaderboardTopAndPlayersAroundDto> GetLeaderboardEntries(string leaderboardId, int top = 100, int around = 10)
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-and-around";
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/leaderboards/{leaderboardId}/entries/top-and-around?topEntriesCount={top}&aroundEntriesRange={around}";
 
             var operation = _restApi.Get<LeaderboardTopAndPlayersAroundDto>(route);
 
@@ -106,6 +125,18 @@ namespace MirraCloud.Core.Leaderboard
             var operation = _restApi.Get<LeaderboardEntryDto>(route);
 
             return operation;
+        }
+
+        public IRestApiOperation<PlayerRewardsDto> GetRewardsAsync(bool reset = true)
+        {
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards?reset={reset.ToString().ToLowerInvariant()}";
+            return _restApi.Get<PlayerRewardsDto>(route);
+        }
+
+        public IRestApiOperation SubmitRewardsAsync()
+        {
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards";
+            return _restApi.Post(route, new { });
         }
     }
 }

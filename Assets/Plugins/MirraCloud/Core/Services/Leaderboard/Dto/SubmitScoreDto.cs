@@ -5,7 +5,7 @@ namespace MirraCloud.Core.Leaderboard.Dto
     [Serializable]
     public sealed record SubmitScoreDto
     {
-        public string PlayerName;
-        public double Value;
+        [MirraCloud.Json.JsonNameCamel] public string PlayerName;
+        [MirraCloud.Json.JsonNameCamel] public double Value;
     }
 }

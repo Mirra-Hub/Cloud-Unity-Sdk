@@ -14,10 +14,12 @@ namespace MirraCloud.Core.Leaderboard.Dto
         public OrderType orderType ;
         public LeaderboardType type;
         public UpdateStrategy updateStrategy;
+        public RewardDistributionType rewardDistributionType;
 
         public bool isReset;
         
         public ResetIntervalType resetIntervalType;
+        public int resetIntervalValue;
         public DateTime? nextResetDate;
         public DateTime? lastResetDate;
 

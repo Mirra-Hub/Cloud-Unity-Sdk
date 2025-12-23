@@ -15,8 +15,11 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments.Dto
         public OrderType orderType;
         public TournamentsType type;
         public UpdateStrategy updateStrategy;
+        public global::MirraCloud.Core.Leaderboard.Enums.RewardDistributionType rewardDistributionType;
+        public bool isReset;
 
         public ResetIntervalType resetIntervalType;
+        public int resetIntervalValue;
         public DateTime? nextResetDate;
         public DateTime? lastResetDate;
 

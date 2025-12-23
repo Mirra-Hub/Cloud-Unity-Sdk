@@ -5,6 +5,9 @@ namespace MirraCloud.Core.Leaderboard.Dto
     [Serializable]
     public class RewardRangeDto
     {
+        public double valueMin;
+        public double valueMax;
+
         public int pLaceInLeaderboardMin;
         public int pLaceInLeaderboardMax;
 
