@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 using UnityEngine.Networking;
 using ILogger = MirraCloud.Core.Logger.ILogger;
@@ -18,7 +20,7 @@ namespace MirraCloud.Core
         private readonly ILogger _logger;
 
         private readonly List<Func<RestRequestConfig, RestRequestConfig>> _requestInterceptors = new();
-        private readonly List<Func<RestResponseContext, IEnumerator>> _responseInterceptors = new();
+        private ISessionRefresher _sessionRefresher;
         
         public RestApiClient(RestApiClientOptions options, CoroutineRunner coroutineRunner, IJsonService jsonService, ILogger logger)
         {
@@ -35,12 +37,6 @@ namespace MirraCloud.Core
             return _requestInterceptors.Count - 1;
         }
 
-        public int UseResponseInterceptor(Func<RestResponseContext, IEnumerator> interceptor)
-        {
-            _responseInterceptors.Add(interceptor);
-            return _responseInterceptors.Count - 1;
-        }
-
         public void EjectRequestInterceptor(int id)
         {
             if (id >= 0 && id < _requestInterceptors.Count)
@@ -48,100 +44,108 @@ namespace MirraCloud.Core
                 _requestInterceptors[id] = null;
             }
         }
-
-        public void EjectResponseInterceptor(int id)
-        {
-            if (id >= 0 && id < _responseInterceptors.Count)
-            {
-                _responseInterceptors[id] = null;
-            }
-        }
         #endregion
+
+        public void SetSessionRefresher(ISessionRefresher sessionRefresher)
+        {
+            _sessionRefresher = sessionRefresher;
+        }
         
         #region Public API
-        public RestApiOperation Get(string route, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult> GetAsync(string route, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbGET, null, config);
             return SendRequest(finalConfig);
         }
         
-        public RestApiOperation<T> Get<T>(string route, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult<T>> GetAsync<T>(string route, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbGET, null, config);
-            return SendRequest<T>(finalConfig);
+            return SendRequest<T>(finalConfig, null);
         }
 
-        public RestApiOperation Post(string route, object body = null, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult<T>> GetAsync<T>(string route, RestRequestConfig config, Func<UnityWebRequest, T> extractData)
+        {
+            var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbGET, null, config);
+            return SendRequest(finalConfig, extractData);
+        }
+
+        public AsyncOperation<RestApiResult> PostAsync(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbPOST, body, config);
             return SendRequest(finalConfig);
         }
         
-        public RestApiOperation<T> Post<T>(string route, object body = null, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult<T>> PostAsync<T>(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbPOST, body, config);
             return SendRequest<T>(finalConfig);
         }
 
-        public RestApiOperation Put(string route, object body = null, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult> PutAsync(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbPUT, body, config);
             return SendRequest(finalConfig);
         }
         
-        public RestApiOperation<T> Put<T>(string route, object body = null, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult<T>> PutAsync<T>(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbPUT, body, config);
             return SendRequest<T>(finalConfig);
         }
         
-        public RestApiOperation<T> Patch<T>(string route, object body = null, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult<T>> PatchAsync<T>(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, "PATCH", body, config);
             return SendRequest<T>(finalConfig);
         }
  
-        public RestApiOperation Patch(string route, object body = null, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult> PatchAsync(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, "PATCH", body, config);
             return SendRequest(finalConfig);
         }
 
-        public RestApiOperation PatchMultipart(string route, List<IMultipartFormSection> multipartFormSections, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult> PatchMultipartAsync(string route, List<IMultipartFormSection> multipartFormSections, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, "PATCH", null, config);
             finalConfig.MultipartFormSections = multipartFormSections;
             return SendRequest(finalConfig);
         }
         
-        public RestApiOperation Delete(string route, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult> DeleteAsync(string route, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbDELETE, null, config);
             return SendRequest(finalConfig);
         }
         
-        public RestApiOperation<T> Delete<T>(string route, RestRequestConfig config = null)
+        public AsyncOperation<RestApiResult<T>> DeleteAsync<T>(string route, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbDELETE, null, config);
             return SendRequest<T>(finalConfig);
         }
         #endregion
         
-        private RestApiOperation SendRequest(RestRequestConfig config)
+        private AsyncOperation<RestApiResult> SendRequest(RestRequestConfig config)
         {
-            RestApiOperation response = new RestApiOperation(JsonService);
-            _coroutineRunner.StartCoroutine(SendRequestInternal(config, response));
-            return response;
+            var op = new AsyncOperation<RestApiResult>();
+            _coroutineRunner.StartCoroutine(SendRequestInternal(config, op));
+            return op;
         }
         
-        private RestApiOperation<T> SendRequest<T>(RestRequestConfig config)
+        private AsyncOperation<RestApiResult<T>> SendRequest<T>(RestRequestConfig config, Func<UnityWebRequest, T> extractData)
         {
-            RestApiOperation<T> response = new RestApiOperation<T>(JsonService);
-            _coroutineRunner.StartCoroutine(SendRequestInternal(config, response));
-            return response;
+            var op = new AsyncOperation<RestApiResult<T>>();
+            _coroutineRunner.StartCoroutine(SendRequestInternal(config, op, extractData));
+            return op;
         }
 
-        private IEnumerator SendRequestInternal(RestRequestConfig config, BaseRestApiOperation operation)
+        private AsyncOperation<RestApiResult<T>> SendRequest<T>(RestRequestConfig config)
+        {
+            return SendRequest<T>(config, null);
+        }
+
+        private IEnumerator SendRequestInternal(RestRequestConfig config, AsyncOperation<RestApiResult> operation)
         {
             var preparedConfig = PrepareConfig(config);
 
@@ -155,32 +159,231 @@ namespace MirraCloud.Core
                 }
             }
 
+            var stopwatch = Stopwatch.StartNew();
             UnityWebRequest request = BuildUnityWebRequest(preparedConfig);
-            operation.Initialize(request);
-
             yield return request.SendWebRequest();
+            stopwatch.Stop();
 
-            var responseContext = new RestResponseContext(preparedConfig, request, operation);
+            #if UNITY_EDITOR
+            var requestBodyForTrace = GetRequestBodyForTrace(preparedConfig);
+            #endif
 
-            foreach (var interceptor in _responseInterceptors)
+            var responseBody = request.downloadHandler?.text;
+            var httpCode = request.responseCode;
+            var isHttpSuccess = httpCode >= 200 && httpCode <= 299;
+
+            if ((httpCode == 401 || httpCode == 403) && preparedConfig.NoAuth == false && preparedConfig.AuthRetryAttempted == false &&
+                _sessionRefresher != null && _sessionRefresher.CanRefresh)
             {
-                if (interceptor == null) continue;
-                yield return interceptor.Invoke(responseContext);
+                preparedConfig.AuthRetryAttempted = true;
+                var refreshOp = _sessionRefresher.RefreshSessionAsync();
+                yield return refreshOp;
+                if (refreshOp.Result.IsSuccess)
+                {
+                    preparedConfig.RetryCount++;
+                    yield return SendRequestInternal(preparedConfig, operation);
+                    yield break;
+                }
             }
 
-            if (responseContext.RetryRequested && preparedConfig.DisableRetry == false && preparedConfig.RetryCount < preparedConfig.MaxRetries)
+            if (request.result != UnityWebRequest.Result.Success && preparedConfig.DisableRetry == false && preparedConfig.RetryCount < preparedConfig.MaxRetries)
             {
                 preparedConfig.RetryCount++;
                 yield return SendRequestInternal(preparedConfig, operation);
                 yield break;
             }
 
-            if (request.result != UnityWebRequest.Result.Success)
+            RestApiResult result;
+
+            if (request.result == UnityWebRequest.Result.Success && isHttpSuccess)
             {
-                _logger.Error($"{request.error} {request.downloadHandler?.text}");
+                result = RestApiResult.Success();
+            }
+            else if (httpCode > 0)
+            {
+                result = RestApiResult.Fail(new RestApiError
+                {
+                    Type = RestApiErrorType.Http,
+                    Message = request.error,
+                    Method = preparedConfig.Method,
+                    Route = preparedConfig.Route,
+                    Url = preparedConfig.Url,
+                    HttpStatusCode = httpCode,
+                    NetworkResult = request.result,
+                    ResponseBody = responseBody
+                });
+            }
+            else
+            {
+                result = RestApiResult.Fail(new RestApiError
+                {
+                    Type = RestApiErrorType.Network,
+                    Message = request.error,
+                    Method = preparedConfig.Method,
+                    Route = preparedConfig.Route,
+                    Url = preparedConfig.Url,
+                    NetworkResult = request.result,
+                    ResponseBody = responseBody
+                });
             }
 
-            operation.Complete();
+            result.Method = preparedConfig.Method;
+            result.Route = preparedConfig.Route;
+            result.Url = preparedConfig.Url;
+            result.HttpStatusCode = httpCode > 0 ? httpCode : null;
+            result.RetryCount = preparedConfig.RetryCount;
+            result.DurationMs = stopwatch.ElapsedMilliseconds;
+            result.ResponseBody = responseBody;
+
+            #if UNITY_EDITOR
+            Debugging.RestApiTraceBus.Record(preparedConfig, result, requestBodyForTrace);
+            #endif
+
+            operation.Complete(result);
+        }
+
+        private IEnumerator SendRequestInternal<T>(RestRequestConfig config, AsyncOperation<RestApiResult<T>> operation, Func<UnityWebRequest, T> extractData)
+        {
+            var preparedConfig = PrepareConfig(config);
+
+            foreach (var interceptor in _requestInterceptors)
+            {
+                if (interceptor == null) continue;
+                var updated = interceptor.Invoke(preparedConfig);
+                if (updated != null)
+                {
+                    preparedConfig = updated;
+                }
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            UnityWebRequest request = BuildUnityWebRequest(preparedConfig);
+            yield return request.SendWebRequest();
+            stopwatch.Stop();
+
+            #if UNITY_EDITOR
+            var requestBodyForTrace = GetRequestBodyForTrace(preparedConfig);
+            #endif
+
+            var responseBody = request.downloadHandler?.text;
+            var httpCode = request.responseCode;
+            var isHttpSuccess = httpCode >= 200 && httpCode <= 299;
+
+            if ((httpCode == 401 || httpCode == 403) && preparedConfig.NoAuth == false && preparedConfig.AuthRetryAttempted == false &&
+                _sessionRefresher != null && _sessionRefresher.CanRefresh)
+            {
+                preparedConfig.AuthRetryAttempted = true;
+                var refreshOp = _sessionRefresher.RefreshSessionAsync();
+                yield return refreshOp;
+                if (refreshOp.Result.IsSuccess)
+                {
+                    preparedConfig.RetryCount++;
+                    yield return SendRequestInternal(preparedConfig, operation, extractData);
+                    yield break;
+                }
+            }
+
+            if (request.result != UnityWebRequest.Result.Success && preparedConfig.DisableRetry == false && preparedConfig.RetryCount < preparedConfig.MaxRetries)
+            {
+                preparedConfig.RetryCount++;
+                yield return SendRequestInternal(preparedConfig, operation, extractData);
+                yield break;
+            }
+
+            RestApiResult<T> result;
+
+            if (request.result == UnityWebRequest.Result.Success && isHttpSuccess)
+            {
+                if (extractData != null)
+                {
+                    try
+                    {
+                        var data = extractData.Invoke(request);
+                        result = RestApiResult<T>.Success(data);
+                    }
+                    catch (Exception ex)
+                    {
+                        result = RestApiResult<T>.Fail(new RestApiError
+                        {
+                            Type = RestApiErrorType.Deserialize,
+                            Message = ex.Message,
+                            Method = preparedConfig.Method,
+                            Route = preparedConfig.Route,
+                            Url = preparedConfig.Url,
+                            HttpStatusCode = httpCode,
+                            NetworkResult = request.result,
+                            ResponseBody = responseBody
+                        });
+                    }
+                }
+                else if (string.IsNullOrEmpty(responseBody))
+                {
+                    result = RestApiResult<T>.Success(default);
+                }
+                else
+                {
+                    try
+                    {
+                        var data = JsonService.FromJson<T>(responseBody);
+                        result = RestApiResult<T>.Success(data);
+                    }
+                    catch (Exception ex)
+                    {
+                        result = RestApiResult<T>.Fail(new RestApiError
+                        {
+                            Type = RestApiErrorType.Deserialize,
+                            Message = ex.Message,
+                            Method = preparedConfig.Method,
+                            Route = preparedConfig.Route,
+                            Url = preparedConfig.Url,
+                            HttpStatusCode = httpCode,
+                            NetworkResult = request.result,
+                            ResponseBody = responseBody
+                        });
+                    }
+                }
+            }
+            else if (httpCode > 0)
+            {
+                result = RestApiResult<T>.Fail(new RestApiError
+                {
+                    Type = RestApiErrorType.Http,
+                    Message = request.error,
+                    Method = preparedConfig.Method,
+                    Route = preparedConfig.Route,
+                    Url = preparedConfig.Url,
+                    HttpStatusCode = httpCode,
+                    NetworkResult = request.result,
+                    ResponseBody = responseBody
+                });
+            }
+            else
+            {
+                result = RestApiResult<T>.Fail(new RestApiError
+                {
+                    Type = RestApiErrorType.Network,
+                    Message = request.error,
+                    Method = preparedConfig.Method,
+                    Route = preparedConfig.Route,
+                    Url = preparedConfig.Url,
+                    NetworkResult = request.result,
+                    ResponseBody = responseBody
+                });
+            }
+
+            result.Method = preparedConfig.Method;
+            result.Route = preparedConfig.Route;
+            result.Url = preparedConfig.Url;
+            result.HttpStatusCode = httpCode > 0 ? httpCode : null;
+            result.RetryCount = preparedConfig.RetryCount;
+            result.DurationMs = stopwatch.ElapsedMilliseconds;
+            result.ResponseBody = responseBody;
+
+            #if UNITY_EDITOR
+            Debugging.RestApiTraceBus.Record(preparedConfig, result, requestBodyForTrace);
+            #endif
+
+            operation.Complete(result);
         }
 
         private RestRequestConfig BuildConfig(string route, string method, object body, RestRequestConfig config)
@@ -219,12 +422,13 @@ namespace MirraCloud.Core
                 MaxRetries = config.MaxRetries,
                 RetryCount = config.RetryCount,
                 DisableRetry = config.DisableRetry,
-                NoAuth = config.NoAuth
+                NoAuth = config.NoAuth,
+                AuthRetryAttempted = config.AuthRetryAttempted
             };
 
             cfg.Url = GetUrl(cfg.Route);
 
-            if (cfg.SerializedBody == null && cfg.Body != null)
+            if (cfg.SerializedBody == null && cfg.Body != null && cfg.MultipartFormSections == null && cfg.UploadHandler == null)
             {
                 var bodyJson = JsonService.ToJson(cfg.Body);
                 cfg.SerializedBody = Encoding.UTF8.GetBytes(bodyJson);
@@ -293,5 +497,32 @@ namespace MirraCloud.Core
             }
             return $"{BaseUrl}{route}";
         }
+
+        #if UNITY_EDITOR
+        private static string GetRequestBodyForTrace(RestRequestConfig preparedConfig)
+        {
+            if (preparedConfig == null)
+            {
+                return null;
+            }
+
+            if (preparedConfig.SerializedBody != null && preparedConfig.SerializedBody.Length > 0)
+            {
+                return Encoding.UTF8.GetString(preparedConfig.SerializedBody);
+            }
+
+            if (preparedConfig.MultipartFormSections != null)
+            {
+                return $"[multipart] sections={preparedConfig.MultipartFormSections.Count}";
+            }
+
+            if (preparedConfig.UploadHandler != null)
+            {
+                return $"[uploadHandler] {preparedConfig.UploadHandler.GetType().Name}";
+            }
+
+            return null;
+        }
+        #endif
     }
 }

@@ -16,6 +16,7 @@ namespace MirraCloud.Core
         public int? TimeoutMs;
         public int MaxRetries = 1;
         public int RetryCount;
+        public bool AuthRetryAttempted;
         public bool DisableRetry;
         public bool NoAuth;
 
