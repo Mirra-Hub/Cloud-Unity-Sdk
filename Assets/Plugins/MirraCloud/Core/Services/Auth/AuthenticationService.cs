@@ -496,14 +496,6 @@ namespace MirraCloud.Core.Auth
 
         private RestRequestConfig AuthTokenInterceptor(RestRequestConfig config)
         {
-            //  new Claim(nameof(profile.Username), profile?.Username ?? string.Empty),
-            //       new Claim(nameof(profile.IconKey), JsonConvert.SerializeObject(profile?.IconKey ?? new IconKey()))
-            //  new Claim(nameof(account.Age), account.Age.ToString()),
-            //   new Claim(nameof(account.Country), account.Country.ToString()),
-            //  new Claim(nameof(account.LanguageCode), account.LanguageCode.ToString()),
-            //     new Claim("Account" + nameof(account.SegmentIds), string.Join(',', account.SegmentIds)),
-            //    new Claim("Profile" + nameof(profile.SegmentIds), string.Join(',', profile?.SegmentIds ?? [])),
-            
             if (!string.IsNullOrEmpty(_authToken))
             {
                 config.Headers ??= new Dictionary<string, string>();

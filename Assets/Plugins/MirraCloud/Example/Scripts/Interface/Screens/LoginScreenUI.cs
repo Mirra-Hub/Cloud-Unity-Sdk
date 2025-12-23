@@ -8,18 +8,18 @@ namespace MirraCloud.Example
     public class LoginScreenUI : BaseScreenUI
     {
         [SerializeField] private Button _logiDevicenButton;
-        [SerializeField] private Button _logiDevicen2Button;
+        [SerializeField] private Button _logiGuestButton;
 
         protected override void OnEnableScreen()
         {
             _logiDevicenButton.onClick.AddListener(LoginDevice);
-            _logiDevicen2Button.onClick.AddListener(LoginDevice2);
+            _logiGuestButton.onClick.AddListener(LoginGuest);
         }
 
         protected override void OnDisableScreen()
         {
             _logiDevicenButton.onClick.RemoveListener(LoginDevice);
-            _logiDevicen2Button.onClick.RemoveListener(LoginDevice2);
+            _logiGuestButton.onClick.RemoveListener(LoginGuest);
         }
 
         private async void LoginDevice()
@@ -42,9 +42,9 @@ namespace MirraCloud.Example
             }
         }
         
-        private async void LoginDevice2()
+        private async void LoginGuest()
         {
-            var authOperation = MirraCloudSDK.Authentication.LoginDeviceAsync("2222222222");
+            var authOperation = MirraCloudSDK.Authentication.LoginGuestAsync();
 
             await authOperation.Task;
 

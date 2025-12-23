@@ -13,7 +13,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                SendEvent();
+                //SendEvent();
             }
         }
 

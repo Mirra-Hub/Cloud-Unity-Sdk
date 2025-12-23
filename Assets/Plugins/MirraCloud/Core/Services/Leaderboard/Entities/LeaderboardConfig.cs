@@ -1,7 +1,6 @@
 ﻿using System;
 using MirraCloud.Core.Leaderboard.Dto;
 using MirraCloud.Core.Leaderboard.Enums;
-using OrderType = Codice.CM.Common.OrderType;
 
 namespace MirraCloud.Core.Leaderboard.Entities
 {

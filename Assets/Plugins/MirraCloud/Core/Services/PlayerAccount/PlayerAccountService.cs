@@ -35,11 +35,36 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             _configuration = configuration;
 
             _authenticationService.OnLogin += OnAuthLogin;
+            _restApi.UseRequestInterceptor(MetaDataHeadersInterceptor);
         }
 
         public void Dispose()
         {
             _authenticationService.OnLogin -= OnAuthLogin;
+        }
+        
+        private RestRequestConfig MetaDataHeadersInterceptor(RestRequestConfig config)
+        {
+            //  new Claim(nameof(profile.Username), profile?.Username ?? string.Empty),
+            //       new Claim(nameof(profile.IconKey), JsonConvert.SerializeObject(profile?.IconKey ?? new IconKey()))
+            //  new Claim(nameof(account.Age), account.Age.ToString()),
+            //   new Claim(nameof(account.Country), account.Country.ToString()),
+            //  new Claim(nameof(account.LanguageCode), account.LanguageCode.ToString()),
+            //     new Claim("Account" + nameof(account.SegmentIds), string.Join(',', account.SegmentIds)),
+            //    new Claim("Profile" + nameof(profile.SegmentIds), string.Join(',', profile?.SegmentIds ?? [])),
+            
+            if (PlayerAccountInfo != null)
+            {
+                config.Headers ??= new Dictionary<string, string>();
+                config.Headers["Username"] = PlayerAccountInfo.Nickname;
+                config.Headers["IconKey"] = "";
+                config.Headers["Age"] = PlayerAccountInfo.Age.ToString();
+                config.Headers["Country"] = PlayerAccountInfo.Country;
+                config.Headers["AccountSegmentIds"] =  string.Join(',', PlayerAccountInfo.SegmentIds);
+                config.Headers["ProfileSegmentIds"] = string.Join(',', PlayerAccountInfo.SegmentIds);
+            }
+
+            return config;
         }
 
         private void OnAuthLogin(GetAuthDataDto authData)

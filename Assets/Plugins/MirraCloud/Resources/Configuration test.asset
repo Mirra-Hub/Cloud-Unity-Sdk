@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3f2b3f20ecc64b38a14b6759a6a3cdbf, type: 3}
-  m_Name: Configuration
+  m_Name: Configuration test
   m_EditorClassIdentifier: 
-  ProjectId: 694694f1cc7b4b07928a5f3d
-  BranchId: 694694f1cc7b4b07928a5f3f
-  Token: 01KCXVBKSP9QZA3SF95QF0GC0B
-  AnalyticsPlatformId: 6946a4d2fb51effb629327b7
-  _connectionIndex: 0
+  ProjectId: 694532649e0607965834a544
+  BranchId: 694532649e0607965834a546
+  Token: 01KCV4SP0DTGZKWWS9T19WTAK8
+  AnalyticsPlatformId: 694693fc9141fa446f2a419e
+  _connectionIndex: 2
   _connections:
   - Url: https://sdk.mirrahub.com/api/cloud/sdk
   - Url: http://localhost:81/api/cloud/sdk
