@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Core.Auth;
+using MirraCloud.Core.Enums;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.PlayerAccount.Dto;
 using UnityEngine;
@@ -395,6 +396,18 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             };
 
             return op;
+        }
+
+        public AsyncOperation<RestApiResult> UpdateProfilePresenceStatusAsync(string profileId, ProfilePresenceStatus status)
+        {
+            if (string.IsNullOrWhiteSpace(profileId))
+            {
+                return CreateValidationErrorOperation("profileId is required.");
+            }
+
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/status";
+            var dto = new UpdateProfilePresenceStatusDto { Status = status };
+            return _restApi.PatchAsync(route, dto);
         }
 
         public AsyncOperation<RestApiResult<ProfileInfo>> ReplaceProfileAsync(string profileId, CreateProfileDto dto)

@@ -22,9 +22,9 @@ namespace MirraCloud.Core.Friends
 
         #region Friends
 
-        public AsyncOperation<RestApiResult<GetPlayerDto[]>> GetFriendsAsync()
+        public AsyncOperation<RestApiResult<GetPlayerDto[]>> GetFriendsAsync(bool getProfilesInfo = true)
         {
-            var route = $"{ControllerApi}/{_configuration.ProjectId}/players/friends";
+            var route = $"{ControllerApi}/{_configuration.ProjectId}/players/friends?getProfilesInfo={getProfilesInfo.ToString().ToLowerInvariant()}";
             return _restApi.GetAsync<GetPlayerDto[]>(route);
         }
 
