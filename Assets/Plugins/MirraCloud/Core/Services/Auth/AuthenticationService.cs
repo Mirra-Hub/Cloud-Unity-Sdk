@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using MirraCloud.Core.Storage;
+using MirraCloud.Core.Auth.OpenId;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
+using UnityEngine;
+using UnityEngine.Networking;
 
 namespace MirraCloud.Core.Auth
 {
@@ -15,6 +18,7 @@ namespace MirraCloud.Core.Auth
         private const string AUTH_ROUTE = "/players/auth/v1/projects";
         private const string AUTH_LINK_ROUTE = "/players/link/v1/projects";
         private const string ACCOUNTS_ROUTE = "/players/accounts/v1/projects";
+        private const string OPENID_RESULT_ROUTE = "/players/auth/v1/openid/result";
 
         private const string GUESTID_KEY = "GuestId";
         private const string REFRESH_TOKEN_KEY = "RefreshToken";
@@ -138,9 +142,142 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult> StartOpenIdLoginAsync(int providerId, string successUrl)
         {
+            var op = new AsyncOperation<RestApiResult>();
+            var urlOp = BeginOpenIdLoginUrlAsync(providerId, successUrl);
+            urlOp.OnCompleted += _ =>
+            {
+                if (!urlOp.Result.IsSuccess)
+                {
+                    op.Complete(RestApiResult.Fail(urlOp.Result.Error).WithMetaFrom(urlOp.Result));
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(urlOp.Result.Data))
+                {
+                    op.Complete(RestApiResult.ValidationFail("OpenId auth url is empty.").WithMetaFrom(urlOp.Result));
+                    return;
+                }
+
+                Application.OpenURL(urlOp.Result.Data);
+                op.Complete(RestApiResult.Success().WithMetaFrom(urlOp.Result));
+            };
+
+            return op;
+        }
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> CompleteOpenIdLoginAsync(string openIdKey)
+        {
+            if (string.IsNullOrWhiteSpace(openIdKey))
+            {
+                return AsyncOperation<RestApiResult<GetAuthDataDto>>.Completed(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId key is empty."));
+            }
+
+            return GetAuthAsync($"{OPENID_RESULT_ROUTE}/{openIdKey}", noAuth: true);
+        }
+
+        public AsyncOperation<RestApiResult<string>> BeginOpenIdLoginUrlAsync(int providerId, string successUrl)
+        {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/openid/{providerId}";
-            var dto = new { SuccessUrl = successUrl };
-            return _restApi.PostAsync(route, dto, new RestRequestConfig { NoAuth = true });
+            return BeginOpenIdLoginUrlAsync(route, successUrl);
+        }
+
+        public AsyncOperation<RestApiResult<string>> BeginGoogleOpenIdLoginUrlAsync(string successUrl)
+        {
+            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google";
+            return BeginOpenIdLoginUrlAsync(route, successUrl);
+        }
+
+        public AsyncOperation<RestApiResult<string>> BeginYandexOpenIdLoginUrlAsync(string successUrl)
+        {
+            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex";
+            return BeginOpenIdLoginUrlAsync(route, successUrl);
+        }
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGoogleOpenIdAsync(OpenIdLoginOptions options = null)
+        {
+            return LoginOpenIdAsync(BeginGoogleOpenIdLoginUrlAsync, options);
+        }
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexOpenIdAsync(OpenIdLoginOptions options = null)
+        {
+            return LoginOpenIdAsync(BeginYandexOpenIdLoginUrlAsync, options);
+        }
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginOpenIdAsync(int providerId, OpenIdLoginOptions options = null)
+        {
+            return LoginOpenIdAsync(successUrl => BeginOpenIdLoginUrlAsync(providerId, successUrl), options);
+        }
+
+        private AsyncOperation<RestApiResult<string>> BeginOpenIdLoginUrlAsync(string route, string successUrl)
+        {
+            if (string.IsNullOrWhiteSpace(successUrl))
+            {
+                return AsyncOperation<RestApiResult<string>>.Completed(RestApiResult<string>.ValidationFail("SuccessUrl is empty."));
+            }
+
+            var dto = new RegisterOpenIdProviderDto { SuccessUrl = successUrl };
+            var config = new RestRequestConfig
+            {
+                NoAuth = true,
+                DisableRetry = true,
+                RedirectLimit = 0,
+                AllowedHttpStatusCodes = new long[] { 301, 302, 303, 307, 308 }
+            };
+
+            return _restApi.PostAsync<string>(route, dto, config, ExtractRedirectLocation);
+        }
+
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> LoginOpenIdAsync(Func<string, AsyncOperation<RestApiResult<string>>> beginLoginUrlAsync, OpenIdLoginOptions options)
+        {
+            var op = new AsyncOperation<RestApiResult<GetAuthDataDto>>();
+
+            if (!OpenIdCallbackReceiverFactory.TryCreate(options, out var receiver, out var receiverError))
+            {
+                op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail(receiverError));
+                return op;
+            }
+
+            var beginOp = beginLoginUrlAsync(receiver.SuccessUrl);
+            beginOp.OnCompleted += _ =>
+            {
+                if (!beginOp.Result.IsSuccess)
+                {
+                    receiver.Dispose();
+                    op.Complete(RestApiResult<GetAuthDataDto>.Fail(beginOp.Result.Error).WithMetaFrom(beginOp.Result));
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(beginOp.Result.Data))
+                {
+                    receiver.Dispose();
+                    op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId auth url is empty.").WithMetaFrom(beginOp.Result));
+                    return;
+                }
+
+                var waitOp = receiver.WaitForKeyAsync();
+                waitOp.OnCompleted += _ =>
+                {
+                    receiver.Dispose();
+
+                    if (string.IsNullOrWhiteSpace(waitOp.Result))
+                    {
+                        op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId callback key was not received."));
+                        return;
+                    }
+
+                    var completeOp = CompleteOpenIdLoginAsync(waitOp.Result);
+                    completeOp.OnCompleted += completed => op.Complete(completed.Result);
+                };
+
+                Application.OpenURL(beginOp.Result.Data);
+            };
+
+            return op;
+        }
+
+        private static string ExtractRedirectLocation(UnityWebRequest request)
+        {
+            return request.GetResponseHeader("Location") ?? request.GetResponseHeader("location");
         }
 
         private AsyncOperation<RestApiResult<GetAuthDataDto>> LoginByUserIdAsync(string route, string userId, bool createAccount)
@@ -312,6 +449,14 @@ namespace MirraCloud.Core.Auth
         {
             var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
             var op = _restApi.PostAsync<GetAuthDataDto>(route, dto, config);
+            op.OnCompleted += completed => HandleAuthCompleted(completed.Result);
+            return op;
+        }
+
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> GetAuthAsync(string route, bool noAuth = false)
+        {
+            var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
+            var op = _restApi.GetAsync<GetAuthDataDto>(route, config);
             op.OnCompleted += completed => HandleAuthCompleted(completed.Result);
             return op;
         }
