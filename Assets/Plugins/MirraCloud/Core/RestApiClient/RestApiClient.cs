@@ -82,6 +82,12 @@ namespace MirraCloud.Core
             return SendRequest<T>(finalConfig);
         }
 
+        public AsyncOperation<RestApiResult<T>> PostAsync<T>(string route, object body, RestRequestConfig config, Func<UnityWebRequest, T> extractData)
+        {
+            var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbPOST, body, config);
+            return SendRequest(finalConfig, extractData);
+        }
+
         public AsyncOperation<RestApiResult> PutAsync(string route, object body = null, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbPUT, body, config);
@@ -170,7 +176,7 @@ namespace MirraCloud.Core
 
             var responseBody = request.downloadHandler?.text;
             var httpCode = request.responseCode;
-            var isHttpSuccess = httpCode >= 200 && httpCode <= 299;
+            var isHttpSuccess = IsHttpSuccess(httpCode, preparedConfig.AllowedHttpStatusCodes);
 
             if ((httpCode == 401 || httpCode == 403) && preparedConfig.NoAuth == false && preparedConfig.AuthRetryAttempted == false &&
                 _sessionRefresher != null && _sessionRefresher.CanRefresh)
@@ -186,7 +192,8 @@ namespace MirraCloud.Core
                 }
             }
 
-            if (request.result != UnityWebRequest.Result.Success && preparedConfig.DisableRetry == false && preparedConfig.RetryCount < preparedConfig.MaxRetries)
+            if (request.result != UnityWebRequest.Result.Success && isHttpSuccess == false && preparedConfig.DisableRetry == false &&
+                preparedConfig.RetryCount < preparedConfig.MaxRetries)
             {
                 preparedConfig.RetryCount++;
                 yield return SendRequestInternal(preparedConfig, operation);
@@ -195,7 +202,7 @@ namespace MirraCloud.Core
 
             RestApiResult result;
 
-            if (request.result == UnityWebRequest.Result.Success && isHttpSuccess)
+            if (isHttpSuccess)
             {
                 result = RestApiResult.Success();
             }
@@ -267,7 +274,7 @@ namespace MirraCloud.Core
 
             var responseBody = request.downloadHandler?.text;
             var httpCode = request.responseCode;
-            var isHttpSuccess = httpCode >= 200 && httpCode <= 299;
+            var isHttpSuccess = IsHttpSuccess(httpCode, preparedConfig.AllowedHttpStatusCodes);
 
             if ((httpCode == 401 || httpCode == 403) && preparedConfig.NoAuth == false && preparedConfig.AuthRetryAttempted == false &&
                 _sessionRefresher != null && _sessionRefresher.CanRefresh)
@@ -283,7 +290,8 @@ namespace MirraCloud.Core
                 }
             }
 
-            if (request.result != UnityWebRequest.Result.Success && preparedConfig.DisableRetry == false && preparedConfig.RetryCount < preparedConfig.MaxRetries)
+            if (request.result != UnityWebRequest.Result.Success && isHttpSuccess == false && preparedConfig.DisableRetry == false &&
+                preparedConfig.RetryCount < preparedConfig.MaxRetries)
             {
                 preparedConfig.RetryCount++;
                 yield return SendRequestInternal(preparedConfig, operation, extractData);
@@ -292,7 +300,7 @@ namespace MirraCloud.Core
 
             RestApiResult<T> result;
 
-            if (request.result == UnityWebRequest.Result.Success && isHttpSuccess)
+            if (isHttpSuccess)
             {
                 if (extractData != null)
                 {
@@ -419,6 +427,8 @@ namespace MirraCloud.Core
                 DownloadHandler = config.DownloadHandler,
                 UploadHandler = config.UploadHandler,
                 TimeoutMs = config.TimeoutMs,
+                RedirectLimit = config.RedirectLimit,
+                AllowedHttpStatusCodes = config.AllowedHttpStatusCodes,
                 MaxRetries = config.MaxRetries,
                 RetryCount = config.RetryCount,
                 DisableRetry = config.DisableRetry,
@@ -474,6 +484,11 @@ namespace MirraCloud.Core
                 request.timeout = Mathf.CeilToInt(config.TimeoutMs.Value / 1000f);
             }
 
+            if (config.RedirectLimit.HasValue)
+            {
+                request.redirectLimit = config.RedirectLimit.Value;
+            }
+
             if (config.Headers != null)
             {
                 foreach (var header in config.Headers)
@@ -483,6 +498,29 @@ namespace MirraCloud.Core
             }
 
             return request;
+        }
+
+        private static bool IsHttpSuccess(long httpCode, long[] allowedHttpStatusCodes)
+        {
+            if (httpCode >= 200 && httpCode <= 299)
+            {
+                return true;
+            }
+
+            if (allowedHttpStatusCodes == null || allowedHttpStatusCodes.Length == 0)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < allowedHttpStatusCodes.Length; i++)
+            {
+                if (allowedHttpStatusCodes[i] == httpCode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public string GetUrl(string route)

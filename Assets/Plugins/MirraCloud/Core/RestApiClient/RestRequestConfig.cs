@@ -14,6 +14,8 @@ namespace MirraCloud.Core
         public DownloadHandler DownloadHandler;
         public UploadHandler UploadHandler;
         public int? TimeoutMs;
+        public int? RedirectLimit;
+        public long[] AllowedHttpStatusCodes;
         public int MaxRetries = 1;
         public int RetryCount;
         public bool AuthRetryAttempted;
