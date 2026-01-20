@@ -2,6 +2,7 @@ using MirraCloud;
 using MirraCloud.Core.AssetsStorage;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.CloudSave;
+using MirraCloud.Core.CloudCode;
 using MirraCloud.Core.Economy;
 using MirraCloud.Core.Friends;
 using MirraCloud.Core.Leaderboard;
@@ -29,6 +30,7 @@ namespace MirraCloud.Core
         public static TournamentsService Tournaments { get; private set; }
         public static RemoteConfigService RemoteConfig { get; private set; }
         public static AssetsStorageService AssetsStorage { get; private set; }
+        public static CloudCodeService CloudCode { get; private set; }
         public static RuleConstructorService RuleConstructor { get; private set; }
         public static SegmentService Segments { get; private set; }
         public static AnalyticsService Analytics { get; private set; }
@@ -70,6 +72,7 @@ namespace MirraCloud.Core
             AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
             Analytics = new AnalyticsService(configuration, logger, restApiClient);
             Deployment = new DeploymentService(configuration, logger, restApiClient);
+            CloudCode = new CloudCodeService(configuration, logger, restApiClient);
 
             RuleConstructor = new RuleConstructorService(configuration, logger, restApiClient, jsonService);
             Segments = new SegmentService(configuration, logger, restApiClient, jsonService);
