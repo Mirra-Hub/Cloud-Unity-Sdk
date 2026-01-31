@@ -17,7 +17,7 @@ namespace MirraCloud.Example.Interface
         private readonly IAssetService _assetService;
 
         public const string SCRRENS_FOLDER = "Screens";
-        public const string POPUPS_FOLDER = "popups";
+        public const string POPUPS_FOLDER = "Popups";
         
         public FactoryUI(IResolverDI containerDi, IAssetService assetService)
         {

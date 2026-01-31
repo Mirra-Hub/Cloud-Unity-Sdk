@@ -308,7 +308,7 @@ GameObject:
   - component: {fileID: 6338714882777095966}
   - component: {fileID: 7728650667743688778}
   m_Layer: 5
-  m_Name: loader_screen
+  m_Name: loading_screen
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

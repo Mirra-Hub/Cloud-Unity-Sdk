@@ -1,5 +1,5 @@
-using MirraCloud.Core;
-using Plugins.MirraCloud.Example.Scripts.Interface.Popups;
+using MirraCloud.Example.Infrastructure.DI;
+using Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +9,15 @@ namespace MirraCloud.Example
     {
         [SerializeField] private Button _logiDevicenButton;
         [SerializeField] private Button _logiGuestButton;
+       
+        private LoginService _loginService;
 
+        [InjectDep]
+        public void Construct(LoginService loginService)
+        {
+            _loginService = loginService;
+        }
+        
         protected override void OnEnableScreen()
         {
             _logiDevicenButton.onClick.AddListener(LoginDevice);
@@ -22,42 +30,14 @@ namespace MirraCloud.Example
             _logiGuestButton.onClick.RemoveListener(LoginGuest);
         }
 
-        private async void LoginDevice()
+        private void LoginDevice()
         {
-            var authOperation = MirraCloudSDK.Authentication.LoginDeviceAsync(SystemInfo.deviceUniqueIdentifier);
-
-            await authOperation.Task;
-
-            if (MirraCloudSDK.Authentication.IsAuth)
-            {
-                UIController.ShowScreen<LoadingScreenUI>();
-                
-                await MirraCloudSDK.Segments.LoadConfigAsync().Task;
-            
-            }
-            else if (authOperation.Result.IsSuccess == false)
-            {
-                UIController.ShowPopup<NetworkErrorPopupUI>();
-            }
+            _loginService.LoginDevice();
         }
         
-        private async void LoginGuest()
+        private void LoginGuest()
         {
-            var authOperation = MirraCloudSDK.Authentication.LoginGuestAsync();
-
-            await authOperation.Task;
-
-            if (MirraCloudSDK.Authentication.IsAuth)
-            {
-                UIController.ShowScreen<LoadingScreenUI>();
-                
-                await MirraCloudSDK.Segments.LoadConfigAsync().Task;
-            
-            }
-            else if (authOperation.Result.IsSuccess == false)
-            {
-                UIController.ShowPopup<NetworkErrorPopupUI>();
-            }
+            _loginService.LoginGuest();
         }
     }
 }

@@ -1,24 +1,21 @@
-﻿using MirraCloud.Example.Infrastructure.DI;
+using MirraCloud.Example.Infrastructure.DI;
 using MirraCloud.Example.Interface;
-using Plugins.MirraCloud.Example.Scripts.Core;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
-namespace Plugins.MirraCloud.Example.Scripts.Infrastructure.Bootstrap
+namespace Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby
 {
-    public class BootstrapInstaller : LifetimeScope
+    public class LoginInstaller : LifetimeScope
     {
         [SerializeField] private UIController _uiController;
-
+        
         protected override void Configure(IContainerBuilder builder)
         {
             builder.Register<ContainerResolver>(Lifetime.Singleton).As<IResolverDI>();
             builder.RegisterInstance<UIController>(_uiController);
             builder.Register<FactoryUI>(Lifetime.Singleton);
-            builder.Register<BootstrapInitializer>(Lifetime.Singleton);
-            
-            builder.Register<CloudInitializer>(Lifetime.Singleton).As<IBootstrapInitializable>();
+            builder.Register<LoginService>(Lifetime.Singleton);
         }
     }
 }

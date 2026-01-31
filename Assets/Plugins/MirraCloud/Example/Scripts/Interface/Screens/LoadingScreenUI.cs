@@ -12,11 +12,6 @@ namespace MirraCloud.Example
         [SerializeField] private TextMeshProUGUI _progressLabel;
         [SerializeField] private Slider _progressSlider;
 
-        protected override void OnEnableScreen()
-        {
-            StartCoroutine(LoadingRoutine());
-        }
-
         private IEnumerator LoadingRoutine()
         {
             yield return MirraCloudSDK.Economy.GetConfigsAsync();

@@ -8,7 +8,6 @@ namespace MirraCloud.Example
     {
         protected UIController UIController { get; private set; }
 
-        [InjectDep]
         public void Initialize(UIController uiController)
         {
             UIController = uiController;

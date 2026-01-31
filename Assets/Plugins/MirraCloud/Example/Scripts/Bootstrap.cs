@@ -31,7 +31,6 @@ namespace MirraCloud.Example
             container.PlayerProfile = new PlayerProfile();
             
             MirraCloudSDK.Initialize();
-            uiController.Initialize();
         }
     }
 }

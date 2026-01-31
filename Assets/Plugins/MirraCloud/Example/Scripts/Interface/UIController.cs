@@ -25,31 +25,13 @@ namespace Plugins.MirraCloud.Example.Scripts
         {
             _factoryUI = factoryUI;
         }
-        
-        public void Initialize()
-        {
-            /*var screens = _screensRoot.GetComponentsInChildren<BaseScreenUI>(true);
-
-            foreach (var screen in screens)
-            {
-                screen.Initialize(this);
-                _screensMap[screen.GetType()] = screen;
-            }
-            
-            var popups = _popupsRoot.GetComponentsInChildren<BasePopupUI>(true);
-
-            foreach (var popup in popups)
-            {
-                popup.Initialize(this);
-                _popupsMap[popup.GetType()] = popup;
-            }*/
-        }
 
         public void ShowScreen<T>() where T : BaseScreenUI
         {
             if (_screensMap.TryGetValue(typeof(T), out var screen) == false)
             {
                 screen = _factoryUI.CreateScreen<T>(_screensRoot);
+                screen.Initialize(this);
                 _screensMap.Add(typeof(T), screen);
             }
                   
@@ -67,6 +49,7 @@ namespace Plugins.MirraCloud.Example.Scripts
             if (_popupsMap.TryGetValue(typeof(T), out var popup) == false)
             {
                 popup = _factoryUI.CreatePopup<T>(_popupsRoot);
+                popup.Initialize(this);
                 _popupsMap.Add(typeof(T), popup);
             }
             
