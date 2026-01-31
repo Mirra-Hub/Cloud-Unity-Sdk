@@ -31,7 +31,7 @@ namespace MirraCloud.Example
             
             _itemResourcesUi.Clear();
             
-            var operation = MirraCloudSDK.Economy.LoadConfigAsync();
+            var operation = MirraCloudSDK.Economy.GetConfigsAsync();
 
             await operation.Task;
 
@@ -40,7 +40,7 @@ namespace MirraCloud.Example
                 foreach (var item in MirraCloudSDK.Economy.Items)
                 {
                     var itemUI = Instantiate(_itemResourceUIPrefab, _itemResourceContainer);
-                    itemUI.Initialize(item);
+                    itemUI.Initialize(item.Key, item.Value);
                     
                     _itemResourcesUi.Add(itemUI);
                 }

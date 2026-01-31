@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using MirraCloud.Core;
 using MirraCloud.Core.Economy;
+using MirraCloud.Json;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,19 +13,36 @@ namespace MirraCloud.Example
         [SerializeField] private Image _icon;
         [SerializeField] private TextMeshProUGUI _title;
 
-        public void Initialize(ItemEconomyDefinition item)
+        public void Initialize(string key, EconomyResourceConfig item)
         {
-            _title.text = item.Name;
+            _title.text = TryGetFieldString(item, "name", out var name) ? name : key;
 
-            if (item.Icon.HasIcon)
+            if (TryGetFieldString(item, "icon", out var iconKey) && string.IsNullOrWhiteSpace(iconKey) == false)
             {
-                StartCoroutine(LoadIcon(item.Icon));
+                StartCoroutine(LoadIcon(iconKey));
             }
         }
 
-        private IEnumerator LoadIcon(IconDefinition iconDefinition)
+        private static bool TryGetFieldString(EconomyResourceConfig resource, string fieldKey, out string value)
         {
-            var operation = MirraCloudSDK.AssetsStorage.LoadTextureFromId(iconDefinition.Value);
+            value = null;
+            if (resource?.Fields == null || resource.Fields.Type != JsonValueType.Object)
+            {
+                return false;
+            }
+
+            if (!resource.Fields.TryGetValue(fieldKey, out var v) || v == null || v.Type != JsonValueType.String)
+            {
+                return false;
+            }
+
+            value = (string)v;
+            return string.IsNullOrWhiteSpace(value) == false;
+        }
+
+        private IEnumerator LoadIcon(string iconKey)
+        {
+            var operation = MirraCloudSDK.AssetsStorage.LoadTextureFromId(iconKey);
 
             yield return operation;
 

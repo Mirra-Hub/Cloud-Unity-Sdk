@@ -4,6 +4,7 @@ using MirraCloud.Core.Auth;
 using MirraCloud.Core.CloudSave;
 using MirraCloud.Core.CloudCode;
 using MirraCloud.Core.Economy;
+using MirraCloud.Core.Entities;
 using MirraCloud.Core.Friends;
 using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Logger;
@@ -24,6 +25,7 @@ namespace MirraCloud.Core
         public static PlayerAccountService PlayerAccount { get; private set; }
         public static FriendsService Friends { get; private set; }
         public static EconomyService Economy { get; private set; }
+        public static EntitiesService Entities { get; private set; }
         public static CloudSaveService CloudSave { get; private set; }
         public static LeaderboardService Leaderboard { get; private set; }
         public static TournamentsService Tournaments { get; private set; }
@@ -62,6 +64,7 @@ namespace MirraCloud.Core
             PlayerAccount = new PlayerAccountService(Authentication, restApiClient, configuration, logger);
             Friends = new FriendsService(configuration, logger, restApiClient);
             Economy = new EconomyService(configuration, logger, restApiClient);
+            Entities = new EntitiesService(configuration, logger, restApiClient);
             CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
             Leaderboard = new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient);
             Tournaments = new TournamentsService(configuration, restApiClient);
