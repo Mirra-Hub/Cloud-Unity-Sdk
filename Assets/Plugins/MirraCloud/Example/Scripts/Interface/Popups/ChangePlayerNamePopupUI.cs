@@ -2,6 +2,7 @@ using System.Collections;
 using MirraCloud;
 using MirraCloud.Core;
 using MirraCloud.Example;
+using MirraCloud.Example.Infrastructure.DI;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using TMPro;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Popups
         
         private PlayerProfile _playerProfile;
 
+        [InjectDep]
         public void Construct(PlayerProfile playerProfile)
         {
             _playerProfile = playerProfile;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MirraCloud.Core;
 using MirraCloud.Example;
+using MirraCloud.Example.Interface;
 using Plugins.MirraCloud.Example.Scripts.Test;
 using UnityEngine;
 using UnityEngine.UI;

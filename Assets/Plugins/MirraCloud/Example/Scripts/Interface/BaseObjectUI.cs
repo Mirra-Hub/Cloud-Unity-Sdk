@@ -1,4 +1,5 @@
-﻿using Plugins.MirraCloud.Example.Scripts;
+﻿using MirraCloud.Example.Infrastructure.DI;
+using Plugins.MirraCloud.Example.Scripts;
 using UnityEngine;
 
 namespace MirraCloud.Example
@@ -7,6 +8,7 @@ namespace MirraCloud.Example
     {
         protected UIController UIController { get; private set; }
 
+        [InjectDep]
         public void Initialize(UIController uiController)
         {
             UIController = uiController;
