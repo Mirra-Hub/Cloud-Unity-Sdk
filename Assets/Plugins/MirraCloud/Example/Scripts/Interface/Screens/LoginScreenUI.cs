@@ -32,7 +32,6 @@ namespace MirraCloud.Example
             {
                 UIController.ShowScreen<LoadingScreenUI>();
                 
-                await MirraCloudSDK.RuleConstructor.LoadConfigAsync().Task;
                 await MirraCloudSDK.Segments.LoadConfigAsync().Task;
             
             }
@@ -52,7 +51,6 @@ namespace MirraCloud.Example
             {
                 UIController.ShowScreen<LoadingScreenUI>();
                 
-                await MirraCloudSDK.RuleConstructor.LoadConfigAsync().Task;
                 await MirraCloudSDK.Segments.LoadConfigAsync().Task;
             
             }

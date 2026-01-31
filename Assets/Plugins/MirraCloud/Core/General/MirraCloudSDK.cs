@@ -13,7 +13,6 @@ using MirraCloud.Json;
 using Plugins.MirraCloud.Core.Services.Analytics;
 using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
-using Plugins.MirraCloud.Core.Services.RulesConstructor;
 using Plugins.MirraCloud.Core.Services.Segments;
 using Plugins.MirraCloud.Core.Services.Tournaments;
 
@@ -31,7 +30,6 @@ namespace MirraCloud.Core
         public static RemoteConfigService RemoteConfig { get; private set; }
         public static AssetsStorageService AssetsStorage { get; private set; }
         public static CloudCodeService CloudCode { get; private set; }
-        public static RuleConstructorService RuleConstructor { get; private set; }
         public static SegmentService Segments { get; private set; }
         public static AnalyticsService Analytics { get; private set; }
         public static DeploymentService Deployment { get; private set; }
@@ -49,8 +47,7 @@ namespace MirraCloud.Core
             
             Configuration configuration = Configuration.Load();
             ILogger logger = new Core.Logger.Logger();
-            IJsonService jsonService = new JsonService()
-                .RegisterImporter(new RuleConstructorJsonMapper());
+            IJsonService jsonService = new JsonService();
 
             RestApiClientOptions restApiClientOptions = new RestApiClientOptions()
             {
@@ -74,8 +71,7 @@ namespace MirraCloud.Core
             Deployment = new DeploymentService(configuration, logger, restApiClient);
             CloudCode = new CloudCodeService(configuration, logger, restApiClient);
 
-            RuleConstructor = new RuleConstructorService(configuration, logger, restApiClient, jsonService);
-            Segments = new SegmentService(configuration, logger, restApiClient, jsonService);
+            Segments = new SegmentService(configuration, logger, restApiClient);
             
             IsInitialized = true;
         }
