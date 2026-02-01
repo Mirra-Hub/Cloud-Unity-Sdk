@@ -506,6 +506,14 @@ namespace MirraCloud.Core
             var cfg = config ?? new RestRequestConfig();
             cfg.Route = route;
             cfg.Method = method;
+            if (string.IsNullOrEmpty(cfg.TraceRoute))
+            {
+                cfg.TraceRoute = route;
+            }
+            if (string.IsNullOrEmpty(cfg.TraceUrl))
+            {
+                cfg.TraceUrl = GetUrl(route);
+            }
             if (body != null)
             {
                 cfg.Body = body;
@@ -534,6 +542,8 @@ namespace MirraCloud.Core
             {
                 Route = config.Route,
                 Method = config.Method,
+                TraceRoute = config.TraceRoute,
+                TraceUrl = config.TraceUrl,
                 Body = config.Body,
                 SerializedBody = config.SerializedBody,
                 Headers = config.Headers != null ? new Dictionary<string, string>(config.Headers) : null,
@@ -557,6 +567,16 @@ namespace MirraCloud.Core
             };
 
             cfg.Url = GetUrl(cfg.Route);
+
+            if (string.IsNullOrEmpty(cfg.TraceRoute))
+            {
+                cfg.TraceRoute = cfg.Route;
+            }
+
+            if (string.IsNullOrEmpty(cfg.TraceUrl))
+            {
+                cfg.TraceUrl = GetUrl(cfg.TraceRoute);
+            }
 
             if (cfg.MaxRetries <= 0)
             {
@@ -741,6 +761,8 @@ namespace MirraCloud.Core
             {
                 Route = redirectUrl,
                 Method = method,
+                TraceRoute = config.TraceRoute,
+                TraceUrl = config.TraceUrl,
                 Body = body,
                 SerializedBody = serializedBody,
                 Headers = headers,

@@ -8,6 +8,8 @@ namespace MirraCloud.Core
     {
         public string Route;
         public string Method;
+        public string TraceRoute;
+        public string TraceUrl;
         public object Body;
         public byte[] SerializedBody;
         public Dictionary<string, string> Headers;
