@@ -167,13 +167,13 @@ namespace MirraCloud.Editor
 
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    EditorGUILayout.LabelField("Time (UTC)", e.TimestampUtc.ToString("O"));
-                    EditorGUILayout.LabelField("Method", e.Method);
-                    EditorGUILayout.LabelField("Route", e.Route);
-                    EditorGUILayout.LabelField("Url", e.Url);
-                    EditorGUILayout.LabelField("Status", e.HttpStatusCode?.ToString() ?? "Unknown");
-                    EditorGUILayout.LabelField("Duration", $"{e.DurationMs} ms");
-                    EditorGUILayout.LabelField("Retries", e.RetryCount.ToString());
+                    EditorGUILayout.TextField("Time (UTC)", e.TimestampUtc.ToString("O"));
+                    EditorGUILayout.TextField("Method", e.Method);
+                    EditorGUILayout.TextField("Route", e.Route);
+                    EditorGUILayout.TextField("Url", e.Url);
+                    EditorGUILayout.TextField("Status", e.HttpStatusCode?.ToString() ?? "Unknown");
+                    EditorGUILayout.TextField("Duration", $"{e.DurationMs} ms");
+                    EditorGUILayout.TextField("Retries", e.RetryCount.ToString());
 
                     if (e.Error != null)
                     {

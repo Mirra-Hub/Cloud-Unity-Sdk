@@ -549,6 +549,11 @@ namespace MirraCloud.Core.Auth
 
         private RestRequestConfig AuthTokenInterceptor(RestRequestConfig config)
         {
+            if (config.NoAuth == true)
+            {
+                return config;
+            }
+            
             if (!string.IsNullOrEmpty(_authToken))
             {
                 config.Headers ??= new Dictionary<string, string>();
