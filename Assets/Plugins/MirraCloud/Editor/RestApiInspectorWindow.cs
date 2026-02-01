@@ -12,13 +12,27 @@ namespace MirraCloud.Editor
         private const string EnabledPrefKey = "MirraCloud.RestApiInspector.Enabled";
 
         private Vector2 _listScroll;
-        private Vector2 _detailsScroll;
+        private Vector2 _requestBodyScroll;
+        private Vector2 _responseBodyScroll;
         private int _selectedIndex = -1;
         private string _filter;
+        private int _activeBodyTab;
         private static readonly JsonService JsonService = new JsonService();
 
-        private static GUIStyle _listItemLeftStyle;
         private static GUIStyle _listItemRightStyle;
+        private static GUIStyle _listItemRouteStyle;
+        private static GUIStyle _bodyStyle;
+
+        private sealed class BodyLayoutCache
+        {
+            public int EntryId;
+            public string Text;
+            public float Width;
+            public float Height;
+        }
+
+        private readonly BodyLayoutCache _requestBodyLayout = new BodyLayoutCache();
+        private readonly BodyLayoutCache _responseBodyLayout = new BodyLayoutCache();
 
         [MenuItem("MirraCloud/Request Inspector")]
         public static void Open()
@@ -98,28 +112,38 @@ namespace MirraCloud.Editor
 
                     EnsureListStyles();
 
-                    var leftText = $"#{e.Id} {(e.IsSuccess ? "OK" : "ERR")} {e.Method} {e.Route}";
-                    var rightText = $"{(e.HttpStatusCode?.ToString() ?? "-")} {e.DurationMs}ms r={e.RetryCount}";
+                    var routeText = e.Route ?? "-";
+                    var statusText = e.HttpStatusCode?.ToString() ?? "Unknown";
+                    var durationText = $"{e.DurationMs}ms";
 
                     var rect = GUILayoutUtility.GetRect(0f, EditorGUIUtility.singleLineHeight + 8, GUILayout.ExpandWidth(true));
                     var isSelected = i == _selectedIndex;
 
-                    var baseColor = e.IsSuccess ? new Color(0.82f, 0.95f, 0.82f) : new Color(0.97f, 0.82f, 0.82f);
-                    var bg = isSelected ? new Color(0.35f, 0.55f, 0.9f, 0.35f) : baseColor;
-                    EditorGUI.DrawRect(rect, bg);
+                    if (isSelected)
+                    {
+                        EditorGUI.DrawRect(rect, new Color(0.35f, 0.55f, 0.9f, 0.35f));
+                    }
 
-                    var content = new GUIContent(leftText, e.Url ?? e.Route ?? string.Empty);
+                    const float iconSize = 16f;
+                    var iconRect = new Rect(rect.x + 4, rect.y + (rect.height - iconSize) * 0.5f, iconSize, iconSize);
+                    DrawStatusIcon(iconRect, e);
 
-                    var leftRect = new Rect(rect.x, rect.y, rect.width - 120, rect.height);
-                    var rightRect = new Rect(rect.x + rect.width - 120, rect.y, 120, rect.height);
+                    const float rightColumnWidth = 70f;
+                    const float statusColumnWidth = 60f;
 
-                    GUI.Label(leftRect, content, _listItemLeftStyle);
-                    GUI.Label(rightRect, rightText, _listItemRightStyle);
+                    var routeRect = new Rect(rect.x + 24, rect.y, rect.width - 24 - statusColumnWidth - rightColumnWidth, rect.height);
+                    var statusRect = new Rect(rect.x + rect.width - statusColumnWidth - rightColumnWidth, rect.y, statusColumnWidth, rect.height);
+                    var durationRect = new Rect(rect.x + rect.width - rightColumnWidth, rect.y, rightColumnWidth, rect.height);
+
+                    GUI.Label(routeRect, routeText, _listItemRouteStyle);
+                    GUI.Label(statusRect, statusText, _listItemRightStyle);
+                    GUI.Label(durationRect, durationText, _listItemRightStyle);
                     EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
 
                     if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
                     {
                         _selectedIndex = i;
+                        _activeBodyTab = 0;
                         Event.current.Use();
                         GUI.FocusControl(null);
                     }
@@ -147,7 +171,7 @@ namespace MirraCloud.Editor
                     EditorGUILayout.LabelField("Method", e.Method);
                     EditorGUILayout.LabelField("Route", e.Route);
                     EditorGUILayout.LabelField("Url", e.Url);
-                    EditorGUILayout.LabelField("Status", e.HttpStatusCode?.ToString() ?? "-");
+                    EditorGUILayout.LabelField("Status", e.HttpStatusCode?.ToString() ?? "Unknown");
                     EditorGUILayout.LabelField("Duration", $"{e.DurationMs} ms");
                     EditorGUILayout.LabelField("Retries", e.RetryCount.ToString());
 
@@ -157,43 +181,30 @@ namespace MirraCloud.Editor
                     }
                 }
 
-                _detailsScroll = EditorGUILayout.BeginScrollView(_detailsScroll);
-                EditorGUILayout.LabelField("Request Body", EditorStyles.boldLabel);
-                EditorGUILayout.TextArea(FormatJsonOrRaw(e.RequestBody) ?? string.Empty, GUILayout.MinHeight(80));
-                GUILayout.Space(8);
-                EditorGUILayout.LabelField("Response Body", EditorStyles.boldLabel);
-                EditorGUILayout.TextArea(FormatJsonOrRaw(e.ResponseBody) ?? string.Empty, GUILayout.MinHeight(120));
-                EditorGUILayout.EndScrollView();
+                GUILayout.Space(6);
+                _activeBodyTab = GUILayout.Toolbar(_activeBodyTab, new[] { "Response", "Request" });
 
-                using (new EditorGUILayout.HorizontalScope())
+                EnsureBodyStyle();
+
+                if (_activeBodyTab == 0)
                 {
-                    if (GUILayout.Button("Copy Request"))
-                    {
-                        EditorGUIUtility.systemCopyBuffer = FormatJsonOrRaw(e.RequestBody) ?? string.Empty;
-                    }
-
-                    if (GUILayout.Button("Copy Response"))
-                    {
-                        EditorGUIUtility.systemCopyBuffer = FormatJsonOrRaw(e.ResponseBody) ?? string.Empty;
-                    }
+                    var responseText = FormatJsonOrRaw(e.ResponseBody) ?? string.Empty;
+                    DrawBody(ref _responseBodyScroll, _responseBodyLayout, e.Id, responseText);
+                }
+                else
+                {
+                    var requestText = FormatJsonOrRaw(e.RequestBody) ?? string.Empty;
+                    DrawBody(ref _requestBodyScroll, _requestBodyLayout, e.Id, requestText);
                 }
             }
         }
 
         private static void EnsureListStyles()
         {
-            if (_listItemLeftStyle != null && _listItemRightStyle != null)
+            if (_listItemRouteStyle != null && _listItemRightStyle != null)
             {
                 return;
             }
-
-            _listItemLeftStyle = new GUIStyle(EditorStyles.label)
-            {
-                alignment = TextAnchor.MiddleLeft,
-                clipping = TextClipping.Clip,
-                padding = new RectOffset(8, 4, 2, 2),
-                wordWrap = false
-            };
 
             _listItemRightStyle = new GUIStyle(EditorStyles.label)
             {
@@ -202,6 +213,107 @@ namespace MirraCloud.Editor
                 padding = new RectOffset(4, 8, 2, 2),
                 wordWrap = false
             };
+
+            _listItemRouteStyle = new GUIStyle(EditorStyles.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip,
+                padding = new RectOffset(2, 4, 2, 2),
+                wordWrap = false
+            };
+        }
+
+        private static void EnsureBodyStyle()
+        {
+            if (_bodyStyle != null)
+            {
+                return;
+            }
+
+            _bodyStyle = new GUIStyle(EditorStyles.textArea)
+            {
+                wordWrap = false
+            };
+        }
+
+        private static GUIContent GetStatusIconContent(RestApiTraceEntry entry)
+        {
+            if (entry?.HttpStatusCode is null)
+            {
+                return EditorGUIUtility.IconContent("console.infoicon") ?? GUIContent.none;
+            }
+
+            var code = entry.HttpStatusCode.Value;
+            if (code >= 200 && code <= 299)
+            {
+                return EditorGUIUtility.IconContent("TestPassed") ?? EditorGUIUtility.IconContent("console.infoicon") ?? GUIContent.none;
+            }
+
+            return EditorGUIUtility.IconContent("TestFailed") ?? EditorGUIUtility.IconContent("console.erroricon") ?? GUIContent.none;
+        }
+
+        private static void DrawStatusIcon(Rect rect, RestApiTraceEntry entry)
+        {
+            var prev = GUI.color;
+
+            if (entry?.HttpStatusCode is null)
+            {
+                GUI.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            }
+            else if (entry.HttpStatusCode.Value >= 200 && entry.HttpStatusCode.Value <= 299)
+            {
+                GUI.color = new Color(0.25f, 0.75f, 0.25f, 1f);
+            }
+            else
+            {
+                GUI.color = new Color(0.9f, 0.25f, 0.25f, 1f);
+            }
+
+            GUI.Label(rect, GetStatusIconContent(entry));
+            GUI.color = prev;
+        }
+
+        private static float CalcMaxLineWidth(GUIStyle style, string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return 0f;
+            }
+
+            var lines = text.Split('\n');
+            var max = 0f;
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var lineWidth = style.CalcSize(new GUIContent(lines[i] ?? string.Empty)).x;
+                if (lineWidth > max)
+                {
+                    max = lineWidth;
+                }
+            }
+
+            return max;
+        }
+
+        private static void UpdateBodyLayoutCache(BodyLayoutCache cache, int entryId, string text)
+        {
+            if (cache.EntryId == entryId && string.Equals(cache.Text, text, System.StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            cache.EntryId = entryId;
+            cache.Text = text;
+            cache.Width = Mathf.Max(1f, CalcMaxLineWidth(_bodyStyle, text) + 30f);
+            cache.Height = Mathf.Max(1f, _bodyStyle.CalcHeight(new GUIContent(text), 100000f) + 10f);
+        }
+
+        private void DrawBody(ref Vector2 scroll, BodyLayoutCache cache, int entryId, string text)
+        {
+            UpdateBodyLayoutCache(cache, entryId, text);
+
+            scroll = EditorGUILayout.BeginScrollView(scroll, false, false, GUILayout.ExpandHeight(true));
+            GUILayout.TextArea(text, _bodyStyle, GUILayout.Width(cache.Width), GUILayout.MinHeight(cache.Height));
+            EditorGUILayout.EndScrollView();
         }
 
         private static string FormatJsonOrRaw(string raw)
