@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using MirraCloud.Core.Debugging;
+using MirraCloud.Json;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,6 +15,10 @@ namespace MirraCloud.Editor
         private Vector2 _detailsScroll;
         private int _selectedIndex = -1;
         private string _filter;
+        private static readonly JsonService JsonService = new JsonService();
+
+        private static GUIStyle _listItemLeftStyle;
+        private static GUIStyle _listItemRightStyle;
 
         [MenuItem("MirraCloud/Request Inspector")]
         public static void Open()
@@ -91,16 +96,33 @@ namespace MirraCloud.Editor
                         continue;
                     }
 
-                    var label = $"#{e.Id} {(e.IsSuccess ? "OK" : "ERR")} {e.Method} {e.Route} ({e.HttpStatusCode?.ToString() ?? "-"}) {e.DurationMs}ms r={e.RetryCount}";
+                    EnsureListStyles();
+
+                    var leftText = $"#{e.Id} {(e.IsSuccess ? "OK" : "ERR")} {e.Method} {e.Route}";
+                    var rightText = $"{(e.HttpStatusCode?.ToString() ?? "-")} {e.DurationMs}ms r={e.RetryCount}";
+
+                    var rect = GUILayoutUtility.GetRect(0f, EditorGUIUtility.singleLineHeight + 8, GUILayout.ExpandWidth(true));
                     var isSelected = i == _selectedIndex;
 
-                    var prevColor = GUI.color;
-                    GUI.color = e.IsSuccess ? new Color(0.85f, 1f, 0.85f) : new Color(1f, 0.85f, 0.85f);
-                    if (GUILayout.Toggle(isSelected, label, "Button"))
+                    var baseColor = e.IsSuccess ? new Color(0.82f, 0.95f, 0.82f) : new Color(0.97f, 0.82f, 0.82f);
+                    var bg = isSelected ? new Color(0.35f, 0.55f, 0.9f, 0.35f) : baseColor;
+                    EditorGUI.DrawRect(rect, bg);
+
+                    var content = new GUIContent(leftText, e.Url ?? e.Route ?? string.Empty);
+
+                    var leftRect = new Rect(rect.x, rect.y, rect.width - 120, rect.height);
+                    var rightRect = new Rect(rect.x + rect.width - 120, rect.y, 120, rect.height);
+
+                    GUI.Label(leftRect, content, _listItemLeftStyle);
+                    GUI.Label(rightRect, rightText, _listItemRightStyle);
+                    EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
+
+                    if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
                     {
                         _selectedIndex = i;
+                        Event.current.Use();
+                        GUI.FocusControl(null);
                     }
-                    GUI.color = prevColor;
                 }
 
                 EditorGUILayout.EndScrollView();
@@ -137,24 +159,78 @@ namespace MirraCloud.Editor
 
                 _detailsScroll = EditorGUILayout.BeginScrollView(_detailsScroll);
                 EditorGUILayout.LabelField("Request Body", EditorStyles.boldLabel);
-                EditorGUILayout.TextArea(e.RequestBody ?? string.Empty, GUILayout.MinHeight(80));
+                EditorGUILayout.TextArea(FormatJsonOrRaw(e.RequestBody) ?? string.Empty, GUILayout.MinHeight(80));
                 GUILayout.Space(8);
                 EditorGUILayout.LabelField("Response Body", EditorStyles.boldLabel);
-                EditorGUILayout.TextArea(e.ResponseBody ?? string.Empty, GUILayout.MinHeight(120));
+                EditorGUILayout.TextArea(FormatJsonOrRaw(e.ResponseBody) ?? string.Empty, GUILayout.MinHeight(120));
                 EditorGUILayout.EndScrollView();
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     if (GUILayout.Button("Copy Request"))
                     {
-                        EditorGUIUtility.systemCopyBuffer = e.RequestBody ?? string.Empty;
+                        EditorGUIUtility.systemCopyBuffer = FormatJsonOrRaw(e.RequestBody) ?? string.Empty;
                     }
 
                     if (GUILayout.Button("Copy Response"))
                     {
-                        EditorGUIUtility.systemCopyBuffer = e.ResponseBody ?? string.Empty;
+                        EditorGUIUtility.systemCopyBuffer = FormatJsonOrRaw(e.ResponseBody) ?? string.Empty;
                     }
                 }
+            }
+        }
+
+        private static void EnsureListStyles()
+        {
+            if (_listItemLeftStyle != null && _listItemRightStyle != null)
+            {
+                return;
+            }
+
+            _listItemLeftStyle = new GUIStyle(EditorStyles.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip,
+                padding = new RectOffset(8, 4, 2, 2),
+                wordWrap = false
+            };
+
+            _listItemRightStyle = new GUIStyle(EditorStyles.label)
+            {
+                alignment = TextAnchor.MiddleRight,
+                clipping = TextClipping.Clip,
+                padding = new RectOffset(4, 8, 2, 2),
+                wordWrap = false
+            };
+        }
+
+        private static string FormatJsonOrRaw(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return raw;
+            }
+
+            var trimmed = raw.TrimStart();
+            if (trimmed.Length == 0)
+            {
+                return raw;
+            }
+
+            var first = trimmed[0];
+            if (first != '{' && first != '[')
+            {
+                return raw;
+            }
+
+            try
+            {
+                var jsonValue = JsonService.FromJson<JsonValue>(raw);
+                return JsonService.ToJson(jsonValue, prettyPrint: true);
+            }
+            catch
+            {
+                return raw;
             }
         }
 
@@ -199,9 +275,9 @@ namespace MirraCloud.Editor
                     sb.AppendLine($"Error: {e.Error.Type} {e.Error.Message}");
                 }
                 sb.AppendLine("RequestBody:");
-                sb.AppendLine(e.RequestBody ?? string.Empty);
+                sb.AppendLine(FormatJsonOrRaw(e.RequestBody) ?? string.Empty);
                 sb.AppendLine("ResponseBody:");
-                sb.AppendLine(e.ResponseBody ?? string.Empty);
+                sb.AppendLine(FormatJsonOrRaw(e.ResponseBody) ?? string.Empty);
                 sb.AppendLine(new string('-', 80));
             }
 
