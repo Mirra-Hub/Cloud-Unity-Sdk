@@ -38,11 +38,15 @@ namespace MirraCloud.Json {
             return (T)ReadValueOfType(tokenReader, destinationType);
         }
         
-        object ReadValueOfType(JsonTokenReader tokenReader, Type destinationType) {
-            var underlyingType = Nullable.GetUnderlyingType(destinationType);
-            if (importers.TryGetValue(destinationType, out var directImporter)) {
-                return directImporter(this, tokenReader);
-            }
+         object ReadValueOfType(JsonTokenReader tokenReader, Type destinationType) {
+             if (destinationType == typeof(JsonValue)) {
+                 return ReadJsonValue(tokenReader);
+             }
+
+             var underlyingType = Nullable.GetUnderlyingType(destinationType);
+             if (importers.TryGetValue(destinationType, out var directImporter)) {
+                 return directImporter(this, tokenReader);
+             }
             if (underlyingType != null && importers.TryGetValue(underlyingType, out var nullableImporter)) {
                 return nullableImporter(this, tokenReader);
             }
