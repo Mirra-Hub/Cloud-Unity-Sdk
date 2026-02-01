@@ -21,6 +21,7 @@ namespace MirraCloud.Core
 
         private readonly List<Func<RestRequestConfig, RestRequestConfig>> _requestInterceptors = new();
         private ISessionRefresher _sessionRefresher;
+        private static readonly long[] DefaultRedirectHttpStatusCodes = { 301, 302, 303, 307, 308 };
         
         public RestApiClient(RestApiClientOptions options, CoroutineRunner coroutineRunner, IJsonService jsonService, ILogger logger)
         {
@@ -151,7 +152,7 @@ namespace MirraCloud.Core
             return SendRequest<T>(config, null);
         }
 
-        private IEnumerator SendRequestInternal(RestRequestConfig config, AsyncOperation<RestApiResult> operation)
+        private IEnumerator SendRequestInternal(RestRequestConfig config, AsyncOperation<RestApiResult> operation, int redirectDepth = 0)
         {
             var preparedConfig = PrepareConfig(config);
 
@@ -163,6 +164,11 @@ namespace MirraCloud.Core
                 {
                     preparedConfig = updated;
                 }
+            }
+
+            if (preparedConfig.DownloadHandler == null && preparedConfig.DownloadHandlerFactory != null)
+            {
+                preparedConfig.DownloadHandler = preparedConfig.DownloadHandlerFactory.Invoke(preparedConfig.Url);
             }
 
             var stopwatch = Stopwatch.StartNew();
@@ -178,6 +184,54 @@ namespace MirraCloud.Core
             var httpCode = request.responseCode;
             var isHttpSuccess = IsHttpSuccess(httpCode, preparedConfig.AllowedHttpStatusCodes);
 
+            if (preparedConfig.FollowRedirect && IsRedirectStatus(httpCode, preparedConfig.RedirectHttpStatusCodes))
+            {
+                var redirectLocation = ExtractRedirectLocation(request);
+                var redirectUrl = ResolveRedirectUrl(preparedConfig.Url, redirectLocation);
+
+                if (string.IsNullOrWhiteSpace(redirectUrl))
+                {
+                    var redirectResult = RestApiResult.Fail(RestApiError.Validation("Redirect location is empty."));
+                    redirectResult.Method = preparedConfig.Method;
+                    redirectResult.Route = preparedConfig.Route;
+                    redirectResult.Url = preparedConfig.Url;
+                    redirectResult.HttpStatusCode = httpCode > 0 ? httpCode : null;
+                    redirectResult.RetryCount = preparedConfig.RetryCount;
+                    redirectResult.DurationMs = stopwatch.ElapsedMilliseconds;
+                    redirectResult.ResponseBody = responseBody;
+
+                    #if UNITY_EDITOR
+                    Debugging.RestApiTraceBus.Record(preparedConfig, redirectResult, requestBodyForTrace);
+                    #endif
+
+                    operation.Complete(redirectResult);
+                    yield break;
+                }
+
+                if (redirectDepth >= preparedConfig.MaxRedirects)
+                {
+                    var redirectResult = RestApiResult.Fail(RestApiError.Validation("Redirect limit exceeded."));
+                    redirectResult.Method = preparedConfig.Method;
+                    redirectResult.Route = preparedConfig.Route;
+                    redirectResult.Url = preparedConfig.Url;
+                    redirectResult.HttpStatusCode = httpCode > 0 ? httpCode : null;
+                    redirectResult.RetryCount = preparedConfig.RetryCount;
+                    redirectResult.DurationMs = stopwatch.ElapsedMilliseconds;
+                    redirectResult.ResponseBody = responseBody;
+
+                    #if UNITY_EDITOR
+                    Debugging.RestApiTraceBus.Record(preparedConfig, redirectResult, requestBodyForTrace);
+                    #endif
+
+                    operation.Complete(redirectResult);
+                    yield break;
+                }
+
+                var redirectConfig = BuildRedirectConfig(preparedConfig, redirectUrl, httpCode);
+                yield return SendRequestInternal(redirectConfig, operation, redirectDepth + 1);
+                yield break;
+            }
+
             if ((httpCode == 401 || httpCode == 403) && preparedConfig.NoAuth == false && preparedConfig.AuthRetryAttempted == false &&
                 _sessionRefresher != null && _sessionRefresher.CanRefresh)
             {
@@ -187,7 +241,7 @@ namespace MirraCloud.Core
                 if (refreshOp.Result.IsSuccess)
                 {
                     preparedConfig.RetryCount++;
-                    yield return SendRequestInternal(preparedConfig, operation);
+                    yield return SendRequestInternal(preparedConfig, operation, redirectDepth);
                     yield break;
                 }
             }
@@ -196,7 +250,7 @@ namespace MirraCloud.Core
                 preparedConfig.RetryCount < preparedConfig.MaxRetries)
             {
                 preparedConfig.RetryCount++;
-                yield return SendRequestInternal(preparedConfig, operation);
+                yield return SendRequestInternal(preparedConfig, operation, redirectDepth);
                 yield break;
             }
 
@@ -249,7 +303,7 @@ namespace MirraCloud.Core
             operation.Complete(result);
         }
 
-        private IEnumerator SendRequestInternal<T>(RestRequestConfig config, AsyncOperation<RestApiResult<T>> operation, Func<UnityWebRequest, T> extractData)
+        private IEnumerator SendRequestInternal<T>(RestRequestConfig config, AsyncOperation<RestApiResult<T>> operation, Func<UnityWebRequest, T> extractData, int redirectDepth = 0)
         {
             var preparedConfig = PrepareConfig(config);
 
@@ -261,6 +315,11 @@ namespace MirraCloud.Core
                 {
                     preparedConfig = updated;
                 }
+            }
+
+            if (preparedConfig.DownloadHandler == null && preparedConfig.DownloadHandlerFactory != null)
+            {
+                preparedConfig.DownloadHandler = preparedConfig.DownloadHandlerFactory.Invoke(preparedConfig.Url);
             }
 
             var stopwatch = Stopwatch.StartNew();
@@ -276,6 +335,54 @@ namespace MirraCloud.Core
             var httpCode = request.responseCode;
             var isHttpSuccess = IsHttpSuccess(httpCode, preparedConfig.AllowedHttpStatusCodes);
 
+            if (preparedConfig.FollowRedirect && IsRedirectStatus(httpCode, preparedConfig.RedirectHttpStatusCodes))
+            {
+                var redirectLocation = ExtractRedirectLocation(request);
+                var redirectUrl = ResolveRedirectUrl(preparedConfig.Url, redirectLocation);
+
+                if (string.IsNullOrWhiteSpace(redirectUrl))
+                {
+                    var redirectResult = RestApiResult<T>.Fail(RestApiError.Validation("Redirect location is empty."));
+                    redirectResult.Method = preparedConfig.Method;
+                    redirectResult.Route = preparedConfig.Route;
+                    redirectResult.Url = preparedConfig.Url;
+                    redirectResult.HttpStatusCode = httpCode > 0 ? httpCode : null;
+                    redirectResult.RetryCount = preparedConfig.RetryCount;
+                    redirectResult.DurationMs = stopwatch.ElapsedMilliseconds;
+                    redirectResult.ResponseBody = responseBody;
+
+                    #if UNITY_EDITOR
+                    Debugging.RestApiTraceBus.Record(preparedConfig, redirectResult, requestBodyForTrace);
+                    #endif
+
+                    operation.Complete(redirectResult);
+                    yield break;
+                }
+
+                if (redirectDepth >= preparedConfig.MaxRedirects)
+                {
+                    var redirectResult = RestApiResult<T>.Fail(RestApiError.Validation("Redirect limit exceeded."));
+                    redirectResult.Method = preparedConfig.Method;
+                    redirectResult.Route = preparedConfig.Route;
+                    redirectResult.Url = preparedConfig.Url;
+                    redirectResult.HttpStatusCode = httpCode > 0 ? httpCode : null;
+                    redirectResult.RetryCount = preparedConfig.RetryCount;
+                    redirectResult.DurationMs = stopwatch.ElapsedMilliseconds;
+                    redirectResult.ResponseBody = responseBody;
+
+                    #if UNITY_EDITOR
+                    Debugging.RestApiTraceBus.Record(preparedConfig, redirectResult, requestBodyForTrace);
+                    #endif
+
+                    operation.Complete(redirectResult);
+                    yield break;
+                }
+
+                var redirectConfig = BuildRedirectConfig(preparedConfig, redirectUrl, httpCode);
+                yield return SendRequestInternal(redirectConfig, operation, extractData, redirectDepth + 1);
+                yield break;
+            }
+
             if ((httpCode == 401 || httpCode == 403) && preparedConfig.NoAuth == false && preparedConfig.AuthRetryAttempted == false &&
                 _sessionRefresher != null && _sessionRefresher.CanRefresh)
             {
@@ -285,7 +392,7 @@ namespace MirraCloud.Core
                 if (refreshOp.Result.IsSuccess)
                 {
                     preparedConfig.RetryCount++;
-                    yield return SendRequestInternal(preparedConfig, operation, extractData);
+                    yield return SendRequestInternal(preparedConfig, operation, extractData, redirectDepth);
                     yield break;
                 }
             }
@@ -294,7 +401,7 @@ namespace MirraCloud.Core
                 preparedConfig.RetryCount < preparedConfig.MaxRetries)
             {
                 preparedConfig.RetryCount++;
-                yield return SendRequestInternal(preparedConfig, operation, extractData);
+                yield return SendRequestInternal(preparedConfig, operation, extractData, redirectDepth);
                 yield break;
             }
 
@@ -405,11 +512,18 @@ namespace MirraCloud.Core
             }
             if (cfg.DownloadHandler == null)
             {
-                cfg.DownloadHandler = new DownloadHandlerBuffer();
+                if (cfg.DownloadHandlerFactory == null)
+                {
+                    cfg.DownloadHandler = new DownloadHandlerBuffer();
+                }
             }
             if (cfg.MaxRetries <= 0)
             {
                 cfg.MaxRetries = 1;
+            }
+            if (cfg.MaxRedirects <= 0)
+            {
+                cfg.MaxRedirects = 5;
             }
             return cfg;
         }
@@ -425,9 +539,15 @@ namespace MirraCloud.Core
                 Headers = config.Headers != null ? new Dictionary<string, string>(config.Headers) : null,
                 MultipartFormSections = config.MultipartFormSections != null ? new List<IMultipartFormSection>(config.MultipartFormSections) : null,
                 DownloadHandler = config.DownloadHandler,
+                DownloadHandlerFactory = config.DownloadHandlerFactory,
                 UploadHandler = config.UploadHandler,
                 TimeoutMs = config.TimeoutMs,
                 RedirectLimit = config.RedirectLimit,
+                FollowRedirect = config.FollowRedirect,
+                MaxRedirects = config.MaxRedirects,
+                RedirectHttpStatusCodes = config.RedirectHttpStatusCodes,
+                NoAuthOnRedirect = config.NoAuthOnRedirect,
+                StripHeadersOnRedirect = config.StripHeadersOnRedirect,
                 AllowedHttpStatusCodes = config.AllowedHttpStatusCodes,
                 MaxRetries = config.MaxRetries,
                 RetryCount = config.RetryCount,
@@ -437,6 +557,21 @@ namespace MirraCloud.Core
             };
 
             cfg.Url = GetUrl(cfg.Route);
+
+            if (cfg.MaxRetries <= 0)
+            {
+                cfg.MaxRetries = 1;
+            }
+
+            if (cfg.MaxRedirects <= 0)
+            {
+                cfg.MaxRedirects = 5;
+            }
+
+            if (cfg.FollowRedirect)
+            {
+                cfg.RedirectLimit = 0;
+            }
 
             if (cfg.SerializedBody == null && cfg.Body != null && cfg.MultipartFormSections == null && cfg.UploadHandler == null)
             {
@@ -521,6 +656,112 @@ namespace MirraCloud.Core
             }
 
             return false;
+        }
+
+        private static bool IsRedirectStatus(long httpCode, long[] redirectHttpStatusCodes)
+        {
+            var codes = redirectHttpStatusCodes ?? DefaultRedirectHttpStatusCodes;
+            if (codes == null || codes.Length == 0)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < codes.Length; i++)
+            {
+                if (codes[i] == httpCode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string ExtractRedirectLocation(UnityWebRequest request)
+        {
+            return request.GetResponseHeader("Location") ?? request.GetResponseHeader("location");
+        }
+
+        private static string ResolveRedirectUrl(string currentUrl, string location)
+        {
+            if (string.IsNullOrWhiteSpace(location))
+            {
+                return null;
+            }
+
+            if (Uri.TryCreate(location, UriKind.Absolute, out var absolute))
+            {
+                return absolute.ToString();
+            }
+
+            if (Uri.TryCreate(currentUrl, UriKind.Absolute, out var baseUri) &&
+                Uri.TryCreate(baseUri, location, out var resolved))
+            {
+                return resolved.ToString();
+            }
+
+            return location;
+        }
+
+        private static RestRequestConfig BuildRedirectConfig(RestRequestConfig config, string redirectUrl, long httpCode)
+        {
+            Dictionary<string, string> headers = null;
+            if (config.StripHeadersOnRedirect == false && config.Headers != null)
+            {
+                headers = new Dictionary<string, string>(config.Headers);
+                if (config.NoAuthOnRedirect)
+                {
+                    headers.Remove("Authorization");
+                    headers.Remove("authorization");
+                }
+            }
+
+            var method = config.Method;
+            var body = config.Body;
+            var serializedBody = config.SerializedBody;
+            var multipartFormSections = config.MultipartFormSections;
+            var uploadHandler = config.UploadHandler;
+
+            if (httpCode == 303 && string.Equals(method, UnityWebRequest.kHttpVerbGET, StringComparison.OrdinalIgnoreCase) == false)
+            {
+                method = UnityWebRequest.kHttpVerbGET;
+                body = null;
+                serializedBody = null;
+                multipartFormSections = null;
+                uploadHandler = null;
+            }
+
+            var downloadHandler = config.DownloadHandler;
+            if (config.DownloadHandlerFactory != null)
+            {
+                downloadHandler = null;
+            }
+
+            return new RestRequestConfig
+            {
+                Route = redirectUrl,
+                Method = method,
+                Body = body,
+                SerializedBody = serializedBody,
+                Headers = headers,
+                MultipartFormSections = multipartFormSections,
+                DownloadHandler = downloadHandler,
+                DownloadHandlerFactory = config.DownloadHandlerFactory,
+                UploadHandler = uploadHandler,
+                TimeoutMs = config.TimeoutMs,
+                RedirectLimit = 0,
+                FollowRedirect = config.FollowRedirect,
+                MaxRedirects = config.MaxRedirects,
+                RedirectHttpStatusCodes = config.RedirectHttpStatusCodes,
+                NoAuthOnRedirect = config.NoAuthOnRedirect,
+                StripHeadersOnRedirect = config.StripHeadersOnRedirect,
+                AllowedHttpStatusCodes = config.AllowedHttpStatusCodes,
+                MaxRetries = config.MaxRetries,
+                RetryCount = config.RetryCount,
+                DisableRetry = config.DisableRetry,
+                NoAuth = config.NoAuthOnRedirect ? true : config.NoAuth,
+                AuthRetryAttempted = config.AuthRetryAttempted
+            };
         }
 
         public string GetUrl(string route)

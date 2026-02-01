@@ -9,7 +9,6 @@ namespace MirraCloud.Core.AssetsStorage
     public class AssetsStorageService 
     {
         private const string ControllerApi = "/assets/v1";
-        private static readonly long[] RedirectHttpStatusCodes = { 301, 302, 303, 307, 308 };
 
         private readonly Configuration _configuration;
         private readonly RestApiClient _restApi;
@@ -63,209 +62,75 @@ namespace MirraCloud.Core.AssetsStorage
             return assets;
         }
 
-        private static string ExtractRedirectLocation(UnityWebRequest request)
+        private string BuildAssetRoute(string id)
         {
-            return request.GetResponseHeader("Location") ?? request.GetResponseHeader("location");
+            return $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
         }
 
-        private AsyncOperation<RestApiResult<string>> ResolveAssetDownloadUrlAsync(string id)
+        private RestRequestConfig CreateDownloadConfig(System.Func<string, DownloadHandler> downloadHandlerFactory = null)
         {
-            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
-
-            var config = new RestRequestConfig
+            return new RestRequestConfig
             {
-                RedirectLimit = 0,
-                AllowedHttpStatusCodes = RedirectHttpStatusCodes
+                FollowRedirect = true,
+                NoAuthOnRedirect = true,
+                StripHeadersOnRedirect = true,
+                DownloadHandlerFactory = downloadHandlerFactory
             };
-
-            return _restApi.GetAsync<string>(route, config, ExtractRedirectLocation);
         }
          
         public AsyncOperation<RestApiResult<TextFile>> LoadTextFromId(string id, ExtractTextFileType textFileType = ExtractTextFileType.Text)
         {
-            var op = new AsyncOperation<RestApiResult<TextFile>>();
-
-            var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.UseCompleted(_ =>
+            var route = BuildAssetRoute(id);
+            var config = CreateDownloadConfig();
+            return _restApi.GetAsync<TextFile>(route, config, request =>
             {
-                if (!resolveOp.Result.IsSuccess)
+                var textFile = new TextFile();
+
+                if (textFileType == ExtractTextFileType.All || textFileType == ExtractTextFileType.Text)
                 {
-                    op.Complete(RestApiResult<TextFile>.Fail(resolveOp.Result.Error).WithMetaFrom(resolveOp.Result));
-                    return;
+                    textFile.Text = request.downloadHandler.text;
                 }
 
-                if (string.IsNullOrWhiteSpace(resolveOp.Result.Data))
+                if (textFileType == ExtractTextFileType.All || textFileType == ExtractTextFileType.Data)
                 {
-                    op.Complete(RestApiResult<TextFile>.ValidationFail("Asset download url is empty.").WithMetaFrom(resolveOp.Result));
-                    return;
+                    textFile.Data = request.downloadHandler.data;
                 }
 
-                var downloadConfig = new RestRequestConfig { NoAuth = true };
-                var downloadOp = _restApi.GetAsync<TextFile>(resolveOp.Result.Data, downloadConfig, request =>
-                {
-                    var textFile = new TextFile();
-
-                    if (textFileType == ExtractTextFileType.All || textFileType == ExtractTextFileType.Text)
-                    {
-                        textFile.Text = request.downloadHandler.text;
-                    }
-
-                    if (textFileType == ExtractTextFileType.All || textFileType == ExtractTextFileType.Data)
-                    {
-                        textFile.Data = request.downloadHandler.data;
-                    }
-
-                    return textFile;
-                });
-
-                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
+                return textFile;
             });
-
-            return op;
         }
 
         public AsyncOperation<RestApiResult<Texture2D>> LoadTextureFromId(string id, bool readable = false)
         {
-            var op = new AsyncOperation<RestApiResult<Texture2D>>();
-
-            var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.UseCompleted(_ =>
-            {
-                if (!resolveOp.Result.IsSuccess)
-                {
-                    op.Complete(RestApiResult<Texture2D>.Fail(resolveOp.Result.Error).WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(resolveOp.Result.Data))
-                {
-                    op.Complete(RestApiResult<Texture2D>.ValidationFail("Asset download url is empty.").WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                var downloadConfig = new RestRequestConfig
-                {
-                    NoAuth = true,
-                    DownloadHandler = new DownloadHandlerTexture(readable)
-                };
-
-                var downloadOp = _restApi.GetAsync<Texture2D>(resolveOp.Result.Data, downloadConfig,
-                    request => DownloadHandlerTexture.GetContent(request));
-
-                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
-            });
-
-            return op;
+            var route = BuildAssetRoute(id);
+            var config = CreateDownloadConfig(_ => new DownloadHandlerTexture(readable));
+            return _restApi.GetAsync<Texture2D>(route, config, request => DownloadHandlerTexture.GetContent(request));
         }
         
         public AsyncOperation<RestApiResult<Sprite>> LoadSpriteFromId(string id, bool readable = false)
         {
-            var op = new AsyncOperation<RestApiResult<Sprite>>();
-
-            var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.UseCompleted(_ =>
+            var route = BuildAssetRoute(id);
+            var config = CreateDownloadConfig(_ => new DownloadHandlerTexture(readable));
+            return _restApi.GetAsync(route, config, request =>
             {
-                if (!resolveOp.Result.IsSuccess)
-                {
-                    op.Complete(RestApiResult<Sprite>.Fail(resolveOp.Result.Error).WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(resolveOp.Result.Data))
-                {
-                    op.Complete(RestApiResult<Sprite>.ValidationFail("Asset download url is empty.")
-                        .WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                var downloadConfig = new RestRequestConfig
-                {
-                    NoAuth = true,
-                    DownloadHandler = new DownloadHandlerTexture(readable)
-                };
-
-                var downloadOp = _restApi.GetAsync(resolveOp.Result.Data, downloadConfig, request =>
-                {
-                    var texture = DownloadHandlerTexture.GetContent(request);
-                    
-                    return Sprite.Create(texture, new Rect(Vector2.zero, new Vector2(texture.width, texture.height)), Vector2.one * 0.5f);
-                });
-
-                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
+                var texture = DownloadHandlerTexture.GetContent(request);
+                return Sprite.Create(texture, new Rect(Vector2.zero, new Vector2(texture.width, texture.height)), Vector2.one * 0.5f);
             });
-
-            return op;
         }
 
 
         public AsyncOperation<RestApiResult<AudioClip>> LoadAudioFromId(string id, AudioType audioType)
         {
-            var op = new AsyncOperation<RestApiResult<AudioClip>>();
-
-            var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.UseCompleted(_ =>
-            {
-                if (!resolveOp.Result.IsSuccess)
-                {
-                    op.Complete(RestApiResult<AudioClip>.Fail(resolveOp.Result.Error).WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(resolveOp.Result.Data))
-                {
-                    op.Complete(RestApiResult<AudioClip>.ValidationFail("Asset download url is empty.").WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                var downloadUrl = resolveOp.Result.Data;
-                var downloadConfig = new RestRequestConfig
-                {
-                    NoAuth = true,
-                    DownloadHandler = new DownloadHandlerAudioClip(downloadUrl, audioType)
-                };
-
-                var downloadOp = _restApi.GetAsync<AudioClip>(downloadUrl, downloadConfig,
-                    request => DownloadHandlerAudioClip.GetContent(request));
-
-                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
-            });
-
-            return op;
+            var route = BuildAssetRoute(id);
+            var config = CreateDownloadConfig(url => new DownloadHandlerAudioClip(url, audioType));
+            return _restApi.GetAsync<AudioClip>(route, config, request => DownloadHandlerAudioClip.GetContent(request));
         }
         
         public AsyncOperation<RestApiResult<AssetBundle>> LoadAssetBundleFromId(string id)
         {
-            var op = new AsyncOperation<RestApiResult<AssetBundle>>();
-
-            var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.UseCompleted(_ =>
-            {
-                if (!resolveOp.Result.IsSuccess)
-                {
-                    op.Complete(RestApiResult<AssetBundle>.Fail(resolveOp.Result.Error).WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(resolveOp.Result.Data))
-                {
-                    op.Complete(RestApiResult<AssetBundle>.ValidationFail("Asset download url is empty.").WithMetaFrom(resolveOp.Result));
-                    return;
-                }
-
-                var downloadUrl = resolveOp.Result.Data;
-                var downloadConfig = new RestRequestConfig
-                {
-                    NoAuth = true,
-                    DownloadHandler = new DownloadHandlerAssetBundle(downloadUrl, 0)
-                };
-
-                var downloadOp = _restApi.GetAsync<AssetBundle>(downloadUrl, downloadConfig,
-                    request => DownloadHandlerAssetBundle.GetContent(request));
-
-                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
-            });
-
-            return op;
+            var route = BuildAssetRoute(id);
+            var config = CreateDownloadConfig(url => new DownloadHandlerAssetBundle(url, 0));
+            return _restApi.GetAsync<AssetBundle>(route, config, request => DownloadHandlerAssetBundle.GetContent(request));
         }
 
         private void AddStorageItems(AssetStorageStructureDto structureDto)
