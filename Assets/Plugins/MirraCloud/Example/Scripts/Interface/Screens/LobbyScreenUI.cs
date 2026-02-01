@@ -20,14 +20,24 @@ namespace MirraCloud.Example.Interface
 
         protected override void OnEnableScreen()
         {
-            _leaderboardButton.onClick.AddListener(UIController.ShowScreen<LeaderboardScreenUI>);
-            _inventoryButton.onClick.AddListener(UIController.ShowScreen<InventoryScreenUI>);
+            _leaderboardButton.onClick.AddListener(ShowLeaderboard);
+            _inventoryButton.onClick.AddListener(ShowInventory);
         }
 
         protected override void OnDisableScreen()
         {
-            _leaderboardButton.onClick.RemoveListener(UIController.ShowScreen<LeaderboardScreenUI>);
-            _inventoryButton.onClick.RemoveListener(UIController.ShowScreen<InventoryScreenUI>);
+            _leaderboardButton.onClick.RemoveListener(ShowLeaderboard);
+            _inventoryButton.onClick.RemoveListener(ShowInventory);
+        }
+
+        private void ShowLeaderboard()
+        {
+            UIController.ShowScreen<LeaderboardScreenUI>();
+        }
+
+        private void ShowInventory()
+        {
+            UIController.ShowScreen<InventoryScreenUI>();
         }
     }
 }

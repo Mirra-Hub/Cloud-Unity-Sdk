@@ -33,25 +33,25 @@ namespace MirraCloud.Core.Economy
             _logger = logger;
         }
 
-        public AsyncOperation<RestApiResult<EconomyConfigsDto>> GetConfigsAsync()
+        public AsyncOperation<RestApiResult<EconomyConfigsDto>> LoadConfigsAsync()
         {
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/configs";
             var operation = _restApi.GetAsync<EconomyConfigsDto>(route);
 
-            operation.OnCompleted += completed =>
+            operation.UseCompleted(_ =>
             {
-                if (!completed.Result.IsSuccess || completed.Result.Data == null)
+                if (!operation.Result.IsSuccess || operation.Result.Data == null)
                 {
                     return;
                 }
 
-                ApplyConfigs(completed.Result.Data);
-            };
+                ApplyConfigs(operation.Result.Data);
+            });
 
             return operation;
         }
 
-        public AsyncOperation<RestApiResult<PlayerInventoryDto>> GetInventoryAsync()
+        public AsyncOperation<RestApiResult<PlayerInventoryDto>> LoadInventoryAsync()
         {
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories";
             return _restApi.GetAsync<PlayerInventoryDto>(route);

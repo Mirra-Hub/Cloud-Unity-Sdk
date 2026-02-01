@@ -31,7 +31,7 @@ namespace MirraCloud.Example
             
             _itemResourcesUi.Clear();
             
-            var operation = MirraCloudSDK.Economy.GetConfigsAsync();
+            var operation = MirraCloudSDK.Economy.LoadConfigsAsync();
 
             await operation.Task();
 

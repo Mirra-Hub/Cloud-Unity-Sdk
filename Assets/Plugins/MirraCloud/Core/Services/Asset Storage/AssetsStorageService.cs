@@ -95,6 +95,23 @@ namespace MirraCloud.Core.AssetsStorage
             
             return _restApi.GetAsync<Texture2D>(route, config, request => DownloadHandlerTexture.GetContent(request));
         }
+        
+        public AsyncOperation<RestApiResult<Sprite>> LoadSpriteFromId(string id, bool readable = false)
+        {
+            string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/assets/{id}";
+            
+            var config = new RestRequestConfig
+            {
+                DownloadHandler = new DownloadHandlerTexture(readable)
+            };
+            
+            return _restApi.GetAsync(route, config, request =>
+            {
+                var texture = DownloadHandlerTexture.GetContent(request);
+
+                return Sprite.Create(texture, new Rect(Vector2.zero, texture.texelSize), Vector2.one);
+            });
+        }
 
 
         public AsyncOperation<RestApiResult<AudioClip>> LoadAudioFromId(string id, AudioType audioType)

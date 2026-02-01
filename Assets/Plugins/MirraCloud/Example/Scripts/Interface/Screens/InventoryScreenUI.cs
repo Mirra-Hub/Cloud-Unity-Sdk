@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using MirraCloud.Core;
 using MirraCloud.Example;
+using MirraCloud.Example.Infrastructure.DI;
 using MirraCloud.Example.Interface;
-using Plugins.MirraCloud.Example.Scripts.Test;
+using Plugins.MirraCloud.Example.Scripts.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,69 +12,62 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
     {
         [SerializeField] private RectTransform _container;
         [SerializeField] private Button _closeButton;
-        [SerializeField] private LeaderboardItemUI _playerLeaderboardItemUI;
-        [SerializeField] private LeaderboardItemUI _leaderboardItemUIPrefab;
-        [SerializeField] private string _leaderboardId;
+        [SerializeField] private InventoryItemSlotUI _itemSlotPrefab;
 
-        private readonly List<LeaderboardItemUI> _leaderboardItemsUI = new List<LeaderboardItemUI>();
+        private readonly List<InventoryItemSlotUI> _itemSlotUis = new List<InventoryItemSlotUI>();
+        private PlayerEconomy _playerEconomy;
+        private EconomyService _economyService;
 
-        private void Awake()
+        [InjectDep]
+        public void Construct(PlayerEconomy playerEconomy, EconomyService economyService)
         {
-            var  leaderboardTest = FindObjectOfType<LeaderboardTest>();
-            _leaderboardId = leaderboardTest.LeaderboardId;
+            _economyService = economyService;
+            _playerEconomy = playerEconomy;
         }
 
         protected override void OnEnableScreen()
         {
-            _closeButton.onClick.AddListener(UIController.ShowScreen<LobbyScreenUI>);
-          //  Refresh();
+            _closeButton.onClick.AddListener(Close);
+            Refresh();
         }
+
+    
 
         protected override void OnDisableScreen()
         {
-            _closeButton.onClick.RemoveListener(UIController.ShowScreen<LobbyScreenUI>);
+            _closeButton.onClick.RemoveListener(Close);
         }
         
         private async void Refresh()
         {
-            var operation = MirraCloudSDK.Leaderboard.GetLeaderboardPlayer(_leaderboardId);
-            await operation.Task();
-
-            if (operation.Result.IsSuccess && operation.Result.Data != null)
+            foreach (var itemSlotUI in _itemSlotUis)
             {
-                _playerLeaderboardItemUI.Initialize(operation.Result.Data);
-            }
-
-            foreach (var leaderboardItem in _leaderboardItemsUI)
-            {
-                leaderboardItem.Hide();
+                itemSlotUI.Hide();
             }
             
-            var operationTable = MirraCloudSDK.Leaderboard.GetLeaderboardTopEntries(_leaderboardId);
-            await operationTable.Task();
-
-            if (operationTable.Result.IsSuccess && operationTable.Result.Data != null)
+            for (int index = 0; index < _playerEconomy.PlayerItems.Count; index++)
             {
-                Debug.Log(operationTable.Result.ResponseBody);
-                
-                for (int index = 0; index < operationTable.Result.Data.entries.Length; index++)
-                {
-                    var leaderboardEntry = operationTable.Result.Data.entries[index];
+                var playerItem = _playerEconomy.PlayerItems[index];
+                var economyItem = _economyService.GetItem(playerItem.ItemKey);
 
-                    if (index >= _leaderboardItemsUI.Count)
-                    {
-                        var itemUI = Instantiate(_leaderboardItemUIPrefab, _container);
-                        itemUI.Initialize(leaderboardEntry);
-                        _leaderboardItemsUI.Add(itemUI);
-                    }
-                    else
-                    {
-                        var itemUI = _leaderboardItemsUI[index];
-                        itemUI.Initialize(leaderboardEntry);
-                        itemUI.Show();
-                    }
+                if (index >= _itemSlotUis.Count)
+                {
+                    var itemUI = Instantiate(_itemSlotPrefab, _container);
+                    itemUI.Initialize(playerItem, economyItem);
+                    _itemSlotUis.Add(itemUI);
+                }
+                else
+                {
+                    var itemUI = _itemSlotUis[index];
+                    itemUI.Initialize(playerItem, economyItem);
+                    itemUI.Show();
                 }
             }
+        }
+        
+        private void Close()
+        {
+            UIController.ShowScreen<LobbyScreenUI>();
         }
     }
 }
