@@ -454,7 +454,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
         private static AsyncOperation<RestApiResult> CreateValidationErrorOperation(string message)
         {
-            return AsyncOperation<RestApiResult>.Completed(RestApiResult.ValidationFail(message));
+            return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail(message));
         }
 
         private static bool IsValidHttpUrl(string url)

@@ -4,42 +4,39 @@ using UnityEngine;
 
 namespace Plugins.MirraCloud.Core.General.AsyncOperations
 {
-    public interface IBaseAsyncOperation
-    {
-        bool IsDone { get; }
-        Task Task { get; }
-    }
-
-    public interface IAsyncOperation<out T> : IBaseAsyncOperation
-    {
-        T Result { get; }
-        event Action<IAsyncOperation<T>> OnCompleted;
-    }
-
-    public sealed class AsyncOperation : CustomYieldInstruction, IBaseAsyncOperation
+    public sealed class AsyncOperation : CustomYieldInstruction, IAsyncOperation
     {
         private readonly TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
 
         public bool IsDone => _tcs.Task.IsCompleted;
-        public Task Task => _tcs.Task;
 
         public override bool keepWaiting => IsDone == false;
 
-        public event Action<AsyncOperation> OnCompleted;
-
+        public event Action<IAsyncOperation> OnCompleted;
+        private event Action<IAsyncOperation> _onCompletedCallback;
+    
+        public Task Task() => _tcs.Task;
+        
         public void Complete()
         {
+            _onCompletedCallback?.Invoke(this);
+
             if (_tcs.TrySetResult(true))
             {
                 OnCompleted?.Invoke(this);
             }
         }
 
-        public static AsyncOperation Completed()
+        public static AsyncOperation CreateCompleted()
         {
             var op = new AsyncOperation();
             op.Complete();
             return op;
+        }
+        
+        public void UseCompleted(Action<IAsyncOperation> callback)
+        {
+            _onCompletedCallback = callback;
         }
     }
 
@@ -49,29 +46,37 @@ namespace Plugins.MirraCloud.Core.General.AsyncOperations
         private T _result;
 
         public bool IsDone => _tcs.Task.IsCompleted;
-        public Task Task => _tcs.Task;
-
-        public Task<T> TaskWithResult => _tcs.Task;
-
+        
         public T Result => _result;
         public override bool keepWaiting => IsDone == false;
 
         public event Action<IAsyncOperation<T>> OnCompleted;
+        
+        private event Action<IAsyncOperation<T>> _onCompletedCallback;
 
+        public Task Task() => _tcs.Task;
+        
         public void Complete(T result)
         {
             _result = result;
+            _onCompletedCallback?.Invoke(this);
+
             if (_tcs.TrySetResult(result))
             {
                 OnCompleted?.Invoke(this);
             }
         }
 
-        public static AsyncOperation<T> Completed(T result)
+        public static AsyncOperation<T> CreateCompleted(T result)
         {
             var op = new AsyncOperation<T>();
             op.Complete(result);
             return op;
+        }
+
+        public void UseCompleted(Action<IAsyncOperation<T>> callback)
+        {
+            _onCompletedCallback = callback;
         }
     }
 }

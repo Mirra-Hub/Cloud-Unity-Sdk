@@ -10,18 +10,18 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
         {
             var authOperation = MirraCloudSDK.Authentication.LoginDeviceAsync(SystemInfo.deviceUniqueIdentifier);
 
-            await authOperation.Task;
+            await authOperation.Task();
             
-            return authOperation.Result.IsSuccess;
+            return MirraCloudSDK.Authentication.IsAuth;
         }
 
         public async Task<bool> LoginGuest()
         {
             var authOperation = MirraCloudSDK.Authentication.LoginGuestAsync();
 
-            await authOperation.Task;
+            await authOperation.Task();
             
-           return authOperation.Result.IsSuccess;
+           return MirraCloudSDK.Authentication.IsAuth;
         }
     }
 }

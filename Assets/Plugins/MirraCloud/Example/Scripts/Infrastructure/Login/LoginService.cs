@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Plugins.MirraCloud.Example.Scripts.Core;
 using Plugins.MirraCloud.Example.Scripts.Infrastructure.SceneManagement;
 using Plugins.MirraCloud.Example.Scripts.Interface.Popups;
+using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby
 {
@@ -37,6 +38,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby
         
         private async void HandleLogin(bool isSuccess)
         {
+            Debug.Log($"Login handle: {isSuccess}");
+            
             if (isSuccess)
             {
                 bool result = await LoginInitialize();
@@ -57,6 +60,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby
 
         private async Task<bool> LoginInitialize()
         {
+            Debug.Log("Login initialized");
+            
             foreach (var initializable in _initializables)
             {
                 bool result =  await initializable.Initialize();

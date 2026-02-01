@@ -28,7 +28,7 @@ namespace MirraCloud.Example
             
             _itemResourcesUi.Clear();
             
-            await MirraCloudSDK.AssetsStorage.LoadConfigAsync().Task;
+            await MirraCloudSDK.AssetsStorage.LoadConfigAsync().Task();
             
             foreach (var asset in MirraCloudSDK.AssetsStorage.Assets)
             {
@@ -55,7 +55,7 @@ namespace MirraCloud.Example
                 
                 var operation = MirraCloudSDK.AssetsStorage.LoadTextureFromId(asset.ItemId);
 
-                await operation.Task;
+                await operation.Task();
                 
                 
                 var child = _assetsContainer.GetChild(counter);

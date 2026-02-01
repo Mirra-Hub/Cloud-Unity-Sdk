@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using MirraCloud.Core;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby;
+using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts
 {
@@ -14,6 +15,8 @@ namespace Plugins.MirraCloud.Example.Scripts
 
         public async Task<bool> Initialize()
         {
+            Debug.Log($"Initializing player profile {MirraCloudSDK.PlayerAccount.PlayerAccountInfo}");
+            
             if (MirraCloudSDK.PlayerAccount.PlayerAccountInfo != null)
             {
                 Name = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.Nickname;

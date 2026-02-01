@@ -38,7 +38,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
         private async void Refresh()
         {
             var operation = MirraCloudSDK.Leaderboard.GetLeaderboardPlayer(_leaderboardId);
-            await operation.Task;
+            await operation.Task();
 
             if (operation.Result.IsSuccess && operation.Result.Data != null)
             {
@@ -51,7 +51,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
             }
             
             var operationTable = MirraCloudSDK.Leaderboard.GetLeaderboardTopEntries(_leaderboardId);
-            await operationTable.Task;
+            await operationTable.Task();
 
             if (operationTable.Result.IsSuccess && operationTable.Result.Data != null)
             {

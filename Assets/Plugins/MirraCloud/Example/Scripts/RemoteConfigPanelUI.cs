@@ -22,7 +22,7 @@ namespace MirraCloud.Example
                 return;
             }
             
-            await MirraCloudSDK.RemoteConfig.LoadConfigAsync().Task;
+            await MirraCloudSDK.RemoteConfig.LoadConfigAsync().Task();
 
             StringBuilder stringBuilder = new StringBuilder();
             

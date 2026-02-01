@@ -23,7 +23,7 @@ namespace MirraCloud.Example
             UpdateDataContainer container = new UpdateDataContainer();
             container.AddString(key, value);
 
-            await MirraCloudSDK.CloudSave.SaveAsync(container).Task;
+            await MirraCloudSDK.CloudSave.SaveAsync(container).Task();
 
             await LoadCloudSaveAsync();
         }
@@ -35,7 +35,7 @@ namespace MirraCloud.Example
 
         private async Task LoadCloudSaveAsync()
         {
-            await MirraCloudSDK.CloudSave.LoadAsync().Task;
+            await MirraCloudSDK.CloudSave.LoadAsync().Task();
 
             StringBuilder stringBuilder = new StringBuilder();
             

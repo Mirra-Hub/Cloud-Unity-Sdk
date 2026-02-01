@@ -52,14 +52,14 @@ namespace MirraCloud.Core.Auth
         {
             if (_storage.HasKey(REFRESH_TOKEN_KEY) == false)
             {
-                return AsyncOperation<RestApiResult<GetAuthDataDto>>.Completed(RestApiResult<GetAuthDataDto>.Success(null));
+                return AsyncOperation<RestApiResult<GetAuthDataDto>>.CreateCompleted(RestApiResult<GetAuthDataDto>.Success(null));
             }
 
             var savedRefresh = _storage.GetString(REFRESH_TOKEN_KEY);
             if (string.IsNullOrWhiteSpace(savedRefresh))
             {
                 ClearSessionAndStorage();
-                return AsyncOperation<RestApiResult<GetAuthDataDto>>.Completed(RestApiResult<GetAuthDataDto>.Success(null));
+                return AsyncOperation<RestApiResult<GetAuthDataDto>>.CreateCompleted(RestApiResult<GetAuthDataDto>.Success(null));
             }
 
             _refreshToken = savedRefresh;
@@ -169,7 +169,7 @@ namespace MirraCloud.Core.Auth
         {
             if (string.IsNullOrWhiteSpace(openIdKey))
             {
-                return AsyncOperation<RestApiResult<GetAuthDataDto>>.Completed(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId key is empty."));
+                return AsyncOperation<RestApiResult<GetAuthDataDto>>.CreateCompleted(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId key is empty."));
             }
 
             return GetAuthAsync($"{OPENID_RESULT_ROUTE}/{openIdKey}", noAuth: true);
@@ -212,7 +212,7 @@ namespace MirraCloud.Core.Auth
         {
             if (string.IsNullOrWhiteSpace(successUrl))
             {
-                return AsyncOperation<RestApiResult<string>>.Completed(RestApiResult<string>.ValidationFail("SuccessUrl is empty."));
+                return AsyncOperation<RestApiResult<string>>.CreateCompleted(RestApiResult<string>.ValidationFail("SuccessUrl is empty."));
             }
 
             var dto = new RegisterOpenIdProviderDto { SuccessUrl = successUrl };
@@ -386,7 +386,7 @@ namespace MirraCloud.Core.Auth
             if (string.IsNullOrEmpty(_refreshToken))
             {
                 _logger.Log("RefreshSessionAsync called without refresh token.");
-                return AsyncOperation<RestApiResult>.Completed(RestApiResult.ValidationFail("Refresh token is empty."));
+                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("Refresh token is empty."));
             }
 
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/refresh";
@@ -449,20 +449,24 @@ namespace MirraCloud.Core.Auth
         {
             var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
             var op = _restApi.PostAsync<GetAuthDataDto>(route, dto, config);
-            op.OnCompleted += completed => HandleAuthCompleted(completed.Result);
+            op.UseCompleted(HandleAuthCompleted); ;
             return op;
         }
 
         private AsyncOperation<RestApiResult<GetAuthDataDto>> GetAuthAsync(string route, bool noAuth = false)
         {
             var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
-            var op = _restApi.GetAsync<GetAuthDataDto>(route, config);
-            op.OnCompleted += completed => HandleAuthCompleted(completed.Result);
-            return op;
+            var operation = _restApi.GetAsync<GetAuthDataDto>(route, config);
+            
+            operation.UseCompleted(HandleAuthCompleted);
+            return operation;
         }
 
-        private void HandleAuthCompleted(RestApiResult<GetAuthDataDto> result)
+        private void HandleAuthCompleted(IAsyncOperation<RestApiResult<GetAuthDataDto>> operation)
         {
+            _logger.Log("handle auth");
+            var result = operation.Result;
+            
             if (!result.IsSuccess)
             {
                 _logger.Error(result.Error?.Message ?? "Auth request failed.");

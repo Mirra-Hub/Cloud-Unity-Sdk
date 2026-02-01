@@ -26,7 +26,7 @@ namespace MirraCloud.Core.CloudCode
         {
             if (string.IsNullOrWhiteSpace(scriptId))
             {
-                return AsyncOperation<RestApiResult<ExecuteCloudCodeResponseDto>>.Completed(
+                return AsyncOperation<RestApiResult<ExecuteCloudCodeResponseDto>>.CreateCompleted(
                     RestApiResult<ExecuteCloudCodeResponseDto>.ValidationFail("scriptId is empty."));
             }
 

@@ -33,7 +33,7 @@ namespace MirraCloud.Example
             
             var operation = MirraCloudSDK.Economy.GetConfigsAsync();
 
-            await operation.Task;
+            await operation.Task();
 
             if (operation.Result.IsSuccess)
             {
