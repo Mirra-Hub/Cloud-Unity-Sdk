@@ -144,7 +144,7 @@ namespace MirraCloud.Core.Auth
         {
             var op = new AsyncOperation<RestApiResult>();
             var urlOp = BeginOpenIdLoginUrlAsync(providerId, successUrl);
-            urlOp.OnCompleted += _ =>
+            urlOp.UseCompleted(_ =>
             {
                 if (!urlOp.Result.IsSuccess)
                 {
@@ -160,7 +160,7 @@ namespace MirraCloud.Core.Auth
 
                 Application.OpenURL(urlOp.Result.Data);
                 op.Complete(RestApiResult.Success().WithMetaFrom(urlOp.Result));
-            };
+            });
 
             return op;
         }
@@ -238,7 +238,7 @@ namespace MirraCloud.Core.Auth
             }
 
             var beginOp = beginLoginUrlAsync(receiver.SuccessUrl);
-            beginOp.OnCompleted += _ =>
+            beginOp.UseCompleted(_ =>
             {
                 if (!beginOp.Result.IsSuccess)
                 {
@@ -255,7 +255,7 @@ namespace MirraCloud.Core.Auth
                 }
 
                 var waitOp = receiver.WaitForKeyAsync();
-                waitOp.OnCompleted += _ =>
+                waitOp.UseCompleted(_ =>
                 {
                     receiver.Dispose();
 
@@ -266,11 +266,11 @@ namespace MirraCloud.Core.Auth
                     }
 
                     var completeOp = CompleteOpenIdLoginAsync(waitOp.Result);
-                    completeOp.OnCompleted += completed => op.Complete(completed.Result);
-                };
+                    completeOp.UseCompleted(completed => op.Complete(completed.Result));
+                });
 
                 Application.OpenURL(beginOp.Result.Data);
-            };
+            });
 
             return op;
         }
@@ -395,7 +395,7 @@ namespace MirraCloud.Core.Auth
             var refreshOp = _restApi.PostAsync<SessionRefreshResultDto>(route, dto, new RestRequestConfig { NoAuth = true, DisableRetry = true });
             var resultOp = new AsyncOperation<RestApiResult>();
 
-            refreshOp.OnCompleted += completed =>
+            refreshOp.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess || completed.Result.Data?.Session == null)
                 {
@@ -410,7 +410,7 @@ namespace MirraCloud.Core.Auth
                 SaveSessionToStorage();
                 OnSessionRefreshed?.Invoke();
                 resultOp.Complete(RestApiResult.Success());
-            };
+            });
 
             return resultOp;
         }
@@ -421,11 +421,11 @@ namespace MirraCloud.Core.Auth
             var dto = new LogoutSessionDto { SessionId = _sessionId };
 
             var op = _restApi.PostAsync(route, dto);
-            op.OnCompleted += _ =>
+            op.UseCompleted(_ =>
             {
                 ClearSessionAndStorage();
                 OnSessionExpired?.Invoke();
-            };
+            });
             return op;
         }
 
@@ -433,11 +433,11 @@ namespace MirraCloud.Core.Auth
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/logout/all";
             var op = _restApi.PostAsync(route, new { });
-            op.OnCompleted += _ =>
+            op.UseCompleted(_ =>
             {
                 ClearSessionAndStorage();
                 OnSessionExpired?.Invoke();
-            };
+            });
             return op;
         }
 

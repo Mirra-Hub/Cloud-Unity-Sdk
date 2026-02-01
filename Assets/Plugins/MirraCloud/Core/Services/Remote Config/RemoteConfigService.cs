@@ -26,7 +26,7 @@ namespace MirraCloud.Core.RemoteConfig
         {
             var request = _restApi.GetAsync<FetchRemoteConfigResponse>($"{SERVICE_ROUTE}/projects/{_configuration.ProjectId}/config");
 
-            request.OnCompleted += completed =>
+            request.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess)
                 {
@@ -40,10 +40,9 @@ namespace MirraCloud.Core.RemoteConfig
                 }
 
                 Config = new RemoteConfig(completed.Result.Data.configs[0]);
-            };
+            });
 
             return request;
         }
     }
 }
-

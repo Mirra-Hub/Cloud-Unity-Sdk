@@ -93,7 +93,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var raw = _restApi.GetAsync<AccountDto>(route);
             var mapped = new AsyncOperation<RestApiResult<PlayerAccountInfo>>();
 
-            raw.OnCompleted += completed =>
+            raw.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess || completed.Result.Data == null)
                 {
@@ -103,7 +103,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
                 PlayerAccountInfo = new PlayerAccountInfo(completed.Result.Data);
                 mapped.Complete(RestApiResult<PlayerAccountInfo>.Success(PlayerAccountInfo).WithMetaFrom(completed.Result));
-            };
+            });
 
             return mapped;
         }
@@ -114,13 +114,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var dto = new { Nickname = nickname };
             var operation = _restApi.PatchAsync(route, dto);
 
-            operation.OnCompleted += completed =>
+            operation.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && PlayerAccountInfo != null)
                 {
                     PlayerAccountInfo.Nickname = nickname;
                 }
-            };
+            });
 
             return operation;
         }
@@ -157,13 +157,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var dto = new UpdateAccountIconDto { IconKey = iconUrl };
             var op = _restApi.PatchAsync(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     var _ = GetAccountAsync();
                 }
-            };
+            });
 
             return op;
         }
@@ -177,13 +177,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             };
 
             var op = _restApi.PatchMultipartAsync(route, form);
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     var _ = GetAccountAsync();
                 }
-            };
+            });
             return op;
         }
 
@@ -230,14 +230,14 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles";
             var op = _restApi.GetAsync<ProfileInfo[]>(route);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
                     _profiles = new List<ProfileInfo>(completed.Result.Data);
                     OnProfilesChanged?.Invoke(Profiles);
                 }
-            };
+            });
 
             return op;
         }
@@ -247,13 +247,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
             var op = _restApi.GetAsync<ProfileInfo>(route);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
                     UpdateLocalProfile(completed.Result.Data);
                 }
-            };
+            });
 
             return op;
         }
@@ -263,7 +263,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles?autoSelect={autoSelect}";
             var op = _restApi.PostAsync<ProfileInfo>(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
@@ -271,7 +271,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                     OnProfilesChanged?.Invoke(Profiles);
                     OnProfileUpdated?.Invoke(completed.Result.Data);
                 }
-            };
+            });
 
             return op;
         }
@@ -281,14 +281,14 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
             var op = _restApi.DeleteAsync(route);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     _profiles.RemoveAll(p => p.Id == profileId);
                     OnProfilesChanged?.Invoke(Profiles);
                 }
-            };
+            });
 
             return op;
         }
@@ -299,13 +299,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var dto = new UpdateProfileNicknameDto { Username = username };
             var op = _restApi.PatchAsync(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            };
+            });
 
             return op;
         }
@@ -321,13 +321,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var dto = new UpdateProfileIconDto { IconKey = iconUrl };
             var op = _restApi.PatchAsync(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            };
+            });
 
             return op;
         }
@@ -341,13 +341,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             };
 
             var op = _restApi.PatchMultipartAsync(route, form);
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            };
+            });
             return op;
         }
 
@@ -384,13 +384,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var dto = new UpdateProfileSegmentsDto { SegmentIds = segmentIds };
             var op = _restApi.PatchAsync(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     RefreshProfile(profileId);
                 }
-            };
+            });
 
             return op;
         }
@@ -412,13 +412,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}";
             var op = _restApi.PutAsync<ProfileInfo>(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
                     UpdateLocalProfile(completed.Result.Data);
                 }
-            };
+            });
 
             return op;
         }
@@ -679,13 +679,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var dto = new { ProfileId = profileId };
             var op = _restApi.PatchAsync(route, dto);
 
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess)
                 {
                     OnProfileSelected?.Invoke(profileId);
                 }
-            };
+            });
 
             return op;
         }

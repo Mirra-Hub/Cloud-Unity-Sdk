@@ -29,7 +29,7 @@ namespace MirraCloud.Core.CloudSave
             
             var request = _restApi.GetAsync<PlayerDataResponse>(route);
             
-            request.OnCompleted += completed =>
+            request.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
@@ -40,7 +40,7 @@ namespace MirraCloud.Core.CloudSave
                         _logger.Log($"key {field.Key} value {field.CurrentValue}");
                     }
                 }
-            };
+            });
 
             return request;
         }
@@ -51,7 +51,7 @@ namespace MirraCloud.Core.CloudSave
             
             var request = _restApi.PostAsync<PlayerDataResponse>(route, data);
 
-            request.OnCompleted += completed =>
+            request.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
@@ -62,7 +62,7 @@ namespace MirraCloud.Core.CloudSave
                         _logger.Log($"key {field.Key} value {field.CurrentValue}");
                     }
                 }
-            };
+            });
             
             return request;
         }

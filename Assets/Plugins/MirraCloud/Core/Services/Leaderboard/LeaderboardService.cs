@@ -37,7 +37,7 @@ namespace MirraCloud.Core.Leaderboard
 
             var operation = _restApi.GetAsync<LeaderboardConfigDto[]>(route);
 
-            operation.OnCompleted += completed =>
+            operation.UseCompleted(completed =>
             {
                 _leaderboardConfigs.Clear();
 
@@ -48,7 +48,7 @@ namespace MirraCloud.Core.Leaderboard
                         _leaderboardConfigs.Add(new LeaderboardConfig(leaderboardConfigDto));
                     }
                 }
-            };
+            });
             
             return operation;
         }

@@ -31,13 +31,13 @@ namespace Plugins.MirraCloud.Core.Services.Deployment
                 ClientVersion = version,
             });
 
-            response.OnCompleted += completed =>
+            response.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess)
                 {
                     _logger.Error(completed.Result.Error?.Message ?? "ResolveBranch request failed.");
                 }
-            };
+            });
 
             return response;
         }

@@ -31,7 +31,7 @@ namespace MirraCloud.Core.Entities
             string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/configs";
             var operation = _restApi.GetAsync<EntitiesConfigsSnapshotDto>(route);
 
-            operation.OnCompleted += completed =>
+            operation.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess || completed.Result.Data?.Configs == null)
                 {
@@ -48,7 +48,7 @@ namespace MirraCloud.Core.Entities
 
                     _configs[pair.Key] = pair.Value;
                 }
-            };
+            });
 
             return operation;
         }

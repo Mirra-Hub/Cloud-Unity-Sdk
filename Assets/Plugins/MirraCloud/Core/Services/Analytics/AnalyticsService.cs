@@ -52,13 +52,13 @@ namespace Plugins.MirraCloud.Core.Services.Analytics
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/platforms/{_configuration.AnalyticsPlatformId}/custom-metrics/{metricId}";
 
             var response = _restApi.PostAsync(route, new SendEventDto { Value = value });
-            response.OnCompleted += completed =>
+            response.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess)
                 {
                     _logger.Error(completed.Result.Error?.Message ?? "Analytics request failed.");
                 }
-            };
+            });
 
             return response;
         }

@@ -37,13 +37,13 @@ namespace MirraCloud.Core.AssetsStorage
             _assets.Clear();
             _folders.Clear();
             
-            response.OnCompleted += completed =>
+            response.UseCompleted(completed =>
             {
                 if (completed.Result.IsSuccess && completed.Result.Data != null)
                 {
                     AddStorageItems(completed.Result.Data);
                 }
-            };
+            });
             
             return response;
         }
@@ -86,7 +86,7 @@ namespace MirraCloud.Core.AssetsStorage
             var op = new AsyncOperation<RestApiResult<TextFile>>();
 
             var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.OnCompleted += _ =>
+            resolveOp.UseCompleted(_ =>
             {
                 if (!resolveOp.Result.IsSuccess)
                 {
@@ -118,8 +118,8 @@ namespace MirraCloud.Core.AssetsStorage
                     return textFile;
                 });
 
-                downloadOp.OnCompleted += completed => op.Complete(completed.Result);
-            };
+                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
+            });
 
             return op;
         }
@@ -129,7 +129,7 @@ namespace MirraCloud.Core.AssetsStorage
             var op = new AsyncOperation<RestApiResult<Texture2D>>();
 
             var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.OnCompleted += _ =>
+            resolveOp.UseCompleted(_ =>
             {
                 if (!resolveOp.Result.IsSuccess)
                 {
@@ -152,8 +152,8 @@ namespace MirraCloud.Core.AssetsStorage
                 var downloadOp = _restApi.GetAsync<Texture2D>(resolveOp.Result.Data, downloadConfig,
                     request => DownloadHandlerTexture.GetContent(request));
 
-                downloadOp.OnCompleted += completed => op.Complete(completed.Result);
-            };
+                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
+            });
 
             return op;
         }
@@ -188,12 +188,10 @@ namespace MirraCloud.Core.AssetsStorage
                 {
                     var texture = DownloadHandlerTexture.GetContent(request);
                     
-                    Debug.Log($"texture loaded: {texture.texelSize}");
-                    
                     return Sprite.Create(texture, new Rect(Vector2.zero, new Vector2(texture.width, texture.height)), Vector2.one * 0.5f);
                 });
 
-                downloadOp.OnCompleted += completed => op.Complete(completed.Result);
+                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
             });
 
             return op;
@@ -205,7 +203,7 @@ namespace MirraCloud.Core.AssetsStorage
             var op = new AsyncOperation<RestApiResult<AudioClip>>();
 
             var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.OnCompleted += _ =>
+            resolveOp.UseCompleted(_ =>
             {
                 if (!resolveOp.Result.IsSuccess)
                 {
@@ -229,8 +227,8 @@ namespace MirraCloud.Core.AssetsStorage
                 var downloadOp = _restApi.GetAsync<AudioClip>(downloadUrl, downloadConfig,
                     request => DownloadHandlerAudioClip.GetContent(request));
 
-                downloadOp.OnCompleted += completed => op.Complete(completed.Result);
-            };
+                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
+            });
 
             return op;
         }
@@ -240,7 +238,7 @@ namespace MirraCloud.Core.AssetsStorage
             var op = new AsyncOperation<RestApiResult<AssetBundle>>();
 
             var resolveOp = ResolveAssetDownloadUrlAsync(id);
-            resolveOp.OnCompleted += _ =>
+            resolveOp.UseCompleted(_ =>
             {
                 if (!resolveOp.Result.IsSuccess)
                 {
@@ -264,8 +262,8 @@ namespace MirraCloud.Core.AssetsStorage
                 var downloadOp = _restApi.GetAsync<AssetBundle>(downloadUrl, downloadConfig,
                     request => DownloadHandlerAssetBundle.GetContent(request));
 
-                downloadOp.OnCompleted += completed => op.Complete(completed.Result);
-            };
+                downloadOp.UseCompleted(completed => op.Complete(completed.Result));
+            });
 
             return op;
         }

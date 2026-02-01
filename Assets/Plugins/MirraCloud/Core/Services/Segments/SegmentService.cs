@@ -29,7 +29,7 @@ namespace Plugins.MirraCloud.Core.Services.Segments
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/segments";
 
             var op = _restApi.GetAsync<SegmentDto[]>(route);
-            op.OnCompleted += completed =>
+            op.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess || completed.Result.Data == null)
                 {
@@ -48,7 +48,7 @@ namespace Plugins.MirraCloud.Core.Services.Segments
 
                     _segments[segment.id] = segment;
                 }
-            };
+            });
 
             return op;
         }

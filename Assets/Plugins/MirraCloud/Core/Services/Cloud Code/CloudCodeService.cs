@@ -39,7 +39,7 @@ namespace MirraCloud.Core.CloudCode
             var op = new AsyncOperation<RestApiResult<T>>();
             var rawOp = ExecuteAsync(scriptId, input);
 
-            rawOp.OnCompleted += completed =>
+            rawOp.UseCompleted(completed =>
             {
                 if (!completed.Result.IsSuccess)
                 {
@@ -76,10 +76,9 @@ namespace MirraCloud.Core.CloudCode
                     op.Complete(RestApiResult<T>.Fail(error).WithMetaFrom(completed.Result));
                     _logger.Error(e.Message);
                 }
-            };
+            });
 
             return op;
         }
     }
 }
-

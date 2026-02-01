@@ -30,7 +30,7 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
 
             var operation = _restApi.GetAsync<TournamentConfigDto[]>(route);
 
-            operation.OnCompleted += completed =>
+            operation.UseCompleted(completed =>
             {
                 
                 _tournamentConfigs.Clear();
@@ -44,7 +44,7 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
                 }
 
                 IsInitialized = true;
-            };
+            });
             
             return operation;
         }
