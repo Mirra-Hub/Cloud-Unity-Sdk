@@ -19,8 +19,10 @@ using Plugins.MirraCloud.Core.Services.Tournaments;
 
 namespace MirraCloud.Core
 {
-    public static class MirraCloudSDK 
+    public static class MirraCloudSDK
     {
+        private static AnalyticsTracker _analyticsTracker;
+
         public static AuthenticationService Authentication { get; private set; }
         public static PlayerAccountService PlayerAccount { get; private set; }
         public static FriendsService Friends { get; private set; }
@@ -75,7 +77,15 @@ namespace MirraCloud.Core
             CloudCode = new CloudCodeService(configuration, logger, restApiClient);
 
             Segments = new SegmentService(configuration, logger, restApiClient);
-            
+
+            _analyticsTracker = AnalyticsTracker.CreateInstance();
+            Analytics.SetTracker(_analyticsTracker);
+            Authentication.OnLogin += _ =>
+            {
+                Analytics.SendSessionStartedAsync();
+                _analyticsTracker.StartTracking(Analytics);
+            };
+
             IsInitialized = true;
         }
 
