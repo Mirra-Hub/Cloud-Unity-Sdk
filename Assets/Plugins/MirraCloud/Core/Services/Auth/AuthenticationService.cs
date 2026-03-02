@@ -31,6 +31,7 @@ namespace MirraCloud.Core.Auth
         private DateTime _sessionExpiresAt;
 
         public bool IsAuth { get; private set; }
+        public string SessionId => _sessionId;
 
         public event Action<GetAuthDataDto> OnLogin;
         public event Action<GetAuthDataDto> OnAuthConflict;

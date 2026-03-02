@@ -47,16 +47,28 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             _authenticationService.OnLogin -= OnAuthLogin;
         }
         
+        private readonly string _deviceModel = SystemInfo.deviceModel;
+        private readonly string _osVersion = SystemInfo.operatingSystem;
+        private readonly string _buildVersion = Application.version;
+
         private RestRequestConfig MetaDataHeadersInterceptor(RestRequestConfig config)
         {
             if (config.NoAuth == true)
             {
                 return config;
             }
-            
+
+            config.Headers ??= new Dictionary<string, string>();
+
+            if (!string.IsNullOrEmpty(_authenticationService.SessionId))
+                config.Headers["SessionId"] = _authenticationService.SessionId;
+
+            config.Headers["DeviceModel"] = _deviceModel;
+            config.Headers["OSVersion"] = _osVersion;
+            config.Headers["BuildVersion"] = _buildVersion;
+
             if (PlayerAccountInfo != null)
             {
-                config.Headers ??= new Dictionary<string, string>();
                 config.Headers["Username"] = PlayerAccountInfo.Nickname;
                 config.Headers["IconKey"] = PlayerAccountInfo.IconKey != null
                     ? _restApi.JsonService.ToJson(PlayerAccountInfo.IconKey)
