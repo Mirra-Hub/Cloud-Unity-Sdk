@@ -105,6 +105,22 @@ namespace MirraCloud.Core.CloudSave
 
         #endregion
 
+        #region Query
+
+        public AsyncOperation<RestApiResult<QueryIndexResponse>> QueryPlayerDataAsync(QueryIndexRequest request)
+        {
+            string route = BuildDataRoute("player/data/query");
+            return _restApi.PostAsync<QueryIndexResponse>(route, request);
+        }
+
+        public AsyncOperation<RestApiResult<QueryIndexResponse>> QueryGlobalDataAsync(QueryIndexRequest request)
+        {
+            string route = BuildDataRoute("global/data/query");
+            return _restApi.PostAsync<QueryIndexResponse>(route, request);
+        }
+
+        #endregion
+
         #region Backward Compatibility
 
         public AsyncOperation<RestApiResult<DataItemResponse[]>> LoadAsync()
