@@ -6,6 +6,7 @@ namespace MirraCloud.Core.CloudSave
         Gt = 1,
         Gte = 2,
         Lt = 3,
-        Lte = 4
+        Lte = 4,
+        Ne = 5
     }
 }

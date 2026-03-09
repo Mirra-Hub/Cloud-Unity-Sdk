@@ -28,9 +28,9 @@ namespace MirraCloud.Core.CloudSave
 
         #region Player Data (Own)
 
-        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetPlayerDataAsync(string[] keys = null)
+        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetPlayerDataAsync(string[] keys = null, int? offset = null, int? limit = null)
         {
-            string route = BuildDataRoute("player/data", keys);
+            string route = BuildDataRoute("player/data", keys, offset, limit);
             var request = _restApi.GetAsync<DataItemResponse[]>(route);
 
             request.UseCompleted(completed =>
@@ -61,9 +61,9 @@ namespace MirraCloud.Core.CloudSave
 
         #region Player Data (Other)
 
-        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetOtherPlayerDataAsync(string playerProfileId, string[] keys = null)
+        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetOtherPlayerDataAsync(string playerProfileId, string[] keys = null, int? offset = null, int? limit = null)
         {
-            string route = BuildDataRoute($"players/{playerProfileId}/data", keys);
+            string route = BuildDataRoute($"players/{playerProfileId}/data", keys, offset, limit);
             return _restApi.GetAsync<DataItemResponse[]>(route);
         }
 
@@ -84,9 +84,9 @@ namespace MirraCloud.Core.CloudSave
 
         #region Global Data
 
-        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetGlobalDataAsync(string[] keys = null)
+        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetGlobalDataAsync(string[] keys = null, int? offset = null, int? limit = null)
         {
-            string route = BuildDataRoute("global/data", keys);
+            string route = BuildDataRoute("global/data", keys, offset, limit);
             return _restApi.GetAsync<DataItemResponse[]>(route);
         }
 
@@ -105,6 +105,29 @@ namespace MirraCloud.Core.CloudSave
 
         #endregion
 
+        #region Custom Data
+
+        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetCustomDataAsync(string customId, string[] keys = null, int? offset = null, int? limit = null)
+        {
+            string route = BuildDataRoute($"custom/{customId}/data", keys, offset, limit);
+            return _restApi.GetAsync<DataItemResponse[]>(route);
+        }
+
+        public AsyncOperation<RestApiResult> UpsertCustomDataAsync(string customId, CloudSaveDataRequest data)
+        {
+            string route = BuildDataRoute($"custom/{customId}/data");
+            return _restApi.PostAsync(route, data);
+        }
+
+        public AsyncOperation<RestApiResult> DeleteCustomDataAsync(string customId, params string[] keys)
+        {
+            string route = BuildDataRoute($"custom/{customId}/data");
+            var config = new RestRequestConfig { Body = new DeleteKeysRequest(keys) };
+            return _restApi.DeleteAsync(route, config);
+        }
+
+        #endregion
+
         #region Query
 
         public AsyncOperation<RestApiResult<QueryIndexResponse>> QueryPlayerDataAsync(QueryIndexRequest request)
@@ -116,6 +139,12 @@ namespace MirraCloud.Core.CloudSave
         public AsyncOperation<RestApiResult<QueryIndexResponse>> QueryGlobalDataAsync(QueryIndexRequest request)
         {
             string route = BuildDataRoute("global/data/query");
+            return _restApi.PostAsync<QueryIndexResponse>(route, request);
+        }
+
+        public AsyncOperation<RestApiResult<QueryIndexResponse>> QueryCustomDataAsync(string customId, QueryIndexRequest request)
+        {
+            string route = BuildDataRoute($"custom/{customId}/data/query");
             return _restApi.PostAsync<QueryIndexResponse>(route, request);
         }
 
@@ -137,15 +166,21 @@ namespace MirraCloud.Core.CloudSave
 
         #region Route Building
 
-        private string BuildDataRoute(string path, string[] keys = null)
+        private string BuildDataRoute(string path, string[] keys = null, int? offset = null, int? limit = null)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/{path}";
 
-            if (keys == null || keys.Length == 0)
-                return route;
+            var parts = new System.Collections.Generic.List<string>();
+            if (keys != null && keys.Length > 0)
+            {
+                foreach (var k in keys)
+                    parts.Add("keys=" + UnityWebRequest.EscapeURL(k));
+            }
+            if (offset.HasValue) parts.Add("offset=" + offset.Value);
+            if (limit.HasValue) parts.Add("limit=" + limit.Value);
 
-            string queryString = string.Join("&", Array.ConvertAll(keys, k => "keys=" + UnityWebRequest.EscapeURL(k)));
-            return route + "?" + queryString;
+            if (parts.Count == 0) return route;
+            return route + "?" + string.Join("&", parts);
         }
 
         #endregion

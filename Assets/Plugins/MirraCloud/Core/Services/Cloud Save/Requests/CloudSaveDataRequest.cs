@@ -8,7 +8,8 @@ namespace MirraCloud.Core.CloudSave.Requests
         public List<CloudSaveDataItem> items = new List<CloudSaveDataItem>();
 
         public CloudSaveDataRequest AddInt(string key, int value,
-            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None)
+            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None,
+            ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
             {
@@ -16,13 +17,15 @@ namespace MirraCloud.Core.CloudSave.Requests
                 value = new JsonValue(value),
                 fieldType = CloudSaveFieldType.Int,
                 readMask = readMask,
-                writeMask = writeMask
+                writeMask = writeMask,
+                expectedVersion = expectedVersion
             });
             return this;
         }
 
         public CloudSaveDataRequest AddFloat(string key, float value,
-            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None)
+            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None,
+            ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
             {
@@ -30,13 +33,15 @@ namespace MirraCloud.Core.CloudSave.Requests
                 value = new JsonValue(value),
                 fieldType = CloudSaveFieldType.Float,
                 readMask = readMask,
-                writeMask = writeMask
+                writeMask = writeMask,
+                expectedVersion = expectedVersion
             });
             return this;
         }
 
         public CloudSaveDataRequest AddBool(string key, bool value,
-            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None)
+            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None,
+            ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
             {
@@ -44,13 +49,15 @@ namespace MirraCloud.Core.CloudSave.Requests
                 value = new JsonValue(value),
                 fieldType = CloudSaveFieldType.Boolean,
                 readMask = readMask,
-                writeMask = writeMask
+                writeMask = writeMask,
+                expectedVersion = expectedVersion
             });
             return this;
         }
 
         public CloudSaveDataRequest AddString(string key, string value,
-            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None)
+            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None,
+            ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
             {
@@ -58,13 +65,15 @@ namespace MirraCloud.Core.CloudSave.Requests
                 value = new JsonValue(value),
                 fieldType = CloudSaveFieldType.String,
                 readMask = readMask,
-                writeMask = writeMask
+                writeMask = writeMask,
+                expectedVersion = expectedVersion
             });
             return this;
         }
 
         public CloudSaveDataRequest AddJson(string key, JsonValue value, CloudSaveFieldType fieldType = CloudSaveFieldType.String,
-            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None)
+            PrincipalMask readMask = PrincipalMask.None, PrincipalMask writeMask = PrincipalMask.None,
+            ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
             {
@@ -72,7 +81,8 @@ namespace MirraCloud.Core.CloudSave.Requests
                 value = value,
                 fieldType = fieldType,
                 readMask = readMask,
-                writeMask = writeMask
+                writeMask = writeMask,
+                expectedVersion = expectedVersion
             });
             return this;
         }
@@ -85,5 +95,6 @@ namespace MirraCloud.Core.CloudSave.Requests
         public CloudSaveFieldType fieldType;
         public PrincipalMask readMask;
         public PrincipalMask writeMask;
+        public ulong? expectedVersion;
     }
 }
