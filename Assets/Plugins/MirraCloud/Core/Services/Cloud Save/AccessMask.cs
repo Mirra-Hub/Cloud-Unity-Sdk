@@ -3,7 +3,7 @@ using System;
 namespace MirraCloud.Core.CloudSave
 {
     [Flags]
-    public enum PrincipalMask
+    public enum AccessMask
     {
         None = 0,
         Owner = 1,

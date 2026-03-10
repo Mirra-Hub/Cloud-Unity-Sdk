@@ -7,8 +7,8 @@ namespace MirraCloud.Core.CloudSave.Responses
         public string key;
         public JsonValue value;
         public CloudSaveFieldType fieldType;
-        public PrincipalMask readMask;
-        public PrincipalMask writeMask;
+        public AccessMask readMask;
+        public AccessMask writeMask;
         public string updatedAtUtc;
         public long version;
     }

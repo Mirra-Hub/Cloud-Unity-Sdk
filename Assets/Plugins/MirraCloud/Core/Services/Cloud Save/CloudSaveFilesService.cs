@@ -28,7 +28,7 @@ namespace MirraCloud.Core.CloudSave
         public AsyncOperation<RestApiResult<FileItemResponse>> UploadPlayerFileAsync(
             string key, byte[] fileData, string fileName, string mimeType,
             Dictionary<string, string> meta = null,
-            PrincipalMask? readMask = null, PrincipalMask? writeMask = null)
+            AccessMask? readMask = null, AccessMask? writeMask = null)
         {
             string route = BuildFileRoute($"player/files/{UnityWebRequest.EscapeURL(key)}");
             var formSections = BuildUploadForm(fileData, fileName, mimeType, meta, readMask, writeMask);
@@ -117,7 +117,7 @@ namespace MirraCloud.Core.CloudSave
         public AsyncOperation<RestApiResult<FileItemResponse>> UploadGlobalFileAsync(
             string key, byte[] fileData, string fileName, string mimeType,
             Dictionary<string, string> meta = null,
-            PrincipalMask? readMask = null, PrincipalMask? writeMask = null)
+            AccessMask? readMask = null, AccessMask? writeMask = null)
         {
             string route = BuildFileRoute($"global/files/{UnityWebRequest.EscapeURL(key)}");
             var formSections = BuildUploadForm(fileData, fileName, mimeType, meta, readMask, writeMask);
@@ -175,7 +175,7 @@ namespace MirraCloud.Core.CloudSave
         private List<IMultipartFormSection> BuildUploadForm(
             byte[] fileData, string fileName, string mimeType,
             Dictionary<string, string> meta,
-            PrincipalMask? readMask, PrincipalMask? writeMask)
+            AccessMask? readMask, AccessMask? writeMask)
         {
             var sections = new List<IMultipartFormSection>
             {

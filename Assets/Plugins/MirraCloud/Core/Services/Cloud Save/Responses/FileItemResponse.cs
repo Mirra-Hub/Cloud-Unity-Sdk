@@ -6,8 +6,8 @@ namespace MirraCloud.Core.CloudSave.Responses
     {
         public string key;
         public Dictionary<string, string> meta;
-        public PrincipalMask readMask;
-        public PrincipalMask writeMask;
+        public AccessMask readMask;
+        public AccessMask writeMask;
         public long fileSize;
         public string extension;
         public string mimeType;
