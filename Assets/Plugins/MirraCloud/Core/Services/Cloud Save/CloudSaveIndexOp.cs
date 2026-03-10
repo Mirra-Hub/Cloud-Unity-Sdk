@@ -2,11 +2,11 @@ namespace MirraCloud.Core.CloudSave
 {
     public enum CloudSaveIndexOp
     {
-        Eq = 0,
-        Gt = 1,
-        Gte = 2,
-        Lt = 3,
-        Lte = 4,
-        Ne = 5
+        Equal = 0,
+        GreaterThan = 1,
+        GreaterThanOrEqual = 2,
+        LessThan = 3,
+        LessThanOrEqual = 4,
+        NotEqual = 5
     }
 }

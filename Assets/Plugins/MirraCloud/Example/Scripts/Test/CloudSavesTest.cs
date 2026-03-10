@@ -18,7 +18,10 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         [SerializeField] private int _numberValue = 10;
         [SerializeField] private int _factorValue = 2;
         [SerializeField] private RegionValue _regionValue;
-
+        [SerializeField] private CloudSaveIndexOp _filterOp = CloudSaveIndexOp.Equal;
+        [SerializeField] private int _filterValue = 10;
+        [SerializeField] [TextArea(100, 200)] private string _searchResult;
+        
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.S))
@@ -46,7 +49,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             cloudSaveData.AddInt("level", _numberValue);
             cloudSaveData.AddInt("attack", _factorValue);
             cloudSaveData.AddString("region", ConvertRegion(_regionValue));
-
+            cloudSaveData.WithDefaultAccess(AccessMask.Other, AccessMask.Owner);
+            
             var op = MirraCloudSDK.CloudSave.SaveAsync(cloudSaveData);
          
         }
@@ -79,18 +83,25 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         {
             var queryRequest = new QueryIndexRequest();
             queryRequest.limit = 10;
+            queryRequest.returnKeys = new[]
+            {
+                "level",
+                "region",
+            };
             queryRequest.filters = new List<QueryFilter>()
             {
                 new QueryFilter()
                 {
                     key = "level",
-                    op = CloudSaveIndexOp.Eq,
-                    value = _numberValue.ToString()
+                    op = _filterOp,
+                    value = _filterValue
                 }
             };
             
             var op = MirraCloudSDK.CloudSave.QueryPlayerDataAsync(queryRequest);
             await  op.Task();
+
+            _searchResult = op.Result.ResponseBody;
         }
     }
 }
