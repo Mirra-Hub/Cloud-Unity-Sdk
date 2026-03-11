@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using MirraCloud.Core;
 using MirraCloud.Core.CloudSave;
+using MirraCloud.Core.CloudSave.Requests;
 using TMPro;
 using UnityEngine;
 
@@ -17,17 +18,17 @@ namespace MirraCloud.Example
         {
             await SaveDataAsync(_keyFiledInput.text, _valueFiledInput.text);
         }
-        
+
         private async Task SaveDataAsync(string key, string value)
         {
-            UpdateDataContainer container = new UpdateDataContainer();
-            container.AddString(key, value);
+            var request = new CloudSaveDataRequest();
+            request.AddString(key, value);
 
-            await MirraCloudSDK.CloudSave.SaveAsync(container).Task();
+            await MirraCloudSDK.CloudSave.SaveAsync(request).Task();
 
             await LoadCloudSaveAsync();
         }
-        
+
         public async void LoadCloudSave()
         {
             await LoadCloudSaveAsync();
@@ -38,7 +39,7 @@ namespace MirraCloud.Example
             await MirraCloudSDK.CloudSave.LoadAsync().Task();
 
             StringBuilder stringBuilder = new StringBuilder();
-            
+
             if (MirraCloudSDK.CloudSave.PlayerData != null)
             {
                 foreach (var field in MirraCloudSDK.CloudSave.PlayerData.Fields)
