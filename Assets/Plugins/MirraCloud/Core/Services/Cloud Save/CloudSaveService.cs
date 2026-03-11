@@ -84,13 +84,13 @@ namespace MirraCloud.Core.CloudSave
 
         #region Global Data
 
-        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetGlobalDataAsync(string[] keys = null, int? offset = null, int? limit = null)
+        public AsyncOperation<RestApiResult<DataItemResponse[]>> LoadGlobalDataAsync(string[] keys = null, int? offset = null, int? limit = null)
         {
             string route = BuildDataRoute("global/data", keys, offset, limit);
             return _restApi.GetAsync<DataItemResponse[]>(route);
         }
 
-        public AsyncOperation<RestApiResult> UpsertGlobalDataAsync(CloudSaveDataRequest data)
+        public AsyncOperation<RestApiResult> SaveGlobalDataAsync(CloudSaveDataRequest data)
         {
             string route = BuildDataRoute("global/data");
             return _restApi.PostAsync(route, data);
@@ -107,13 +107,13 @@ namespace MirraCloud.Core.CloudSave
 
         #region Custom Data
 
-        public AsyncOperation<RestApiResult<DataItemResponse[]>> GetCustomDataAsync(string customId, string[] keys = null, int? offset = null, int? limit = null)
+        public AsyncOperation<RestApiResult<DataItemResponse[]>> LoadCustomDataAsync(string customId, string[] keys = null, int? offset = null, int? limit = null)
         {
             string route = BuildDataRoute($"custom/{customId}/data", keys, offset, limit);
             return _restApi.GetAsync<DataItemResponse[]>(route);
         }
 
-        public AsyncOperation<RestApiResult> UpsertCustomDataAsync(string customId, CloudSaveDataRequest data)
+        public AsyncOperation<RestApiResult> SaveCustomDataAsync(string customId, CloudSaveDataRequest data)
         {
             string route = BuildDataRoute($"custom/{customId}/data");
             return _restApi.PostAsync(route, data);

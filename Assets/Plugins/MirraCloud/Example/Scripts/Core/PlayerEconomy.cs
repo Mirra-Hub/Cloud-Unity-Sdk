@@ -27,14 +27,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
 
             if (isSuccess)
             {
-                foreach (var item in operation.Result.Data.Resources)
+                /*foreach (var item in operation.Result.Data.Resources)
                 {
                     _playerItems.Add(new PlayerItem()
                     {
                         ItemKey = item.Key,
                         Amount = item.Value,
                     });
-                }
+                }*/
             }
             
             return isSuccess;

@@ -2,17 +2,11 @@
 using MirraCloud.Core;
 using MirraCloud.Core.CloudSave;
 using MirraCloud.Core.CloudSave.Requests;
+using NaughtyAttributes;
 using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
 {
-    public enum RegionValue
-    {
-        RU,
-        US,
-        EU
-    }
-    
     public class CloudSavesTest : MonoBehaviour
     {
         [SerializeField] private int _numberValue = 10;
@@ -20,29 +14,17 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         [SerializeField] private RegionValue _regionValue;
         [SerializeField] private CloudSaveIndexOp _filterOp = CloudSaveIndexOp.Equal;
         [SerializeField] private int _filterValue = 10;
-        [SerializeField] [TextArea(100, 200)] private string _searchResult;
-        
-        private void Update()
+        [SerializeField] private string _customId;
+
+        private enum RegionValue
         {
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                Save();
-            }
-            
-            if (Input.GetKeyDown(KeyCode.L))
-            {
-                Load();
-            }
-            
-            if (Input.GetKeyDown(KeyCode.P))
-            {
-                SearchPlayers();
-            }
+            RU,
+            US,
+            EU
         }
-
-    
-
-        public void Save()
+        
+        [Button]
+        private void Save()
         {
      
             var cloudSaveData = new CloudSaveDataRequest();
@@ -55,15 +37,13 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
          
         }
         
+        [Button]
         public async void Load()
         {
             var op = MirraCloudSDK.CloudSave.LoadAsync();
             await op.Task();
 
-            foreach (var response in op.Result.Data)
-            {
-                Debug.Log($"Cloud Code result: {response.key}, {response.value}");
-            }
+            _searchResult = op.Result.ResponseBody;
         }
 
         private string ConvertRegion(RegionValue region)
@@ -79,6 +59,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             return "eu";
         }
         
+        [Button]
         private async void SearchPlayers()
         {
             var queryRequest = new QueryIndexRequest();
@@ -103,5 +84,71 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
             _searchResult = op.Result.ResponseBody;
         }
+        
+        [Button]
+        private async void SaveGlobal()
+        {
+     
+            var cloudSaveData = new CloudSaveDataRequest();
+            cloudSaveData.AddInt("level_global", _numberValue);
+            cloudSaveData.AddInt("global_counter", _numberValue);
+            cloudSaveData.AddString("region", ConvertRegion(_regionValue));
+            cloudSaveData.WithDefaultAccess(AccessMask.Other, AccessMask.Owner);
+            
+            var op = MirraCloudSDK.CloudSave.SaveGlobalDataAsync(cloudSaveData);
+            await  op.Task();
+
+            _searchResult = op.Result.ResponseBody;
+        }
+        
+        [Button]
+        private async void LoadGlobal()
+        {
+     
+     
+            var op = MirraCloudSDK.CloudSave.LoadGlobalDataAsync(new []
+            {
+                "level_global",
+                "global_counter",
+            });
+            await  op.Task();
+
+            _searchResult = op.Result.ResponseBody;
+        }
+        
+        [Button]
+        private async void SaveCustom()
+        {
+         
+
+            var cloudSaveData = new CloudSaveDataRequest();
+            cloudSaveData.AddInt("level_global", _numberValue);
+            cloudSaveData.AddInt("global_counter", _numberValue);
+            cloudSaveData.WithDefaultAccess(AccessMask.Other, AccessMask.Owner);
+            
+            var op = MirraCloudSDK.CloudSave.SaveCustomDataAsync(_customId, cloudSaveData);
+            await  op.Task();
+
+            _searchResult = op.Result.ResponseBody;
+        }
+        
+        [Button]
+        private async void LoadCustom()
+        {
+     
+      
+            
+            var op = MirraCloudSDK.CloudSave.LoadCustomDataAsync(_customId, new []
+            {
+                "level_global",
+                "global_counter",
+            });
+            await  op.Task();
+
+            _searchResult = op.Result.ResponseBody;
+        }
+        
+        [SerializeField] [TextArea(minLines: 20, maxLines: 20)] private string _searchResult;
+
     }
 }
