@@ -1,16 +1,19 @@
-using MirraCloud;
+using System.Collections.Generic;
 using MirraCloud.Core.AssetsStorage;
 using MirraCloud.Core.Auth;
+using MirraCloud.Core.Chats;
 using MirraCloud.Core.CloudSave;
 using MirraCloud.Core.CloudCode;
 using MirraCloud.Core.Economy;
 using MirraCloud.Core.Entities;
 using MirraCloud.Core.Friends;
+using MirraCloud.Core.Groups;
 using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.RemoteConfig;
 using MirraCloud.Core.Storage;
 using MirraCloud.Json;
+using Plugins.MirraCloud.Core.General.LifeCycle;
 using Plugins.MirraCloud.Core.Services.Analytics;
 using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
@@ -26,6 +29,7 @@ namespace MirraCloud.Core
         public static AuthenticationService Authentication { get; private set; }
         public static PlayerAccountService PlayerAccount { get; private set; }
         public static FriendsService Friends { get; private set; }
+        public static ChatsService Chats { get; private set; }
         public static EconomyService Economy { get; private set; }
         public static EntitiesService Entities { get; private set; }
         public static CloudSaveService CloudSave { get; private set; }
@@ -37,9 +41,23 @@ namespace MirraCloud.Core
         public static SegmentService Segments { get; private set; }
         public static AnalyticsService Analytics { get; private set; }
         public static DeploymentService Deployment { get; private set; }
+        public static GroupsService Groups { get; private set; }
         
         public static bool IsInitialized { get; private set; }
 
+        private static List<ICloudSdkDisposable> _disposables = new List<ICloudSdkDisposable>();
+        private static List<ICloudSdkInitializable> _initializables = new List<ICloudSdkInitializable>();
+
+        private static void RegisterInitialize(ICloudSdkInitializable initializable)
+        {
+            _initializables.Add(initializable);
+        }
+        
+        private static void RegisterDispose(ICloudSdkDisposable disposable)
+        {
+            _disposables.Add(disposable);
+        }
+        
         public static void Initialize()
         {
             if (IsInitialized)
@@ -65,6 +83,12 @@ namespace MirraCloud.Core
             Authentication = new AuthenticationService(configuration, logger, storage, restApiClient);
             PlayerAccount = new PlayerAccountService(Authentication, restApiClient, configuration, logger);
             Friends = new FriendsService(configuration, logger, restApiClient);
+            Groups = new GroupsService(configuration, logger, restApiClient);
+
+            Chats = new ChatsService(configuration, logger, restApiClient, jsonService);
+            RegisterInitialize(Chats);
+            RegisterDispose(Chats);
+            
             Economy = new EconomyService(configuration, logger, restApiClient);
             Entities = new EntitiesService(configuration, logger, restApiClient);
             CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
@@ -85,12 +109,23 @@ namespace MirraCloud.Core
                 Analytics.SendSessionStartedAsync();
                 _analyticsTracker.StartTracking(Analytics);
             };
-
+            
+            foreach (var cloudSdkInitializable in _initializables)
+            {
+                cloudSdkInitializable.CloudSdkInitialize();
+            }
+            
             IsInitialized = true;
+            
         }
 
         public static void Dispose()
         {
+            foreach (var cloudSdkDisposable in _disposables)
+            {
+                cloudSdkDisposable.CloudSdkDispose();
+            }
+
             PlayerAccount.Dispose();
         }
     }
