@@ -17,14 +17,12 @@ namespace MirraCloud.Core.Economy
 
         private readonly Dictionary<string, EconomyResourceConfig> _currencies = new(StringComparer.Ordinal);
         private readonly Dictionary<string, EconomyResourceConfig> _items = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, EconomyResourceConfig> _containers = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, EconomyResourceConfig> _lootboxes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, EconomyResourceConfig> _energies = new(StringComparer.Ordinal);
         private readonly Dictionary<string, EconomyResourceConfig> _resourcesByKey = new(StringComparer.Ordinal);
 
         public IReadOnlyDictionary<string, EconomyResourceConfig> Currencies => _currencies;
         public IReadOnlyDictionary<string, EconomyResourceConfig> Items => _items;
-        public IReadOnlyDictionary<string, EconomyResourceConfig> Containers => _containers;
-        public IReadOnlyDictionary<string, EconomyResourceConfig> Lootboxes => _lootboxes;
+        public IReadOnlyDictionary<string, EconomyResourceConfig> Energies => _energies;
 
         public EconomyService(Configuration configuration, ILogger logger, RestApiClient restApi)
         {
@@ -33,9 +31,11 @@ namespace MirraCloud.Core.Economy
             _logger = logger;
         }
 
+        private string BasePath => $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}";
+
         public AsyncOperation<RestApiResult<EconomyConfigsDto>> LoadConfigsAsync()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/configs";
+            string route = $"{BasePath}/configs";
             var operation = _restApi.GetAsync<EconomyConfigsDto>(route);
 
             operation.UseCompleted(_ =>
@@ -53,57 +53,76 @@ namespace MirraCloud.Core.Economy
 
         public AsyncOperation<RestApiResult<PlayerInventoryDto>> LoadInventoryAsync()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories";
+            string route = $"{BasePath}/inventories";
             return _restApi.GetAsync<PlayerInventoryDto>(route);
         }
 
-        public AsyncOperation<RestApiResult<PlayerInventoryDto>> GrantAsync(RewardDto[] rewards)
+        public AsyncOperation<RestApiResult<object>> AddItemAsync(string itemId, int amount, string inventoryKey = null)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/grant";
-            var dto = new GrantRewardsDto { Rewards = rewards ?? Array.Empty<RewardDto>() };
-            return _restApi.PostAsync<PlayerInventoryDto>(route, dto);
+            string route = $"{BasePath}/inventories/items/add";
+            var dto = new ModifyItemDto { ItemId = itemId, Amount = amount, InventoryKey = inventoryKey };
+            return _restApi.PostAsync<object>(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<PlayerInventoryDto>> AddCurrencyAsync(string key, decimal amount)
+        public AsyncOperation<RestApiResult<object>> SubtractItemAsync(string itemId, int amount, string inventoryKey = null)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/currencies/add";
-            var dto = new ModifyResourceAmountDto { Key = key, Amount = amount };
-            return _restApi.PostAsync<PlayerInventoryDto>(route, dto);
+            string route = $"{BasePath}/inventories/items/subtract";
+            var dto = new ModifyItemDto { ItemId = itemId, Amount = amount, InventoryKey = inventoryKey };
+            return _restApi.PostAsync<object>(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<PlayerInventoryDto>> SpendCurrencyAsync(string key, decimal amount)
+        public AsyncOperation<RestApiResult<object>> SubtractItemSafeAsync(string itemId, int amount, string inventoryKey = null)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/currencies/spend";
-            var dto = new ModifyResourceAmountDto { Key = key, Amount = amount };
-            return _restApi.PostAsync<PlayerInventoryDto>(route, dto);
+            string route = $"{BasePath}/inventories/items/subtract-safe";
+            var dto = new ModifyItemDto { ItemId = itemId, Amount = amount, InventoryKey = inventoryKey };
+            return _restApi.PostAsync<object>(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<PlayerInventoryDto>> AddItemAsync(string key, decimal amount)
+        public AsyncOperation<RestApiResult<object>> UpdateItemPropertiesAsync(string itemId, string slotId, Dictionary<string, object> properties, string inventoryKey = null)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/items/add";
-            var dto = new ModifyResourceAmountDto { Key = key, Amount = amount };
-            return _restApi.PostAsync<PlayerInventoryDto>(route, dto);
+            string route = $"{BasePath}/inventories/items/properties";
+            var dto = new UpdateItemPropertiesDto { ItemId = itemId, SlotId = slotId, Properties = properties, InventoryKey = inventoryKey };
+            return _restApi.PostAsync<object>(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<PlayerInventoryDto>> SpendItemAsync(string key, decimal amount)
+        public AsyncOperation<RestApiResult<ConsumeItemResponseDto>> ConsumeItemAsync(string itemId, string slotId = null, string inventoryKey = null)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/items/spend";
-            var dto = new ModifyResourceAmountDto { Key = key, Amount = amount };
-            return _restApi.PostAsync<PlayerInventoryDto>(route, dto);
+            string route = $"{BasePath}/inventories/items/consume";
+            var dto = new ConsumeItemDto { ItemId = itemId, SlotId = slotId, InventoryKey = inventoryKey };
+            return _restApi.PostAsync<ConsumeItemResponseDto>(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<InventoryWithRewardsDto>> ConsumeContainerAsync(string key)
+        public AsyncOperation<RestApiResult<List<EnergyBalanceDto>>> GetEnergiesAsync()
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/containers/consume";
-            var dto = new ConsumeContainerDto { Key = key };
-            return _restApi.PostAsync<InventoryWithRewardsDto>(route, dto);
+            string route = $"{BasePath}/inventories/energy";
+            return _restApi.GetAsync<List<EnergyBalanceDto>>(route);
         }
 
-        public AsyncOperation<RestApiResult<InventoryWithRewardsDto>> OpenLootboxAsync(string key)
+        public AsyncOperation<RestApiResult<EnergyBalanceDto>> GetEnergyAsync(string energyId)
         {
-            string route = $"{ControllerApi}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/inventories/lootboxes/open";
-            var dto = new OpenLootboxDto { Key = key };
-            return _restApi.PostAsync<InventoryWithRewardsDto>(route, dto);
+            string route = $"{BasePath}/inventories/energy/{energyId}";
+            return _restApi.GetAsync<EnergyBalanceDto>(route);
+        }
+
+        public AsyncOperation<RestApiResult<EnergyBalanceDto>> SpendEnergyAsync(string energyId, int amount)
+        {
+            string route = $"{BasePath}/inventories/energy/spend";
+            var dto = new ModifyEnergyDto { EnergyId = energyId, Amount = amount };
+            return _restApi.PostAsync<EnergyBalanceDto>(route, dto);
+        }
+
+        public AsyncOperation<RestApiResult<EnergyBalanceDto>> AddEnergyAsync(string energyId, int amount)
+        {
+            string route = $"{BasePath}/inventories/energy/add";
+            var dto = new ModifyEnergyDto { EnergyId = energyId, Amount = amount };
+            return _restApi.PostAsync<EnergyBalanceDto>(route, dto);
+        }
+
+        public AsyncOperation<RestApiResult<EnergyBalanceDto>> SetUnlimitedEnergyAsync(string energyId, int durationSeconds)
+        {
+            string route = $"{BasePath}/inventories/energy/unlimited";
+            var dto = new SetUnlimitedEnergyDto { EnergyId = energyId, DurationSeconds = durationSeconds };
+            return _restApi.PostAsync<EnergyBalanceDto>(route, dto);
         }
 
         private void ApplyConfigs(EconomyConfigsDto dto)
@@ -111,16 +130,14 @@ namespace MirraCloud.Core.Economy
             ClearCache();
             AddResources(dto.Currencies, EconomyResourceKind.Currency, _currencies);
             AddResources(dto.Items, EconomyResourceKind.Item, _items);
-            AddResources(dto.Containers, EconomyResourceKind.Container, _containers);
-            AddResources(dto.Lootboxes, EconomyResourceKind.Lootbox, _lootboxes);
+            AddResources(dto.Energies, EconomyResourceKind.Energy, _energies);
         }
 
         public void ClearCache()
         {
             _currencies.Clear();
             _items.Clear();
-            _containers.Clear();
-            _lootboxes.Clear();
+            _energies.Clear();
             _resourcesByKey.Clear();
         }
 
@@ -219,8 +236,7 @@ namespace MirraCloud.Core.Economy
     {
         Currency = 0,
         Item = 1,
-        Container = 2,
-        Lootbox = 3
+        Energy = 2
     }
 
     public sealed class EconomyResourceConfig
