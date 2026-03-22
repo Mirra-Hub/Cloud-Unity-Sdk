@@ -3,6 +3,7 @@ using MirraCloud.Core.Realtime.Abstractions;
 
 namespace MirraCloud.Core.Realtime.Connection
 {
+    // TODO: remove locks
     internal sealed class RealtimeSubscriptionStore : IRealtimeSubscriptionStore
     {
         private readonly HashSet<string> _subscriptions = new HashSet<string>();
@@ -39,6 +40,14 @@ namespace MirraCloud.Core.Realtime.Connection
             lock (_sync)
             {
                 _subscriptions.Clear();
+            }
+        }
+
+        public bool HasSubscribed(string channelId)
+        {
+            lock (_sync)
+            {
+                return _subscriptions.Contains(channelId);
             }
         }
 

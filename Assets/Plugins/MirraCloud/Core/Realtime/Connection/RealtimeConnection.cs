@@ -1,26 +1,22 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.Realtime.Abstractions;
-using MirraCloud.Core.Realtime.Dispatching;
 using MirraCloud.Core.Realtime.Protocol;
 using MirraCloud.Json;
-using Plugins.MirraCloud.Core.General.LifeCycle;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Realtime.Connection
 {
     public interface IRealtimeEvent
     {
-        
     }
-    
+
     internal sealed class RealtimeConnection : IRealtimeConnection
     {
         private readonly IRealtimeTransport _transport;
         private readonly IRealtimeSerializer _serializer;
         private readonly IRealtimeRequestTracker _requestTracker;
-        private readonly MainThreadDispatcher _dispatcher;
         private readonly ILogger _logger;
 
         public bool IsConnected => _transport.IsConnected;
@@ -34,16 +30,14 @@ namespace MirraCloud.Core.Realtime.Connection
             IRealtimeTransport transport,
             IRealtimeSerializer serializer,
             IRealtimeRequestTracker requestTracker,
-            MainThreadDispatcher dispatcher,
             ILogger logger)
         {
             _transport = transport;
             _serializer = serializer;
             _requestTracker = requestTracker;
-            _dispatcher = dispatcher;
             _logger = logger;
         }
-        
+
         public void Initialize()
         {
             _transport.OnMessage += HandleTransportMessage;
@@ -58,48 +52,68 @@ namespace MirraCloud.Core.Realtime.Connection
             _transport.OnError -= HandleTransportError;
         }
 
-        public async Task ConnectAsync(string wsUrl, CancellationToken cancellationToken = default)
+        public AsyncOperation<RealtimeCommandResult> Connect(string wsUrl)
         {
             if (State is RealtimeConnectionState.Connected or RealtimeConnectionState.Connecting)
-            {
-                return;
-            }
+                return AsyncOperation<RealtimeCommandResult>.CreateCompleted(
+                    RealtimeCommandResult.Success(string.Empty, default));
 
             SetState(RealtimeConnectionState.Connecting);
+            var op = new AsyncOperation<RealtimeCommandResult>();
+            ConnectTransportAsync(wsUrl, op);
+            return op;
+        }
+
+        private async void ConnectTransportAsync(string wsUrl, AsyncOperation<RealtimeCommandResult> op)
+        {
             try
             {
-                await _transport.ConnectAsync(new Uri(wsUrl), cancellationToken);
+                await _transport.ConnectAsync(new Uri(wsUrl));
                 SetState(RealtimeConnectionState.Connected);
+                op.Complete(RealtimeCommandResult.Success(string.Empty, default));
             }
-            catch
+            catch (Exception ex)
             {
                 SetState(RealtimeConnectionState.Disconnected);
-                throw;
+                op.Complete(RealtimeCommandResult.Error(string.Empty, "connect_failed", ex.Message));
             }
         }
 
-        public async Task DisconnectAsync(CancellationToken cancellationToken = default)
+        public AsyncOperation<RealtimeCommandResult> Disconnect()
         {
             if (State == RealtimeConnectionState.Disconnected)
-            {
-                return;
-            }
+                return AsyncOperation<RealtimeCommandResult>.CreateCompleted(
+                    RealtimeCommandResult.Success(string.Empty, default));
 
-            await _transport.CloseAsync(cancellationToken);
-            _requestTracker.FailAll("connection_closed", "Realtime connection closed.");
-            SetState(RealtimeConnectionState.Disconnected);
+            var op = new AsyncOperation<RealtimeCommandResult>();
+            DisconnectTransportAsync(op);
+            return op;
         }
 
-        public async Task<RealtimeCommandResult> SendCommandAsync(string name, object payload, int timeoutMs = 10000,
-            CancellationToken cancellationToken = default)
+        private async void DisconnectTransportAsync(AsyncOperation<RealtimeCommandResult> op)
+        {
+            try
+            {
+                await _transport.CloseAsync();
+                _requestTracker.FailAll("connection_closed", "Realtime connection closed.");
+                SetState(RealtimeConnectionState.Disconnected);
+                op.Complete(RealtimeCommandResult.Success(string.Empty, default));
+            }
+            catch (Exception ex)
+            {
+                op.Complete(RealtimeCommandResult.Error(string.Empty, "disconnect_failed", ex.Message));
+            }
+        }
+
+        public AsyncOperation<RealtimeCommandResult> SendCommand(string name, object payload, int timeoutMs = 10000)
         {
             if (!IsConnected)
-            {
-                return RealtimeCommandResult.Error(string.Empty, "not_connected", "Realtime connection is not established.");
-            }
+                return AsyncOperation<RealtimeCommandResult>.CreateCompleted(
+                    RealtimeCommandResult.Error(string.Empty, "not_connected",
+                        "Realtime connection is not established."));
 
             var requestId = Guid.NewGuid().ToString("N");
-            var waitTask = _requestTracker.RegisterAndWaitAsync(requestId, timeoutMs);
+            var op = _requestTracker.Register(requestId, timeoutMs);
 
             var command = new RealtimeCommand
             {
@@ -111,17 +125,21 @@ namespace MirraCloud.Core.Realtime.Connection
             };
 
             var json = _serializer.Serialize(command);
+            SendTransportAsync(json, requestId);
+
+            return op;
+        }
+
+        private async void SendTransportAsync(string json, string requestId)
+        {
             try
             {
-                await _transport.SendAsync(json, cancellationToken);
+                await _transport.SendAsync(json);
             }
             catch (Exception ex)
             {
                 _requestTracker.CompleteError(requestId, "send_failed", ex.Message);
-                return RealtimeCommandResult.Error(requestId, "send_failed", ex.Message);
             }
-
-            return await waitTask;
         }
 
         private void HandleTransportMessage(string json)
@@ -149,41 +167,34 @@ namespace MirraCloud.Core.Realtime.Connection
             if (string.Equals(kind, "error", StringComparison.OrdinalIgnoreCase))
             {
                 _requestTracker.CompleteError(envelope.RequestId, envelope.Code, envelope.Message);
-                var realtimeError = new RealtimeError
+                OnError?.Invoke(new RealtimeError
                 {
                     RequestId = envelope.RequestId,
                     Code = envelope.Code,
                     Message = envelope.Message
-                };
-                _dispatcher.Post(() => OnError?.Invoke(realtimeError));
+                });
                 return;
             }
 
             if (string.Equals(kind, "event", StringComparison.OrdinalIgnoreCase))
             {
-                var realtimeEvent = new RealtimeEvent
+                OnEvent?.Invoke(new RealtimeEvent
                 {
                     Name = envelope.Name,
                     ChannelId = envelope.ChannelId,
                     Payload = envelope.Payload
-                };
-                _dispatcher.Post(() => OnEvent?.Invoke(realtimeEvent));
+                });
             }
         }
 
-        // TODO: add IEvent interface
-        // при регистрации сервиса вызываем subscribe с конкретными ивентами котоорые нужны для конкретного сервиса
-        
-        public void SubscribeEvent<T>(string eventName, Action<T, object> callback) where T: IRealtimeEvent
+        public void SubscribeEvent<T>(string eventName, Action<T, object> callback) where T : IRealtimeEvent
         {
-            
         }
-        
-        public  void UnsubscribeEvent<T>(string eventName, Action<T, object> callback) where T: IRealtimeEvent
+
+        public void UnsubscribeEvent<T>(string eventName, Action<T, object> callback) where T : IRealtimeEvent
         {
-            
         }
-        
+
         private void HandleTransportClosed()
         {
             _requestTracker.FailAll("connection_closed", "Realtime connection closed.");
@@ -193,24 +204,20 @@ namespace MirraCloud.Core.Realtime.Connection
         private void HandleTransportError(Exception ex)
         {
             _logger.Error($"Realtime transport error: {ex.Message}");
-            var realtimeError = new RealtimeError
+            OnError?.Invoke(new RealtimeError
             {
                 Code = "transport_error",
                 Message = ex.Message
-            };
-
-            _dispatcher.Post(() => OnError?.Invoke(realtimeError));
+            });
         }
 
         private void SetState(RealtimeConnectionState state)
         {
             if (State == state)
-            {
                 return;
-            }
 
             State = state;
-            _dispatcher.Post(() => OnStateChanged?.Invoke(state));
+            OnStateChanged?.Invoke(state);
         }
     }
 }

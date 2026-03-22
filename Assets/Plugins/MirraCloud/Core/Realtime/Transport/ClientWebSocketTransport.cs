@@ -13,8 +13,6 @@ namespace MirraCloud.Core.Realtime.Transport
         private ClientWebSocket _socket;
         private CancellationTokenSource _receiveCts;
         private Task _receiveLoop;
-        private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
-        private readonly object _closeSync = new object();
         private bool _closedNotified;
 
         public bool IsConnected => _socket != null && _socket.State == WebSocketState.Open;
@@ -26,39 +24,25 @@ namespace MirraCloud.Core.Realtime.Transport
         public async Task ConnectAsync(Uri uri, CancellationToken cancellationToken = default)
         {
             if (_socket != null)
-            {
                 await CloseAsync(cancellationToken);
-            }
 
-            lock (_closeSync)
-            {
-                _closedNotified = false;
-            }
+            _closedNotified = false;
 
             _socket = new ClientWebSocket();
             await _socket.ConnectAsync(uri, cancellationToken);
 
             _receiveCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _receiveLoop = Task.Run(() => ReceiveLoopAsync(_receiveCts.Token));
+            _receiveLoop = ReceiveLoopAsync(_receiveCts.Token);
         }
 
         public async Task SendAsync(string message, CancellationToken cancellationToken = default)
         {
             if (!IsConnected)
-            {
                 throw new InvalidOperationException("WebSocket is not connected.");
-            }
 
             var bytes = Encoding.UTF8.GetBytes(message);
-            await _sendLock.WaitAsync(cancellationToken);
-            try
-            {
-                await _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, cancellationToken);
-            }
-            finally
-            {
-                _sendLock.Release();
-            }
+            await _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
+                cancellationToken);
         }
 
         public async Task CloseAsync(CancellationToken cancellationToken = default)
@@ -126,15 +110,11 @@ namespace MirraCloud.Core.Realtime.Transport
                 {
                     var socket = _socket;
                     if (socket == null || socket.State != WebSocketState.Open)
-                    {
                         break;
-                    }
 
                     var message = await ReceiveMessageAsync(socket, buffer, cancellationToken);
                     if (message == null)
-                    {
                         break;
-                    }
 
                     OnMessage?.Invoke(message);
                 }
@@ -155,7 +135,8 @@ namespace MirraCloud.Core.Realtime.Transport
             }
         }
 
-        private async Task<string> ReceiveMessageAsync(ClientWebSocket socket, byte[] buffer, CancellationToken cancellationToken)
+        private async Task<string> ReceiveMessageAsync(ClientWebSocket socket, byte[] buffer,
+            CancellationToken cancellationToken)
         {
             using var ms = new MemoryStream();
 
@@ -164,31 +145,21 @@ namespace MirraCloud.Core.Realtime.Transport
                 var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
 
                 if (result.MessageType == WebSocketMessageType.Close)
-                {
                     return null;
-                }
 
                 ms.Write(buffer, 0, result.Count);
 
                 if (result.EndOfMessage)
-                {
                     return Encoding.UTF8.GetString(ms.ToArray());
-                }
             }
         }
 
         private void NotifyClosedOnce()
         {
-            lock (_closeSync)
-            {
-                if (_closedNotified)
-                {
-                    return;
-                }
+            if (_closedNotified)
+                return;
 
-                _closedNotified = true;
-            }
-
+            _closedNotified = true;
             OnClosed?.Invoke();
         }
     }

@@ -1,8 +1,7 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using MirraCloud.Core.Realtime.Connection;
 using MirraCloud.Core.Realtime.Protocol;
+using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Realtime.Abstractions
 {
@@ -15,14 +14,13 @@ namespace MirraCloud.Core.Realtime.Abstractions
         event Action<RealtimeEvent> OnEvent;
         event Action<RealtimeError> OnError;
 
-        Task ConnectAsync(string wsUrl, CancellationToken cancellationToken = default);
-        Task DisconnectAsync(CancellationToken cancellationToken = default);
-        Task<RealtimeCommandResult> SendCommandAsync(string name, object payload, int timeoutMs = 10000,
-            CancellationToken cancellationToken = default);
+        AsyncOperation<RealtimeCommandResult> Connect(string wsUrl);
+        AsyncOperation<RealtimeCommandResult> Disconnect();
+        AsyncOperation<RealtimeCommandResult> SendCommand(string name, object payload, int timeoutMs = 10000);
 
         void Initialize();
         void Dispose();
-        void SubscribeEvent<T>(string eventName, Action<T, object> callback) where T: IRealtimeEvent;
-        void UnsubscribeEvent<T>(string eventName, Action<T, object> callback) where T: IRealtimeEvent;
+        void SubscribeEvent<T>(string eventName, Action<T, object> callback) where T : IRealtimeEvent;
+        void UnsubscribeEvent<T>(string eventName, Action<T, object> callback) where T : IRealtimeEvent;
     }
 }
