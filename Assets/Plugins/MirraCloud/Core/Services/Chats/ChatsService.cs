@@ -432,6 +432,41 @@ namespace MirraCloud.Core.Chats
             return op;
         }
 
+        public AsyncOperation<RestApiResult> MarkAsReadAsync(string channelId, long messageNumber)
+        {
+            if (string.IsNullOrWhiteSpace(channelId))
+            {
+                return AsyncOperation<RestApiResult>.CreateCompleted(
+                    RestApiResult.ValidationFail("channelId is required."));
+            }
+
+            if (messageNumber <= 0)
+            {
+                return AsyncOperation<RestApiResult>.CreateCompleted(
+                    RestApiResult.ValidationFail("messageNumber must be greater than 0."));
+            }
+
+            var op = new AsyncOperation<RestApiResult>();
+            var commandOp = _connection.SendCommand("markAsRead", new
+            {
+                MessageNumber = messageNumber
+            });
+
+            commandOp.UseCompleted(_ =>
+            {
+                if (!commandOp.Result.IsSuccess)
+                {
+                    op.Complete(RestApiResult.Fail(
+                        RestApiError.Validation(commandOp.Result.Message ?? "Mark as read failed")));
+                    return;
+                }
+
+                op.Complete(RestApiResult.Success());
+            });
+
+            return op;
+        }
+
         private void ConnectInternal(RealtimeSessionInfo sessionInfo, AsyncOperation<RestApiResult> operation)
         {
             var wsUrl = BuildWsUrl(sessionInfo);
