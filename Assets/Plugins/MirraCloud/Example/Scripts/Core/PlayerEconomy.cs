@@ -33,14 +33,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
 
             if (isSuccess && operation.Result.Data?.Items != null)
             {
-                foreach (var slot in operation.Result.Data.Items)
+                /*foreach (var slot in operation.Result.Data.Items)
                 {
                     _playerItems.Add(new PlayerItem()
                     {
                         ItemKey = slot.ItemId,
                         Amount = slot.Quantity,
                     });
-                }
+                }*/
             }
 
             return isSuccess;

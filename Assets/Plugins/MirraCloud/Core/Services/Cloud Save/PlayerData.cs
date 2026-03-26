@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Globalization;
 using MirraCloud.Core.CloudSave.Responses;
+using MirraCloud.Json;
 
 namespace MirraCloud.Core.CloudSave
 {
@@ -14,90 +16,118 @@ namespace MirraCloud.Core.CloudSave
         private readonly Dictionary<string, float> _floatFields = new Dictionary<string, float>();
         private readonly Dictionary<string, int> _intFields = new Dictionary<string, int>();
 
-        public PlayerData(PlayerDataResponse playerDataResponse)
+        public PlayerData(DataItemResponse[] dataItems)
         {
-            foreach (var field in playerDataResponse.data)
-            {
-                if (string.IsNullOrEmpty(field.key))
-                {
-                    continue;
-                }
-                
-                _fields.Add(new PlayerDataField(field.key, field.value, field.fieldType));
+            if (dataItems == null)
+                return;
 
-                switch (field.fieldType)
+            foreach (var item in dataItems)
+            {
+                if (string.IsNullOrEmpty(item.key))
+                    continue;
+
+                string stringValue = ExtractStringValue(item.value);
+
+                _fields.Add(new PlayerDataField(
+                    item.key, stringValue, item.fieldType,
+                    item.readMask, item.writeMask,
+                    item.version, item.updatedAtUtc));
+
+                switch (item.fieldType)
                 {
                     case CloudSaveFieldType.String:
                     {
-                        _stringFields.Add(field.key, field.value);
+                        _stringFields[item.key] = stringValue;
                         break;
                     }
                     case CloudSaveFieldType.Boolean:
                     {
-                        if (bool.TryParse(field.value, out var value))
+                        if (item.value != null && item.value.Type == JsonValueType.Boolean)
                         {
-                            _boolFields.Add(field.key, value);
+                            _boolFields[item.key] = (bool)item.value;
+                        }
+                        else if (bool.TryParse(stringValue, out var boolVal))
+                        {
+                            _boolFields[item.key] = boolVal;
                         }
                         break;
                     }
                     case CloudSaveFieldType.Float:
                     {
-                        if (float.TryParse(field.value, out var value))
+                        if (item.value != null && (item.value.Type == JsonValueType.Double || item.value.Type == JsonValueType.Int))
                         {
-                            _floatFields.Add(field.key, value);
+                            _floatFields[item.key] = item.value.Type == JsonValueType.Int
+                                ? (int)item.value
+                                : (float)(double)item.value;
+                        }
+                        else if (float.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var floatVal))
+                        {
+                            _floatFields[item.key] = floatVal;
                         }
                         break;
                     }
                     case CloudSaveFieldType.Int:
                     {
-                        if (int.TryParse(field.value, out var value))
+                        if (item.value != null && item.value.Type == JsonValueType.Int)
                         {
-                            _intFields.Add(field.key, value);
+                            _intFields[item.key] = (int)item.value;
+                        }
+                        else if (int.TryParse(stringValue, out var intVal))
+                        {
+                            _intFields[item.key] = intVal;
                         }
                         break;
                     }
                 }
             }
         }
-        
+
         public string GetString(string key, string defaultValue = "")
         {
             if (_stringFields.TryGetValue(key, out var value))
-            {
                 return value;
-            }
-
             return defaultValue;
         }
-        
+
         public bool GetBool(string key, bool defaultValue = false)
         {
             if (_boolFields.TryGetValue(key, out var value))
-            {
                 return value;
-            }
-
             return defaultValue;
         }
-        
+
         public int GetInt(string key, int defaultValue = 0)
         {
             if (_intFields.TryGetValue(key, out var value))
-            {
                 return value;
-            }
-
             return defaultValue;
         }
-        
+
         public float GetFloat(string key, float defaultValue = 0)
         {
             if (_floatFields.TryGetValue(key, out var value))
-            {
                 return value;
-            }
-
             return defaultValue;
+        }
+
+        private static string ExtractStringValue(JsonValue value)
+        {
+            if (value == null || value.Type == JsonValueType.Null)
+                return "";
+
+            switch (value.Type)
+            {
+                case JsonValueType.String:
+                    return (string)value;
+                case JsonValueType.Int:
+                    return ((int)value).ToString();
+                case JsonValueType.Double:
+                    return ((double)value).ToString(CultureInfo.InvariantCulture);
+                case JsonValueType.Boolean:
+                    return ((bool)value).ToString();
+                default:
+                    return "";
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using MirraCloud.Core;
 using MirraCloud.Core.CloudSave;
 using MirraCloud.Example.Infrastructure.DI;
+using MirraCloud.Core.CloudSave.Requests;
 using TMPro;
 using UnityEngine;
 
@@ -29,10 +30,10 @@ namespace MirraCloud.Example
 
         private async Task SaveDataAsync(string key, string value)
         {
-            UpdateDataContainer container = new UpdateDataContainer();
-            container.AddString(key, value);
-
-            await _sdk.CloudSave.SaveAsync(container).Task();
+            var request = new CloudSaveDataRequest();
+            request.AddString(key, value);
+            
+            await _sdk.CloudSave.SaveAsync(request).Task();
 
             await LoadCloudSaveAsync();
         }
