@@ -24,8 +24,10 @@ namespace MirraCloud.Core.Auth
         private const string REFRESH_TOKEN_KEY = "RefreshToken";
         private const string SESSIONID_KEY = "SessionId";
         private const string SESSION_EXPIRESAT_KEY = "SessionExpiresAt";
-
+        
         private string _authToken;
+        public string AuthToken => _authToken;
+        
         private string _sessionId;
         private string _refreshToken;
         private DateTime _sessionExpiresAt;

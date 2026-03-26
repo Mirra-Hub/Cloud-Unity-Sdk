@@ -3,7 +3,6 @@ using MirraCloud.Core.Realtime.Abstractions;
 
 namespace MirraCloud.Core.Realtime.Connection
 {
-    // TODO: remove locks
     internal sealed class RealtimeSubscriptionStore : IRealtimeSubscriptionStore
     {
         private readonly HashSet<string> _subscriptions = new HashSet<string>();

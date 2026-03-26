@@ -45,6 +45,17 @@ namespace MirraCloud.Core
                 _requestInterceptors[id] = null;
             }
         }
+
+        public Dictionary<string, string> GetCurrentHeaders()
+        {
+            var config = new RestRequestConfig();
+            foreach (var interceptor in _requestInterceptors)
+            {
+                if (interceptor == null) continue;
+                config = interceptor.Invoke(config) ?? config;
+            }
+            return config.Headers;
+        }
         #endregion
 
         public void SetSessionRefresher(ISessionRefresher sessionRefresher)

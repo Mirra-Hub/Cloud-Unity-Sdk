@@ -1,15 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using MirraCloud.Core.Logger;
 using MirraCloud.Core.Realtime.Abstractions;
 
 namespace MirraCloud.Core.Realtime.Transport
 {
     internal sealed class ClientWebSocketTransport : IRealtimeTransport
     {
+        private readonly ILogger _logger;
+
         private ClientWebSocket _socket;
         private CancellationTokenSource _receiveCts;
         private Task _receiveLoop;
@@ -21,7 +25,12 @@ namespace MirraCloud.Core.Realtime.Transport
         public event Action OnClosed;
         public event Action<Exception> OnError;
 
-        public async Task ConnectAsync(Uri uri, CancellationToken cancellationToken = default)
+        public ClientWebSocketTransport(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public async Task ConnectAsync(Uri uri, Dictionary<string, string> headers = null, CancellationToken cancellationToken = default)
         {
             if (_socket != null)
                 await CloseAsync(cancellationToken);
@@ -29,6 +38,16 @@ namespace MirraCloud.Core.Realtime.Transport
             _closedNotified = false;
 
             _socket = new ClientWebSocket();
+
+            if (headers != null)
+            {
+                foreach (var header in headers)
+                {
+                    _socket.Options.SetRequestHeader(header.Key, header.Value);
+                }
+            }
+
+            _logger.Log($"[WS] Connecting to: {uri}");
             await _socket.ConnectAsync(uri, cancellationToken);
 
             _receiveCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

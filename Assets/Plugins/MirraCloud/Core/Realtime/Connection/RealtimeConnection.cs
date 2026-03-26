@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.Realtime.Abstractions;
@@ -8,10 +9,6 @@ using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Realtime.Connection
 {
-    public interface IRealtimeEvent
-    {
-    }
-
     internal sealed class RealtimeConnection : IRealtimeConnection
     {
         private readonly IRealtimeTransport _transport;
@@ -52,7 +49,7 @@ namespace MirraCloud.Core.Realtime.Connection
             _transport.OnError -= HandleTransportError;
         }
 
-        public AsyncOperation<RealtimeCommandResult> Connect(string wsUrl)
+        public AsyncOperation<RealtimeCommandResult> Connect(string wsUrl, Dictionary<string, string> headers = null)
         {
             if (State is RealtimeConnectionState.Connected or RealtimeConnectionState.Connecting)
                 return AsyncOperation<RealtimeCommandResult>.CreateCompleted(
@@ -60,15 +57,15 @@ namespace MirraCloud.Core.Realtime.Connection
 
             SetState(RealtimeConnectionState.Connecting);
             var op = new AsyncOperation<RealtimeCommandResult>();
-            ConnectTransportAsync(wsUrl, op);
+            ConnectTransportAsync(wsUrl, headers, op);
             return op;
         }
 
-        private async void ConnectTransportAsync(string wsUrl, AsyncOperation<RealtimeCommandResult> op)
+        private async void ConnectTransportAsync(string wsUrl, Dictionary<string, string> headers, AsyncOperation<RealtimeCommandResult> op)
         {
             try
             {
-                await _transport.ConnectAsync(new Uri(wsUrl));
+                await _transport.ConnectAsync(new Uri(wsUrl), headers);
                 SetState(RealtimeConnectionState.Connected);
                 op.Complete(RealtimeCommandResult.Success(string.Empty, default));
             }
@@ -185,14 +182,6 @@ namespace MirraCloud.Core.Realtime.Connection
                     Payload = envelope.Payload
                 });
             }
-        }
-
-        public void SubscribeEvent<T>(string eventName, Action<T, object> callback) where T : IRealtimeEvent
-        {
-        }
-
-        public void UnsubscribeEvent<T>(string eventName, Action<T, object> callback) where T : IRealtimeEvent
-        {
         }
 
         private void HandleTransportClosed()
