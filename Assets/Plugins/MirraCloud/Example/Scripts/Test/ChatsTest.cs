@@ -22,7 +22,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void OnEnable()
         {
             MirraCloudSDK.Chats.OnConnectionStateChanged += HandleConnectionStateChanged;
-            MirraCloudSDK.Chats.OnSubscribed += HandleSubscribed;
+            MirraCloudSDK.Chats.OnSubscribedChannel += HandleSubscribedChannel;
             MirraCloudSDK.Chats.OnMessageReceived += HandleMessageReceived;
             MirraCloudSDK.Chats.OnMessageEdited += HandleMessageEdited;
             MirraCloudSDK.Chats.OnMessageDeleted += HandleMessageDeleted;
@@ -35,7 +35,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void OnDisable()
         {
             MirraCloudSDK.Chats.OnConnectionStateChanged -= HandleConnectionStateChanged;
-            MirraCloudSDK.Chats.OnSubscribed -= HandleSubscribed;
+            MirraCloudSDK.Chats.OnSubscribedChannel -= HandleSubscribedChannel;
             MirraCloudSDK.Chats.OnMessageReceived -= HandleMessageReceived;
             MirraCloudSDK.Chats.OnMessageEdited -= HandleMessageEdited;
             MirraCloudSDK.Chats.OnMessageDeleted -= HandleMessageDeleted;
@@ -60,7 +60,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             if (Input.GetKeyDown(KeyCode.Minus)) Unsubscribe();
             if (Input.GetKeyDown(KeyCode.Equals)) Disconnect();
         }
-        
+
         private void Connect()
         {
             Debug.Log("[ChatsTest] Connecting to realtime...");
@@ -69,7 +69,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             {
                 if (!completed.Result.IsSuccess)
                 {
-                    Debug.LogError($"[ChatsTest] Connect failed: {completed.Result.Error?.Message}");
+                    Debug.LogError($"[ChatsTest] Connect failed: {completed.Result.Message}");
                     return;
                 }
                 Debug.Log("[ChatsTest] Connected!");
@@ -124,7 +124,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             {
                 if (!completed.Result.IsSuccess)
                 {
-                    Debug.LogError($"[ChatsTest] Subscribe failed: {completed.Result.Error?.Message}");
+                    Debug.LogError($"[ChatsTest] Subscribe failed: {completed.Result.Message}");
                     return;
                 }
                 Debug.Log("[ChatsTest] Subscribed.");
@@ -141,7 +141,6 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             };
         }
 
-        // TODO: При отправке событий в канал добавить хранение подключений к каналам (продублировать логику из бэкенда). Добавлять в хэшсет при subscribe
         private void SendMessage()
         {
             Debug.Log($"[ChatsTest] Sending message: {_messageBody}");
@@ -150,7 +149,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             {
                 if (!completed.Result.IsSuccess)
                 {
-                    Debug.LogError($"[ChatsTest] Send failed: {completed.Result.Error?.Message}");
+                    Debug.LogError($"[ChatsTest] Send failed: {completed.Result.Message}");
                     return;
                 }
                 var msg = completed.Result.Data;
@@ -173,7 +172,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             {
                 if (!completed.Result.IsSuccess)
                 {
-                    Debug.LogError($"[ChatsTest] Edit failed: {completed.Result.Error?.Message}");
+                    Debug.LogError($"[ChatsTest] Edit failed: {completed.Result.Message}");
                     return;
                 }
                 Debug.Log($"[ChatsTest] Message edited. New body: {completed.Result.Data.Body}");
@@ -194,7 +193,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             {
                 if (!completed.Result.IsSuccess)
                 {
-                    Debug.LogError($"[ChatsTest] Delete failed: {completed.Result.Error?.Message}");
+                    Debug.LogError($"[ChatsTest] Delete failed: {completed.Result.Message}");
                     return;
                 }
                 Debug.Log("[ChatsTest] Message deleted.");
@@ -264,7 +263,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             Debug.Log($"[ChatsTest] Connection state: {state}");
         }
 
-        private void HandleSubscribed(string channelId)
+        private void HandleSubscribedChannel(string channelId)
         {
             Debug.Log($"[ChatsTest] Subscribed to channel: {channelId}");
         }
