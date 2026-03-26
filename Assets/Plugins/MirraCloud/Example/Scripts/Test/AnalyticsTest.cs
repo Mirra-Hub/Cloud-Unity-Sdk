@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MirraCloud.Core;
+using MirraCloud.Example.Infrastructure.DI;
 using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
@@ -7,6 +8,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
     public class AnalyticsTest : MonoBehaviour
     {
         [SerializeField] private string _eventId;
+
+        private IMirraCloudSdk _sdk;
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
 
         private void Update()
         {
@@ -23,12 +32,12 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         public void SendEvent()
         {
-            MirraCloudSDK.Analytics.SendEventAsync(_eventId);
+            _sdk.Analytics.SendEventAsync(_eventId);
         }
 
         public void SendEventWithParameters()
         {
-            MirraCloudSDK.Analytics.SendEventAsync(_eventId, new Dictionary<string, string>
+            _sdk.Analytics.SendEventAsync(_eventId, new Dictionary<string, string>
             {
                 { "itemId", "sword_01" },
                 { "price", "100" },

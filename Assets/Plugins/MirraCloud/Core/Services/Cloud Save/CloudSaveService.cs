@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 
 namespace MirraCloud.Core.CloudSave
 {
-    public class CloudSaveService
+    public class CloudSaveService : ICloudSdkService
     {
         private const string ControllerApi = "/cloud-save/v1";
 
@@ -184,5 +184,8 @@ namespace MirraCloud.Core.CloudSave
         }
 
         #endregion
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

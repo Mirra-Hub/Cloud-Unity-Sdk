@@ -6,7 +6,7 @@ using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Groups
 {
-    public class GroupsService
+    public class GroupsService : ICloudSdkService
     {
         private const string GroupsApi = "/groups/v1/projects";
         private const string PlayersApi = "/groups/v1/projects";
@@ -254,5 +254,8 @@ namespace MirraCloud.Core.Groups
         }
 
         #endregion
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

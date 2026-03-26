@@ -4,9 +4,11 @@ using MirraCloud.Core.Logger;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Deployment.Dto;
 
+using MirraCloud.Core;
+
 namespace Plugins.MirraCloud.Core.Services.Deployment
 {
-    public class DeploymentService
+    public class DeploymentService : ICloudSdkService
     {
         private readonly Configuration _configuration;
         private readonly ILogger _logger;
@@ -41,5 +43,8 @@ namespace Plugins.MirraCloud.Core.Services.Deployment
 
             return response;
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

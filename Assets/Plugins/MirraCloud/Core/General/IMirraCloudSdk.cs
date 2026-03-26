@@ -1,0 +1,47 @@
+using MirraCloud.Core.AssetsStorage;
+using MirraCloud.Core.Auth;
+using MirraCloud.Core.Chats;
+using MirraCloud.Core.CloudCode;
+using MirraCloud.Core.CloudSave;
+using MirraCloud.Core.DailyRewards;
+using MirraCloud.Core.Economy;
+using MirraCloud.Core.Entities;
+using MirraCloud.Core.Friends;
+using MirraCloud.Core.Groups;
+using MirraCloud.Core.Leaderboard;
+using MirraCloud.Core.RemoteConfig;
+using Plugins.MirraCloud.Core.Services.Analytics;
+using Plugins.MirraCloud.Core.Services.Challenges;
+using Plugins.MirraCloud.Core.Services.Deployment;
+using Plugins.MirraCloud.Core.Services.PlayerAccount;
+using Plugins.MirraCloud.Core.Services.Segments;
+using Plugins.MirraCloud.Core.Services.Tournaments;
+
+namespace MirraCloud.Core
+{
+    public interface IMirraCloudSdk
+    {
+        AuthenticationService Authentication { get; }
+        PlayerAccountService PlayerAccount { get; }
+        FriendsService Friends { get; }
+        ChatsService Chats { get; }
+        GroupsService Groups { get; }
+        EconomyService Economy { get; }
+        EntitiesService Entities { get; }
+        CloudSaveService CloudSave { get; }
+        LeaderboardService Leaderboard { get; }
+        TournamentsService Tournaments { get; }
+        RemoteConfigService RemoteConfig { get; }
+        AssetsStorageService AssetsStorage { get; }
+        CloudCodeService CloudCode { get; }
+        SegmentService Segments { get; }
+        AnalyticsService Analytics { get; }
+        DeploymentService Deployment { get; }
+        DailyRewardsService DailyRewards { get; }
+        ChallengesService Challenges { get; }
+        bool IsInitialized { get; }
+
+        void Initialize();
+        void Dispose();
+    }
+}

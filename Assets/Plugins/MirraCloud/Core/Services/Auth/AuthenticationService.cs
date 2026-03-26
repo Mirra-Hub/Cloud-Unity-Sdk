@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 
 namespace MirraCloud.Core.Auth
 {
-    public class AuthenticationService : ISessionRefresher
+    public class AuthenticationService : ISessionRefresher, ICloudSdkService
     {
         private readonly Logger.ILogger _logger;
         private readonly IStorage _storage;
@@ -24,8 +24,10 @@ namespace MirraCloud.Core.Auth
         private const string REFRESH_TOKEN_KEY = "RefreshToken";
         private const string SESSIONID_KEY = "SessionId";
         private const string SESSION_EXPIRESAT_KEY = "SessionExpiresAt";
-
+        
         private string _authToken;
+        public string AuthToken => _authToken;
+        
         private string _sessionId;
         private string _refreshToken;
         private DateTime _sessionExpiresAt;
@@ -578,5 +580,8 @@ namespace MirraCloud.Core.Auth
         }
 
         #endregion
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

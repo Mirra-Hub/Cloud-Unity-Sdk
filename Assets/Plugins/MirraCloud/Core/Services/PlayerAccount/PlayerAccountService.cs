@@ -12,7 +12,7 @@ using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 {
-    public class PlayerAccountService : IDisposable
+    public class PlayerAccountService : IDisposable, ICloudSdkService
     {
         private readonly RestApiClient _restApi;
         private readonly Configuration _configuration;
@@ -43,6 +43,13 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
         }
 
         public void Dispose()
+        {
+            CloudSdkDispose();
+        }
+
+        public void CloudSdkInitialize() { }
+
+        public void CloudSdkDispose()
         {
             _authenticationService.OnLogin -= OnAuthLogin;
         }

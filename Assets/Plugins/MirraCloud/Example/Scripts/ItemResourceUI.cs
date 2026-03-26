@@ -1,6 +1,7 @@
-﻿using System.Collections;
+using System.Collections;
 using MirraCloud.Core;
 using MirraCloud.Core.Economy;
+using MirraCloud.Example.Infrastructure.DI;
 using MirraCloud.Json;
 using TMPro;
 using UnityEngine;
@@ -12,6 +13,14 @@ namespace MirraCloud.Example
     {
         [SerializeField] private Image _icon;
         [SerializeField] private TextMeshProUGUI _title;
+
+        private IMirraCloudSdk _sdk;
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
 
         public void Initialize(string key, EconomyResourceConfig item)
         {
@@ -42,7 +51,7 @@ namespace MirraCloud.Example
 
         private IEnumerator LoadIcon(string iconKey)
         {
-            var operation = MirraCloudSDK.AssetsStorage.LoadTextureFromId(iconKey);
+            var operation = _sdk.AssetsStorage.LoadTextureFromId(iconKey);
 
             yield return operation;
 
@@ -50,7 +59,7 @@ namespace MirraCloud.Example
             {
                 var texture = operation.Result.Data;
                 var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                
+
                 _icon.sprite = sprite;
             }
         }

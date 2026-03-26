@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using MirraCloud.Core;
 using UnityEngine.Device;
 
@@ -6,22 +6,29 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
 {
     public class AuthService
     {
+        private readonly IMirraCloudSdk _sdk;
+
+        public AuthService(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
+
         public async Task<bool> LoginDevice()
         {
-            var authOperation = MirraCloudSDK.Authentication.LoginDeviceAsync(SystemInfo.deviceUniqueIdentifier);
+            var authOperation = _sdk.Authentication.LoginDeviceAsync(SystemInfo.deviceUniqueIdentifier);
 
             await authOperation.Task();
-            
-            return MirraCloudSDK.Authentication.IsAuth;
+
+            return _sdk.Authentication.IsAuth;
         }
 
         public async Task<bool> LoginGuest()
         {
-            var authOperation = MirraCloudSDK.Authentication.LoginGuestAsync();
+            var authOperation = _sdk.Authentication.LoginGuestAsync();
 
             await authOperation.Task();
-            
-           return MirraCloudSDK.Authentication.IsAuth;
+
+           return _sdk.Authentication.IsAuth;
         }
     }
 }

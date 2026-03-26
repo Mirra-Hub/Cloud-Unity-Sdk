@@ -6,6 +6,6 @@ namespace MirraCloud.Core.Chats.Models
     [Serializable]
     internal sealed class RealtimeAckChannelPayload
     {
-        [JsonNameCamel] public string ChannelId;
+        [JsonNameCamel] public string RoomId;
     }
 }

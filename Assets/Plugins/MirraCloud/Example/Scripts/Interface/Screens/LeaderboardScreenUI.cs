@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MirraCloud.Core;
 using MirraCloud.Example;
+using MirraCloud.Example.Infrastructure.DI;
 using MirraCloud.Example.Interface;
 using Plugins.MirraCloud.Example.Scripts.Test;
 using UnityEngine;
@@ -17,7 +18,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
         [SerializeField] private LeaderboardItemUI _leaderboardItemUIPrefab;
         [SerializeField] private string _leaderboardId;
 
+        private IMirraCloudSdk _sdk;
         private readonly List<LeaderboardItemUI> _leaderboardItemsUI = new List<LeaderboardItemUI>();
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
 
         private void Awake()
         {
@@ -35,10 +43,10 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
         {
             _closeButton.onClick.RemoveListener(UIController.ShowScreen<LobbyScreenUI>);
         }
-        
+
         private async void Refresh()
         {
-            var operation = MirraCloudSDK.Leaderboard.GetLeaderboardPlayer(_leaderboardId);
+            var operation = _sdk.Leaderboard.GetLeaderboardPlayer(_leaderboardId);
             await operation.Task();
 
             if (operation.Result.IsSuccess && operation.Result.Data != null)
@@ -50,16 +58,16 @@ namespace Plugins.MirraCloud.Example.Scripts.Interface.Screens
             {
                 leaderboardItem.Hide();
             }
-            
-            var operationTable = MirraCloudSDK.Leaderboard.GetLeaderboardTopEntries(_leaderboardId);
+
+            var operationTable = _sdk.Leaderboard.GetLeaderboardTopEntries(_leaderboardId);
             await operationTable.Task();
 
             if (operationTable.Result.IsSuccess && operationTable.Result.Data != null)
             {
                 Debug.Log(operationTable.Result.ResponseBody);
-                
+
                 for (int index = 0; index < operationTable.Result.Data.entries.Length; index++)
-                {
+            {
                     var leaderboardEntry = operationTable.Result.Data.entries[index];
 
                     if (index >= _leaderboardItemsUI.Count)

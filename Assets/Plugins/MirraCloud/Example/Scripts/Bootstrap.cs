@@ -1,5 +1,4 @@
-﻿using MirraCloud.Core;
-using Plugins.MirraCloud.Example.Scripts;
+﻿using Plugins.MirraCloud.Example.Scripts;
 using UnityEngine;
 
 namespace MirraCloud.Example
@@ -12,14 +11,14 @@ namespace MirraCloud.Example
         {
             Instance = this;
         }
-        
+
         public PlayerProfile PlayerProfile;
     }
-    
+
     public class Bootstrap : MonoBehaviour
     {
         [SerializeField] private UIController uiController;
-        
+
         private void Start()
         {
             Initialize();
@@ -28,9 +27,7 @@ namespace MirraCloud.Example
         private void Initialize()
         {
             Container container = new Container();
-            container.PlayerProfile = new PlayerProfile();
-            
-            MirraCloudSDK.Initialize();
+            container.PlayerProfile = new PlayerProfile(null);
         }
     }
 }

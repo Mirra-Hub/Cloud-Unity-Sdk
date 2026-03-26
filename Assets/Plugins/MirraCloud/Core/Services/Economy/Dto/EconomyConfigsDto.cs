@@ -9,8 +9,7 @@ namespace MirraCloud.Core.Economy.Dto
     {
         [JsonNameCamel] public Dictionary<string, EconomySdkResourceDto> Currencies;
         [JsonNameCamel] public Dictionary<string, EconomySdkResourceDto> Items;
-        [JsonNameCamel] public Dictionary<string, EconomySdkResourceDto> Containers;
-        [JsonNameCamel] public Dictionary<string, EconomySdkResourceDto> Lootboxes;
+        [JsonNameCamel] public Dictionary<string, EconomySdkResourceDto> Energies;
     }
 
     [Serializable]
