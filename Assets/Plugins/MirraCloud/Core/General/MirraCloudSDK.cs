@@ -3,6 +3,7 @@ using MirraCloud.Core.AssetsStorage;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.Chats;
 using MirraCloud.Core.CloudSave;
+using MirraCloud.Core.DailyRewards;
 using MirraCloud.Core.CloudCode;
 using MirraCloud.Core.Economy;
 using MirraCloud.Core.Entities;
@@ -22,6 +23,11 @@ using Plugins.MirraCloud.Core.Services.Tournaments;
 
 namespace MirraCloud.Core
 {
+    public interface ICloudSdkService : ICloudSdkInitializable, ICloudSdkDisposable
+    {
+        
+    }
+    
     public static class MirraCloudSDK
     {
         private static AnalyticsTracker _analyticsTracker;
@@ -42,6 +48,7 @@ namespace MirraCloud.Core
         public static AnalyticsService Analytics { get; private set; }
         public static DeploymentService Deployment { get; private set; }
         public static GroupsService Groups { get; private set; }
+        public static DailyRewardsService DailyRewards { get; private set; }
         
         public static bool IsInitialized { get; private set; }
 
@@ -56,6 +63,14 @@ namespace MirraCloud.Core
         private static void RegisterDispose(ICloudSdkDisposable disposable)
         {
             _disposables.Add(disposable);
+        }
+
+        private static T RegisterService<T>(T service) where T: ICloudSdkService
+        {
+            RegisterInitialize(service);
+            RegisterDispose(service);
+            
+            return service;
         }
         
         public static void Initialize()
@@ -85,9 +100,7 @@ namespace MirraCloud.Core
             Friends = new FriendsService(configuration, logger, restApiClient);
             Groups = new GroupsService(configuration, logger, restApiClient);
 
-            Chats = new ChatsService(configuration, logger, restApiClient, jsonService);
-            RegisterInitialize(Chats);
-            RegisterDispose(Chats);
+            Chats = RegisterService(new ChatsService(configuration, logger, restApiClient, jsonService));
             
             Economy = new EconomyService(configuration, logger, restApiClient);
             Entities = new EntitiesService(configuration, logger, restApiClient);
@@ -101,6 +114,7 @@ namespace MirraCloud.Core
             CloudCode = new CloudCodeService(configuration, logger, restApiClient);
 
             Segments = new SegmentService(configuration, logger, restApiClient);
+            DailyRewards = new DailyRewardsService(configuration, restApiClient);
 
             _analyticsTracker = AnalyticsTracker.CreateInstance();
             Analytics.SetTracker(_analyticsTracker);
