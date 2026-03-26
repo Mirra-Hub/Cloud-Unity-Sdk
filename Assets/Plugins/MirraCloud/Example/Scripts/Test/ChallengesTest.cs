@@ -95,7 +95,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] GetConfig failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] GetConfig failed: {completed.Result}");
                 }
             };
         }
@@ -112,7 +112,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] SubmitScore failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] SubmitScore failed: {completed.Result}");
                 }
             };
         }
@@ -128,7 +128,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] Join failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] Join failed: {completed.Result}");
                 }
             };
         }
@@ -144,7 +144,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] Leave failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] Leave failed: {completed.Result}");
                 }
             };
         }
@@ -160,7 +160,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] GetTop failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] GetTop failed: {completed.Result}");
                 }
             };
         }
@@ -176,7 +176,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] GetMyTop failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] GetMyTop failed: {completed.Result}");
                 }
             };
         }
@@ -192,7 +192,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] GetAroundPlayer failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] GetAroundPlayer failed: {completed.Result}");
                 }
             };
         }
@@ -209,7 +209,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] GetPlayer failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] GetPlayer failed: {completed.Result}");
                 }
             };
         }
@@ -225,7 +225,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[Challenges] ClaimReward failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[Challenges] ClaimReward failed: {completed.Result}");
                 }
             };
         }

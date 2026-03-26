@@ -60,7 +60,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[DailyRewards] GetCalendars failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[DailyRewards] GetCalendars failed: {completed.Result}");
                 }
             };
         }
@@ -79,7 +79,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[DailyRewards] GetAllStatuses failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[DailyRewards] GetAllStatuses failed: {completed.Result}");
                 }
             };
         }
@@ -96,7 +96,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[DailyRewards] GetCalendarStatus failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[DailyRewards] GetCalendarStatus failed: {completed.Result}");
                 }
             };
         }
@@ -112,7 +112,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[DailyRewards] Claim failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[DailyRewards] Claim failed: {completed.Result}");
                 }
             };
         }
@@ -128,7 +128,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 }
                 else
                 {
-                    Debug.LogError($"[DailyRewards] ClaimWithDay failed: {completed.Result.ErrorMessage}");
+                    Debug.LogError($"[DailyRewards] ClaimWithDay failed: {completed.Result}");
                 }
             };
         }
