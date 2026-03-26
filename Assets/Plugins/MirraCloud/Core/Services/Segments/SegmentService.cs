@@ -5,9 +5,11 @@ using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Segments.Dto;
 using ILogger = MirraCloud.Core.Logger.ILogger;
 
+using MirraCloud.Core;
+
 namespace Plugins.MirraCloud.Core.Services.Segments
 {
-    public class SegmentService
+    public class SegmentService : ICloudSdkService
     {
         private readonly Configuration _configuration;
         private readonly ILogger _logger;
@@ -53,6 +55,7 @@ namespace Plugins.MirraCloud.Core.Services.Segments
             return op;
         }
 
-        
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

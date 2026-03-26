@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 
 namespace MirraCloud.Core.Auth
 {
-    public class AuthenticationService : ISessionRefresher
+    public class AuthenticationService : ISessionRefresher, ICloudSdkService
     {
         private readonly Logger.ILogger _logger;
         private readonly IStorage _storage;
@@ -580,5 +580,8 @@ namespace MirraCloud.Core.Auth
         }
 
         #endregion
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

@@ -5,7 +5,7 @@ using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace MirraCloud.Core.RemoteConfig
 {
-    public class RemoteConfigService
+    public class RemoteConfigService : ICloudSdkService
     {
         private readonly RestApiClient _restApi;
         private readonly Configuration _configuration;
@@ -44,5 +44,8 @@ namespace MirraCloud.Core.RemoteConfig
 
             return request;
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

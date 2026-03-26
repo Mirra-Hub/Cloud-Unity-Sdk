@@ -7,7 +7,7 @@ using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace MirraCloud.Core.Economy
 {
-    public sealed class EconomyService
+    public sealed class EconomyService : ICloudSdkService
     {
         private const string ControllerApi = "/economy/v1/projects";
 
@@ -230,6 +230,9 @@ namespace MirraCloud.Core.Economy
 
             return JsonValueMapper.TryMap(_restApi.JsonService, data, out component);
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 
     public enum EconomyResourceKind

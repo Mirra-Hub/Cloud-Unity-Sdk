@@ -3,25 +3,28 @@ using System.Collections.Generic;
 using MirraCloud;
 using MirraCloud.Core;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
+using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.Tournaments.Dto;
 
 namespace Plugins.MirraCloud.Core.Services.Tournaments
 {
-    public class TournamentsService 
+    public class TournamentsService : ICloudSdkService
     {
         private readonly Configuration _configuration;
         private readonly RestApiClient _restApi;
+        private readonly PlayerAccountService _playerAccountService;
         private readonly List<TournamentConfig> _tournamentConfigs = new List<TournamentConfig>();
 
         private const string ControllerApi = "/tournaments/v1";
 
         public bool IsInitialized { get; private set; }
         public IReadOnlyList<TournamentConfig> TournamentConfigs => _tournamentConfigs;
-        
-        public TournamentsService(Configuration configuration, RestApiClient restApi)
+
+        public TournamentsService(Configuration configuration, RestApiClient restApi, PlayerAccountService playerAccountService)
         {
             _restApi = restApi;
             _configuration = configuration;
+            _playerAccountService = playerAccountService;
         }
 
         public AsyncOperation<RestApiResult<TournamentConfigDto[]>> InitializeAsync()
@@ -96,7 +99,7 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/tournaments/{tournamentId}/entries";
 
-            var name = playerName ?? MirraCloudSDK.PlayerAccount?.PlayerAccountInfo?.Nickname ?? string.Empty;
+            var name = playerName ?? _playerAccountService?.PlayerAccountInfo?.Nickname ?? string.Empty;
 
             var dto = new SubmitScoreDto
             {
@@ -124,5 +127,8 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards";
             return _restApi.PostAsync(route, new { });
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

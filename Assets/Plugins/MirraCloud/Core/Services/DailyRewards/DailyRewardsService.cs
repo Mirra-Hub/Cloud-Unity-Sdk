@@ -3,7 +3,7 @@ using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.DailyRewards
 {
-    public class DailyRewardsService
+    public class DailyRewardsService : ICloudSdkService
     {
         private const string ControllerApi = "/daily-rewards/v1";
 
@@ -46,5 +46,8 @@ namespace MirraCloud.Core.DailyRewards
 
             return _restApi.PostAsync<ClaimDailyRewardResponseDto>(route, requestDto);
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

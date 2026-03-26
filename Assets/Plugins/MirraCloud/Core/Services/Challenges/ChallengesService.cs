@@ -5,10 +5,11 @@ using Plugins.MirraCloud.Core.General.AsyncOperations;
 using Plugins.MirraCloud.Core.Services.Challenges.Dto;
 using Plugins.MirraCloud.Core.Services.Challenges.Entities;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
+using MirraCloud.Core;
 
 namespace Plugins.MirraCloud.Core.Services.Challenges
 {
-    public class ChallengesService
+    public class ChallengesService : ICloudSdkService
     {
         private const string ControllerApi = "/challenges/v1";
 
@@ -114,5 +115,8 @@ namespace Plugins.MirraCloud.Core.Services.Challenges
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/challenges/{challengeId}/entries/claim";
             return _restApi.PostAsync<SubmitScoreResponseDto>(route, new { });
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

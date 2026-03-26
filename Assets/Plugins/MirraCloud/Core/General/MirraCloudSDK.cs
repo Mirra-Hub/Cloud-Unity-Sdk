@@ -24,58 +24,43 @@ using Plugins.MirraCloud.Core.Services.Tournaments;
 
 namespace MirraCloud.Core
 {
-    public interface ICloudSdkService : ICloudSdkInitializable, ICloudSdkDisposable
+    public class MirraCloudSDK : IMirraCloudSdk
     {
-        
-    }
-    
-    public static class MirraCloudSDK
-    {
-        private static AnalyticsTracker _analyticsTracker;
+        private AnalyticsTracker _analyticsTracker;
 
-        public static AuthenticationService Authentication { get; private set; }
-        public static PlayerAccountService PlayerAccount { get; private set; }
-        public static FriendsService Friends { get; private set; }
-        public static ChatsService Chats { get; private set; }
-        public static EconomyService Economy { get; private set; }
-        public static EntitiesService Entities { get; private set; }
-        public static CloudSaveService CloudSave { get; private set; }
-        public static LeaderboardService Leaderboard { get; private set; }
-        public static TournamentsService Tournaments { get; private set; }
-        public static RemoteConfigService RemoteConfig { get; private set; }
-        public static AssetsStorageService AssetsStorage { get; private set; }
-        public static CloudCodeService CloudCode { get; private set; }
-        public static SegmentService Segments { get; private set; }
-        public static AnalyticsService Analytics { get; private set; }
-        public static DeploymentService Deployment { get; private set; }
-        public static GroupsService Groups { get; private set; }
-        public static DailyRewardsService DailyRewards { get; private set; }
-        public static ChallengesService Challenges { get; private set; }
-        
-        public static bool IsInitialized { get; private set; }
+        public AuthenticationService Authentication { get; private set; }
+        public PlayerAccountService PlayerAccount { get; private set; }
+        public FriendsService Friends { get; private set; }
+        public ChatsService Chats { get; private set; }
+        public EconomyService Economy { get; private set; }
+        public EntitiesService Entities { get; private set; }
+        public CloudSaveService CloudSave { get; private set; }
+        public LeaderboardService Leaderboard { get; private set; }
+        public TournamentsService Tournaments { get; private set; }
+        public RemoteConfigService RemoteConfig { get; private set; }
+        public AssetsStorageService AssetsStorage { get; private set; }
+        public CloudCodeService CloudCode { get; private set; }
+        public SegmentService Segments { get; private set; }
+        public AnalyticsService Analytics { get; private set; }
+        public DeploymentService Deployment { get; private set; }
+        public GroupsService Groups { get; private set; }
+        public DailyRewardsService DailyRewards { get; private set; }
+        public ChallengesService Challenges { get; private set; }
 
-        private static List<ICloudSdkDisposable> _disposables = new List<ICloudSdkDisposable>();
-        private static List<ICloudSdkInitializable> _initializables = new List<ICloudSdkInitializable>();
+        public bool IsInitialized { get; private set; }
 
-        private static void RegisterInitialize(ICloudSdkInitializable initializable)
+        private readonly List<ICloudSdkDisposable> _disposables = new List<ICloudSdkDisposable>();
+        private readonly List<ICloudSdkInitializable> _initializables = new List<ICloudSdkInitializable>();
+
+        private T RegisterService<T>(T service) where T : ICloudSdkService
         {
-            _initializables.Add(initializable);
-        }
-        
-        private static void RegisterDispose(ICloudSdkDisposable disposable)
-        {
-            _disposables.Add(disposable);
-        }
+            _initializables.Add(service);
+            _disposables.Add(service);
 
-        private static T RegisterService<T>(T service) where T: ICloudSdkService
-        {
-            RegisterInitialize(service);
-            RegisterDispose(service);
-            
             return service;
         }
-        
-        public static void Initialize()
+
+        public void Initialize()
         {
             if (IsInitialized)
             {
@@ -83,7 +68,7 @@ namespace MirraCloud.Core
             }
 
             CoroutineRunner coroutineRunner = CoroutineRunner.CreateInstance();
-            
+
             Configuration configuration = Configuration.Load();
             ILogger logger = new Core.Logger.Logger();
             IJsonService jsonService = new JsonService();
@@ -94,30 +79,27 @@ namespace MirraCloud.Core
             };
 
             RestApiClient restApiClient = new RestApiClient(restApiClientOptions, coroutineRunner, jsonService, logger);
-            
+
             IStorage storage = new PrefsStorage();
-            
-            Authentication = new AuthenticationService(configuration, logger, storage, restApiClient);
-            PlayerAccount = new PlayerAccountService(Authentication, restApiClient, configuration, logger);
-            Friends = new FriendsService(configuration, logger, restApiClient);
-            Groups = new GroupsService(configuration, logger, restApiClient);
 
+            Authentication = RegisterService(new AuthenticationService(configuration, logger, storage, restApiClient));
+            PlayerAccount = RegisterService(new PlayerAccountService(Authentication, restApiClient, configuration, logger));
+            Friends = RegisterService(new FriendsService(configuration, logger, restApiClient));
+            Groups = RegisterService(new GroupsService(configuration, logger, restApiClient));
             Chats = RegisterService(new ChatsService(configuration, logger, restApiClient, jsonService));
-            
-            Economy = new EconomyService(configuration, logger, restApiClient);
-            Entities = new EntitiesService(configuration, logger, restApiClient);
-            CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
-            Leaderboard = new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient);
-            Tournaments = new TournamentsService(configuration, restApiClient);
-            RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
-            AssetsStorage = new AssetsStorageService(configuration, restApiClient, logger);
-            Analytics = new AnalyticsService(configuration, logger, restApiClient);
-            Deployment = new DeploymentService(configuration, logger, restApiClient);
-            CloudCode = new CloudCodeService(configuration, logger, restApiClient);
-
-            Segments = new SegmentService(configuration, logger, restApiClient);
-            DailyRewards = new DailyRewardsService(configuration, restApiClient);
-            Challenges = new ChallengesService(configuration, PlayerAccount, restApiClient);
+            Economy = RegisterService(new EconomyService(configuration, logger, restApiClient));
+            Entities = RegisterService(new EntitiesService(configuration, logger, restApiClient));
+            CloudSave = RegisterService(new CloudSaveService(configuration, logger, jsonService, restApiClient));
+            Leaderboard = RegisterService(new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient));
+            Tournaments = RegisterService(new TournamentsService(configuration, restApiClient, PlayerAccount));
+            RemoteConfig = RegisterService(new RemoteConfigService(restApiClient, configuration, logger));
+            AssetsStorage = RegisterService(new AssetsStorageService(configuration, restApiClient, logger));
+            Analytics = RegisterService(new AnalyticsService(configuration, logger, restApiClient));
+            Deployment = RegisterService(new DeploymentService(configuration, logger, restApiClient));
+            CloudCode = RegisterService(new CloudCodeService(configuration, logger, restApiClient));
+            Segments = RegisterService(new SegmentService(configuration, logger, restApiClient));
+            DailyRewards = RegisterService(new DailyRewardsService(configuration, restApiClient));
+            Challenges = RegisterService(new ChallengesService(configuration, PlayerAccount, restApiClient));
 
             _analyticsTracker = AnalyticsTracker.CreateInstance();
             Analytics.SetTracker(_analyticsTracker);
@@ -126,24 +108,21 @@ namespace MirraCloud.Core
                 Analytics.SendSessionStartedAsync();
                 _analyticsTracker.StartTracking(Analytics);
             };
-            
+
             foreach (var cloudSdkInitializable in _initializables)
             {
                 cloudSdkInitializable.CloudSdkInitialize();
             }
-            
+
             IsInitialized = true;
-            
         }
 
-        public static void Dispose()
+        public void Dispose()
         {
             foreach (var cloudSdkDisposable in _disposables)
             {
                 cloudSdkDisposable.CloudSdkDispose();
             }
-
-            PlayerAccount.Dispose();
         }
     }
 }

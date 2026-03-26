@@ -7,7 +7,7 @@ using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Entities
 {
-    public class EntitiesService
+    public class EntitiesService : ICloudSdkService
     {
         private const string ControllerApi = "/entities/v1/projects";
 
@@ -130,5 +130,8 @@ namespace MirraCloud.Core.Entities
 
             return false;
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

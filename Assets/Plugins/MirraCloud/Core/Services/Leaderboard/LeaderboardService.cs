@@ -9,7 +9,7 @@ using Plugins.MirraCloud.Core.Services.PlayerAccount;
 
 namespace MirraCloud.Core.Leaderboard
 {
-    public class LeaderboardService 
+    public class LeaderboardService : ICloudSdkService
     {        
         private const string ControllerApi = "/leaderboards/v1";
         
@@ -139,5 +139,8 @@ namespace MirraCloud.Core.Leaderboard
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/branches/{_configuration.BranchId}/rewards";
             return _restApi.PostAsync(route, new { });
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

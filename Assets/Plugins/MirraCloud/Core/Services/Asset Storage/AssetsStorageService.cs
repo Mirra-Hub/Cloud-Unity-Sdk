@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 using UnityEngine.Networking;
+using MirraCloud.Core;
 using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace MirraCloud.Core.AssetsStorage
 {
-    public class AssetsStorageService 
+    public class AssetsStorageService : ICloudSdkService
     {
         private const string ControllerApi = "/assets/v1";
 
@@ -151,5 +152,8 @@ namespace MirraCloud.Core.AssetsStorage
                 }
             }
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }
