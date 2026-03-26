@@ -9,27 +9,34 @@ namespace Plugins.MirraCloud.Example.Scripts
 {
     public class PlayerProfile : ILoginInitializable
     {
+        private readonly IMirraCloudSdk _sdk;
+
         public string Name { get; private set; }
         public string PlayerId { get; private set; }
         public event Action OnPlayerInfoChanged;
 
+        public PlayerProfile(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
+
         public async Task<bool> Initialize()
         {
-            Debug.Log($"Initializing player profile {MirraCloudSDK.PlayerAccount.PlayerAccountInfo}");
-            
-            if (MirraCloudSDK.PlayerAccount.PlayerAccountInfo != null)
+            Debug.Log($"Initializing player profile {_sdk.PlayerAccount.PlayerAccountInfo}");
+
+            if (_sdk.PlayerAccount.PlayerAccountInfo != null)
             {
-                Name = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.Nickname;
-                PlayerId = MirraCloudSDK.PlayerAccount.PlayerAccountInfo.Id;
+                Name = _sdk.PlayerAccount.PlayerAccountInfo.Nickname;
+                PlayerId = _sdk.PlayerAccount.PlayerAccountInfo.Id;
                 return true;
             }
-            
+
             return false;
         }
 
         public AsyncOperation<RestApiResult> ChangeNameAsync(string newPlayerName)
         {
-            var operation = MirraCloudSDK.PlayerAccount.UpdateNicknameAsync(newPlayerName);
+            var operation = _sdk.PlayerAccount.UpdateNicknameAsync(newPlayerName);
 
             operation.OnCompleted += completed =>
             {

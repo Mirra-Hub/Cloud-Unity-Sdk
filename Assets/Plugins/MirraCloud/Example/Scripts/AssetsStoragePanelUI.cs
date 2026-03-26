@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MirraCloud.Core;
 using MirraCloud.Core.AssetsStorage;
+using MirraCloud.Example.Infrastructure.DI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,68 +13,75 @@ namespace MirraCloud.Example
         [SerializeField] private RawImage _assetPrefab;
         [SerializeField] private RectTransform _assetsContainer;
 
+        private IMirraCloudSdk _sdk;
         private readonly List<GameObject> _itemResourcesUi = new List<GameObject>();
-        
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
+
         public async void LoadAssets()
         {
             await LoadAssetsAsync();
         }
-        
+
         private async Task LoadAssetsAsync()
         {
             foreach (var childItem in _itemResourcesUi)
             {
                 Destroy(childItem.gameObject);
             }
-            
+
             _itemResourcesUi.Clear();
-            
-            await MirraCloudSDK.AssetsStorage.LoadConfigAsync().Task();
-            
-            foreach (var asset in MirraCloudSDK.AssetsStorage.Assets)
+
+            await _sdk.AssetsStorage.LoadConfigAsync().Task();
+
+            foreach (var asset in _sdk.AssetsStorage.Assets)
             {
                 if (asset.Type != AssetType.Image)
                 {
                     continue;
                 }
-                
+
                 var assetObj = Instantiate(_assetPrefab, _assetsContainer);
-                
+
                 _itemResourcesUi.Add(assetObj.gameObject);
             }
-            
+
             int counter = 0;
-            
-            for (int index = 0; index < MirraCloudSDK.AssetsStorage.Assets.Count; index++)
+
+            for (int index = 0; index < _sdk.AssetsStorage.Assets.Count; index++)
             {
-                var asset = MirraCloudSDK.AssetsStorage.Assets[index];
+                var asset = _sdk.AssetsStorage.Assets[index];
 
                 if (asset.Type != AssetType.Image)
                 {
                     continue;
                 }
-                
-                var operation = MirraCloudSDK.AssetsStorage.LoadTextureFromId(asset.ItemId);
+
+                var operation = _sdk.AssetsStorage.LoadTextureFromId(asset.ItemId);
 
                 await operation.Task();
-                
-                
+
+
                 var child = _assetsContainer.GetChild(counter);
 
 
                 counter += 1;
-                
-            
-                
+
+
+
                 if (operation.Result.IsSuccess && operation.Result.Data != null)
                 {
                     if (child.TryGetComponent(out RawImage image))
                     {
                         var texture = operation.Result.Data;
-                        
+
                         image.texture = texture;
                         image.SetNativeSize();
-                    
+
                         var rt = image.rectTransform;
                         float parentWidth  = ((RectTransform)rt.parent).rect.width;
                         float parentHeight = ((RectTransform)rt.parent).rect.height;

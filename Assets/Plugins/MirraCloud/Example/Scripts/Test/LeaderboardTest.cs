@@ -1,4 +1,5 @@
-﻿using MirraCloud.Core;
+using MirraCloud.Core;
+using MirraCloud.Example.Infrastructure.DI;
 using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
@@ -8,6 +9,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         [SerializeField] private double _score = 123;
         [SerializeField] private string _leaderboardid;
         public string LeaderboardId => _leaderboardid;
+
+        private IMirraCloudSdk _sdk;
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
 
         private void Update()
         {
@@ -19,7 +28,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         public void SendEvent()
         {
-            MirraCloudSDK.Leaderboard.SubmitScoreAsync(_score, _leaderboardid);
+            _sdk.Leaderboard.SubmitScoreAsync(_score, _leaderboardid);
         }
     }
 }

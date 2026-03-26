@@ -3,6 +3,7 @@ using MirraCloud.Core.Chats.Dto;
 using MirraCloud.Core.Chats.Events;
 using MirraCloud.Core.Chats.Models;
 using MirraCloud.Core.Realtime.Protocol;
+using MirraCloud.Example.Infrastructure.DI;
 using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
@@ -18,31 +19,38 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private string _lastSentMessageId;
         private bool _connected;
+        private IMirraCloudSdk _sdk;
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
 
         private void OnEnable()
         {
-            MirraCloudSDK.Chats.OnConnectionStateChanged += HandleConnectionStateChanged;
-            MirraCloudSDK.Chats.OnSubscribedChannel += HandleSubscribedChannel;
-            MirraCloudSDK.Chats.OnMessageReceived += HandleMessageReceived;
-            MirraCloudSDK.Chats.OnMessageEdited += HandleMessageEdited;
-            MirraCloudSDK.Chats.OnMessageDeleted += HandleMessageDeleted;
-            MirraCloudSDK.Chats.OnMemberAdded += HandleMemberAdded;
-            MirraCloudSDK.Chats.OnMemberRemoved += HandleMemberRemoved;
-            MirraCloudSDK.Chats.OnChannelDeleted += HandleChannelDeleted;
-            MirraCloudSDK.Chats.OnError += HandleError;
+            _sdk.Chats.OnConnectionStateChanged += HandleConnectionStateChanged;
+            _sdk.Chats.OnSubscribedChannel += HandleSubscribedChannel;
+            _sdk.Chats.OnMessageReceived += HandleMessageReceived;
+            _sdk.Chats.OnMessageEdited += HandleMessageEdited;
+            _sdk.Chats.OnMessageDeleted += HandleMessageDeleted;
+            _sdk.Chats.OnMemberAdded += HandleMemberAdded;
+            _sdk.Chats.OnMemberRemoved += HandleMemberRemoved;
+            _sdk.Chats.OnChannelDeleted += HandleChannelDeleted;
+            _sdk.Chats.OnError += HandleError;
         }
 
         private void OnDisable()
         {
-            MirraCloudSDK.Chats.OnConnectionStateChanged -= HandleConnectionStateChanged;
-            MirraCloudSDK.Chats.OnSubscribedChannel -= HandleSubscribedChannel;
-            MirraCloudSDK.Chats.OnMessageReceived -= HandleMessageReceived;
-            MirraCloudSDK.Chats.OnMessageEdited -= HandleMessageEdited;
-            MirraCloudSDK.Chats.OnMessageDeleted -= HandleMessageDeleted;
-            MirraCloudSDK.Chats.OnMemberAdded -= HandleMemberAdded;
-            MirraCloudSDK.Chats.OnMemberRemoved -= HandleMemberRemoved;
-            MirraCloudSDK.Chats.OnChannelDeleted -= HandleChannelDeleted;
-            MirraCloudSDK.Chats.OnError -= HandleError;
+            _sdk.Chats.OnConnectionStateChanged -= HandleConnectionStateChanged;
+            _sdk.Chats.OnSubscribedChannel -= HandleSubscribedChannel;
+            _sdk.Chats.OnMessageReceived -= HandleMessageReceived;
+            _sdk.Chats.OnMessageEdited -= HandleMessageEdited;
+            _sdk.Chats.OnMessageDeleted -= HandleMessageDeleted;
+            _sdk.Chats.OnMemberAdded -= HandleMemberAdded;
+            _sdk.Chats.OnMemberRemoved -= HandleMemberRemoved;
+            _sdk.Chats.OnChannelDeleted -= HandleChannelDeleted;
+            _sdk.Chats.OnError -= HandleError;
         }
 
         private void Update()
@@ -64,7 +72,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Connect()
         {
             Debug.Log("[ChatsTest] Connecting to realtime...");
-            var op = MirraCloudSDK.Chats.ConnectAsync();
+            var op = _sdk.Chats.ConnectAsync();
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -79,7 +87,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Disconnect()
         {
             Debug.Log("[ChatsTest] Disconnecting...");
-            var op = MirraCloudSDK.Chats.DisconnectAsync();
+            var op = _sdk.Chats.DisconnectAsync();
             op.OnCompleted += completed =>
             {
                 Debug.Log("[ChatsTest] Disconnected.");
@@ -89,7 +97,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void JoinChannel()
         {
             Debug.Log($"[ChatsTest] Joining channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.JoinAsync(_channelId);
+            var op = _sdk.Chats.JoinAsync(_channelId);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -104,7 +112,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void LeaveChannel()
         {
             Debug.Log($"[ChatsTest] Leaving channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.LeaveAsync(_channelId);
+            var op = _sdk.Chats.LeaveAsync(_channelId);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -119,7 +127,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Subscribe()
         {
             Debug.Log($"[ChatsTest] Subscribing to channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.SubscribeAsync(_channelId);
+            var op = _sdk.Chats.SubscribeAsync(_channelId);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -134,7 +142,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Unsubscribe()
         {
             Debug.Log($"[ChatsTest] Unsubscribing from channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.UnsubscribeAsync(_channelId);
+            var op = _sdk.Chats.UnsubscribeAsync(_channelId);
             op.OnCompleted += completed =>
             {
                 Debug.Log("[ChatsTest] Unsubscribed.");
@@ -144,7 +152,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void SendMessage()
         {
             Debug.Log($"[ChatsTest] Sending message: {_messageBody}");
-            var op = MirraCloudSDK.Chats.SendMessageAsync(_channelId, _messageBody);
+            var op = _sdk.Chats.SendMessageAsync(_channelId, _messageBody);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -167,7 +175,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             }
 
             Debug.Log($"[ChatsTest] Editing message {_lastSentMessageId}...");
-            var op = MirraCloudSDK.Chats.EditMessageAsync(_channelId, _lastSentMessageId, _editedBody);
+            var op = _sdk.Chats.EditMessageAsync(_channelId, _lastSentMessageId, _editedBody);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -188,7 +196,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             }
 
             Debug.Log($"[ChatsTest] Deleting message {_lastSentMessageId}...");
-            var op = MirraCloudSDK.Chats.DeleteMessageAsync(_channelId, _lastSentMessageId);
+            var op = _sdk.Chats.DeleteMessageAsync(_channelId, _lastSentMessageId);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -204,7 +212,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void GetHistory()
         {
             Debug.Log($"[ChatsTest] Loading message history for channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.GetMessagesAsync(_channelId, limit: 20);
+            var op = _sdk.Chats.GetMessagesAsync(_channelId, limit: 20);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -224,7 +232,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void GetMembers()
         {
             Debug.Log($"[ChatsTest] Loading members for channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.GetMembersAsync(_channelId);
+            var op = _sdk.Chats.GetMembersAsync(_channelId);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -244,7 +252,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void GetChannel()
         {
             Debug.Log($"[ChatsTest] Getting channel {_channelId}...");
-            var op = MirraCloudSDK.Chats.GetChannelAsync(_channelId);
+            var op = _sdk.Chats.GetChannelAsync(_channelId);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)

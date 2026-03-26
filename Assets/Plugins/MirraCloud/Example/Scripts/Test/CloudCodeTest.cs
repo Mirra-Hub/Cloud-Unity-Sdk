@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MirraCloud.Core;
+using MirraCloud.Example.Infrastructure.DI;
 using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
@@ -9,6 +10,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         [SerializeField] private string _scriptId;
         [SerializeField] private int _numberValue = 10;
         [SerializeField] private int _factorValue = 2;
+
+        private IMirraCloudSdk _sdk;
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
 
         private void Update()
         {
@@ -26,7 +35,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 ["factorValue"] = _factorValue
             };
 
-            var op = MirraCloudSDK.CloudCode.ExecuteAsync<double>(_scriptId, input);
+            var op = _sdk.CloudCode.ExecuteAsync<double>(_scriptId, input);
             op.OnCompleted += completed =>
             {
                 if (!completed.Result.IsSuccess)
@@ -40,4 +49,3 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         }
     }
 }
-
