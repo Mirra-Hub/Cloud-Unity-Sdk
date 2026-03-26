@@ -19,6 +19,7 @@ using Plugins.MirraCloud.Core.Services.Analytics;
 using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.Segments;
+using Plugins.MirraCloud.Core.Services.Challenges;
 using Plugins.MirraCloud.Core.Services.Tournaments;
 
 namespace MirraCloud.Core
@@ -49,6 +50,7 @@ namespace MirraCloud.Core
         public static DeploymentService Deployment { get; private set; }
         public static GroupsService Groups { get; private set; }
         public static DailyRewardsService DailyRewards { get; private set; }
+        public static ChallengesService Challenges { get; private set; }
         
         public static bool IsInitialized { get; private set; }
 
@@ -115,6 +117,7 @@ namespace MirraCloud.Core
 
             Segments = new SegmentService(configuration, logger, restApiClient);
             DailyRewards = new DailyRewardsService(configuration, restApiClient);
+            Challenges = new ChallengesService(configuration, PlayerAccount, restApiClient);
 
             _analyticsTracker = AnalyticsTracker.CreateInstance();
             Analytics.SetTracker(_analyticsTracker);
