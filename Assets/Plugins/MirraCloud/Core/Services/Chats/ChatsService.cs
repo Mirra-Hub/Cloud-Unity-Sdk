@@ -49,6 +49,7 @@ namespace MirraCloud.Core.Chats
         public event Action<RealtimeDeletePayload> OnMessageDeleted;
         public event Action<ChatMemberEvent> OnMemberAdded;
         public event Action<ChatMemberEvent> OnMemberRemoved;
+        public event Action<ChatMemberBannedEvent> OnMemberBanned;
         public event Action<string> OnChannelDeleted;
         public event Action<ChatErrorEvent> OnError;
 
@@ -668,6 +669,11 @@ namespace MirraCloud.Core.Chats
             dispatcher.Register("memberRemoved", new MemberEventHandler(_jsonService, member =>
             {
                 OnMemberRemoved?.Invoke(member);
+            }));
+
+            dispatcher.Register("memberBanned", new MemberBannedEventHandler(_jsonService, member =>
+            {
+                OnMemberBanned?.Invoke(member);
             }));
 
             dispatcher.Register("channelDeleted", new ChannelDeletedEventHandler(channelId =>
