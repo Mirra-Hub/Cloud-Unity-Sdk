@@ -33,6 +33,7 @@ namespace MirraCloud.Core
         public static EconomyService Economy { get; private set; }
         public static EntitiesService Entities { get; private set; }
         public static CloudSaveService CloudSave { get; private set; }
+        public static CloudSaveFilesService CloudSaveFiles { get; private set; }
         public static LeaderboardService Leaderboard { get; private set; }
         public static TournamentsService Tournaments { get; private set; }
         public static RemoteConfigService RemoteConfig { get; private set; }
@@ -92,6 +93,7 @@ namespace MirraCloud.Core
             Economy = new EconomyService(configuration, logger, restApiClient);
             Entities = new EntitiesService(configuration, logger, restApiClient);
             CloudSave = new CloudSaveService(configuration, logger, jsonService, restApiClient);
+            CloudSaveFiles = new CloudSaveFilesService(configuration, logger, jsonService, restApiClient);
             Leaderboard = new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient);
             Tournaments = new TournamentsService(configuration, restApiClient);
             RemoteConfig = new RemoteConfigService(restApiClient, configuration, logger);
