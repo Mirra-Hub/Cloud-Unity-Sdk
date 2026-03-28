@@ -1,5 +1,4 @@
 # Cloud Unity Sdk
 
 ## Docs
-- [Chats Service](docs/chats.md)
-
+- [Документация](docs/README.md) — архитектура, список всех сервисов

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MirraCloud.Core;
@@ -23,37 +23,43 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
             OnIconLoaded?.Invoke();
         }
     }
-    
+
     public class EconomyService : ILoginInitializable
     {
+        private readonly IMirraCloudSdk _sdk;
         private readonly Dictionary<string, EconomyItem> _items = new Dictionary<string, EconomyItem>();
         public IReadOnlyDictionary<string, EconomyItem> Items => _items;
-        
+
+        public EconomyService(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
+
         public async Task<bool> Initialize()
         {
-            AsyncOperation<RestApiResult<EconomyConfigsDto>> operation = MirraCloudSDK.Economy.LoadConfigsAsync();
+            AsyncOperation<RestApiResult<EconomyConfigsDto>> operation = _sdk.Economy.LoadConfigsAsync();
             await operation.Task();
-            
+
             bool isSuccess = operation.Result.IsSuccess;
 
-            foreach (var item in MirraCloudSDK.Economy.Items.Values)
+            foreach (var item in _sdk.Economy.Items.Values)
             {
                 var economyItem = new EconomyItem()
                 {
                     Key = item.Key,
                 };
-                
+
                 string iconUrl = (string)item.Fields["icon"];
 
-                var loadIconOperation = MirraCloudSDK.AssetsStorage.LoadSpriteFromId(iconUrl);
+                var loadIconOperation = _sdk.AssetsStorage.LoadSpriteFromId(iconUrl);
                 loadIconOperation.OnCompleted += asyncOperation =>
                 {
                     economyItem.SetIcon(loadIconOperation.Result.Data);
                 };
-                
+
                 _items.Add(item.Key, economyItem);
             }
-            
+
             return isSuccess;
         }
 

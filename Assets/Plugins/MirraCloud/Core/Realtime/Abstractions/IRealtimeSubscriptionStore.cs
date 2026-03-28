@@ -7,6 +7,7 @@ namespace MirraCloud.Core.Realtime.Abstractions
         void Add(string channelId);
         void Remove(string channelId);
         void Clear();
+        bool HasSubscribed(string channelId);
         IReadOnlyCollection<string> GetAll();
     }
 }

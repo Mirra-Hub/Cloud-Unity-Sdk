@@ -8,6 +8,7 @@ using MirraCloud.Core.Chats.Models;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.Realtime.Abstractions;
 using MirraCloud.Core.Realtime.Auth;
+using MirraCloud.Core.Chats.Handlers;
 using MirraCloud.Core.Realtime.Connection;
 using MirraCloud.Core.Realtime.Dispatching;
 using MirraCloud.Core.Realtime.Protocol;
@@ -19,13 +20,7 @@ using UnityEngine.Networking;
 
 namespace MirraCloud.Core.Chats
 {
-    public class MessageResolveEvent : IRealtimeEvent
-    {
-        
-    }
-    
-    // TODO: create interface IChatService with public API to developers
-    public sealed class ChatsService : ICloudSdkInitializable, ICloudSdkDisposable
+    public sealed class ChatsService : ICloudSdkService
     {
         private const string ControllerApi = "/chats/v1/projects";
         private const int MaxHistoryPageSize = 100;
@@ -39,23 +34,22 @@ namespace MirraCloud.Core.Chats
         private readonly IRealtimeAuthProvider _realtimeAuthProvider;
         private readonly IRealtimeSubscriptionStore _subscriptions;
         private readonly IRealtimeConnection _connection;
-        private readonly MainThreadDispatcher _dispatcher;
         private readonly RealtimeReconnectPolicy _reconnectPolicy = new RealtimeReconnectPolicy();
         private readonly Dictionary<string, long> _lastSeenMessageByChannel = new Dictionary<string, long>();
-        private readonly object _lastSeenSync = new object();
-        private readonly object _heartbeatSync = new object();
+        private readonly RealtimeEventDispatcher _eventDispatcher;
 
         private bool _shouldBeConnected;
-        private int _reconnectInProgress;
+        private bool _reconnectInProgress;
         private CancellationTokenSource _heartbeatCts;
 
         public event Action<RealtimeConnectionState> OnConnectionStateChanged;
-        public event Action<string> OnSubscribed;
+        public event Action<string> OnSubscribedChannel;
         public event Action<ChatMessageDto> OnMessageReceived;
         public event Action<ChatMessageDto> OnMessageEdited;
         public event Action<RealtimeDeletePayload> OnMessageDeleted;
         public event Action<ChatMemberEvent> OnMemberAdded;
         public event Action<ChatMemberEvent> OnMemberRemoved;
+        public event Action<ChatMemberBannedEvent> OnMemberBanned;
         public event Action<string> OnChannelDeleted;
         public event Action<ChatErrorEvent> OnError;
 
@@ -73,45 +67,37 @@ namespace MirraCloud.Core.Chats
             _realtimeAuthProvider = new ChatsRealtimeAuthProvider(_restApi, _configuration);
             _subscriptions = new RealtimeSubscriptionStore();
 
-            _dispatcher = new MainThreadDispatcher(SynchronizationContext.Current);
             _connection = new RealtimeConnection(
-                new ClientWebSocketTransport(),
+                new ClientWebSocketTransport(logger),
                 new JsonRealtimeSerializer(jsonService),
                 new RealtimeRequestTracker(),
-                _dispatcher,
                 logger);
+
+            _eventDispatcher = CreateEventDispatcher();
         }
 
         public void CloudSdkInitialize()
         {
             _connection.Initialize();
-            
+
             _connection.OnStateChanged += HandleConnectionStateChanged;
             _connection.OnEvent += HandleRealtimeEvent;
             _connection.OnError += HandleRealtimeError;
-            
-            _connection.SubscribeEvent<MessageResolveEvent>("message_resolved", OnMessageResolvedEvent);
-        }
-
-        private void OnMessageResolvedEvent(MessageResolveEvent arg1, object arg2)
-        {
-            throw new NotImplementedException();
         }
 
         public void CloudSdkDispose()
         {
-            
             _connection.OnStateChanged -= HandleConnectionStateChanged;
             _connection.OnEvent -= HandleRealtimeEvent;
             _connection.OnError -= HandleRealtimeError;
 
             _connection.Dispose();
-            
+
             _shouldBeConnected = false;
             StopHeartbeat();
-            _ = _connection.DisconnectAsync();
+            _connection.Disconnect();
         }
-        
+
         public AsyncOperation<RestApiResult<ChatChannelDto>> LookupGroupChannelAsync(string groupId)
         {
             if (string.IsNullOrWhiteSpace(groupId))
@@ -163,149 +149,139 @@ namespace MirraCloud.Core.Chats
             }
 
             var safeLimit = limit < 1 ? 1 : limit > MaxHistoryPageSize ? MaxHistoryPageSize : limit;
-            var route = $"{ControllerApi}/{_configuration.ProjectId}/channels/{channelId}/messages?limit={safeLimit}";
+            var route =
+                $"{ControllerApi}/{_configuration.ProjectId}/channels/{channelId}/messages?limit={safeLimit}";
 
             if (before.HasValue)
-            {
                 route += $"&before={before.Value}";
-            }
 
             if (after.HasValue)
-            {
                 route += $"&after={after.Value}";
-            }
 
             if (!string.IsNullOrWhiteSpace(targetMessageId))
-            {
                 route += $"&targetId={UnityWebRequest.EscapeURL(targetMessageId)}";
-            }
 
             return _restApi.GetAsync<ChatMessageDto[]>(route);
         }
 
-        public AsyncOperation<RestApiResult> ConnectAsync()
+        public AsyncOperation<RealtimeResult> ConnectAsync()
         {
             _shouldBeConnected = true;
 
             if (_connection.State == RealtimeConnectionState.Connected ||
                 _connection.State == RealtimeConnectionState.Connecting)
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.Success());
+                return AsyncOperation<RealtimeResult>.CreateCompleted(RealtimeResult.Success());
             }
 
-            if (Interlocked.CompareExchange(ref _reconnectInProgress, 0, 0) == 1)
+            if (_reconnectInProgress)
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.Success());
+                return AsyncOperation<RealtimeResult>.CreateCompleted(RealtimeResult.Success());
             }
 
-            var op = new AsyncOperation<RestApiResult>();
+            var op = new AsyncOperation<RealtimeResult>();
 
+            _logger.Log("[Chats] Creating RT session...");
             var sessionOp = _realtimeAuthProvider.CreateSessionAsync();
             sessionOp.UseCompleted(_ =>
             {
+                _logger.Log($"[Chats] RT session result: success={sessionOp.Result.IsSuccess}, hasData={sessionOp.Result.Data != null}");
+
                 if (!sessionOp.Result.IsSuccess || sessionOp.Result.Data == null ||
                     string.IsNullOrWhiteSpace(BuildWsUrl(sessionOp.Result.Data)))
                 {
                     _shouldBeConnected = false;
-                    var error = sessionOp.Result.Error ?? RestApiError.Validation("Failed to create realtime session.");
-                    CompleteOnMainThread(op, RestApiResult.Fail(error).WithMetaFrom(sessionOp.Result));
+                    var error = sessionOp.Result.Error;
+                    _logger.Error($"[Chats] RT session failed: {error?.Message}");
+                    op.Complete(RealtimeResult.Fail("session_failed", error?.Message ?? "Failed to create realtime session."));
                     return;
                 }
 
-                ConnectInternalAsync(sessionOp.Result.Data, op);
+                ConnectInternal(sessionOp.Result.Data, op);
             });
 
             return op;
         }
 
-        public AsyncOperation<RestApiResult> DisconnectAsync()
+        public AsyncOperation<RealtimeResult> DisconnectAsync()
         {
-            var op = new AsyncOperation<RestApiResult>();
             _shouldBeConnected = false;
             _subscriptions.Clear();
             StopHeartbeat();
 
-            _ = Task.Run(async () =>
+            var op = new AsyncOperation<RealtimeResult>();
+            var disconnectOp = _connection.Disconnect();
+            disconnectOp.UseCompleted(_ =>
             {
-                try
-                {
-                    await _connection.DisconnectAsync();
-                    CompleteOnMainThread(op, RestApiResult.Success());
-                }
-                catch (Exception ex)
-                {
-                    CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(ex.Message)));
-                }
+                if (disconnectOp.Result.IsSuccess)
+                    op.Complete(RealtimeResult.Success());
+                else
+                    op.Complete(RealtimeResult.Fail("disconnect_failed",
+                        disconnectOp.Result.Message ?? "Disconnect failed"));
             });
 
             return op;
         }
 
-        public AsyncOperation<RestApiResult> SubscribeAsync(string channelId)
+        public AsyncOperation<RealtimeResult> SubscribeAsync(string channelId)
         {
             if (string.IsNullOrWhiteSpace(channelId))
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("validation", "channelId is required."));
+
+            if (!_connection.IsConnected)
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("not_connected", "Realtime connection is not established."));
+
+            var op = new AsyncOperation<RealtimeResult>();
+            var commandOp = _connection.SendCommand("subscribe", new RealtimeAckChannelPayload
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("channelId is required."));
-            }
+                RoomId = channelId
+            });
 
-            var op = new AsyncOperation<RestApiResult>();
-            _ = Task.Run(async () =>
+            commandOp.UseCompleted(_ =>
             {
-                try
+                if (!commandOp.Result.IsSuccess)
                 {
-                    var command = await _connection.SendCommandAsync("subscribe", new RealtimeAckChannelPayload
-                    {
-                        ChannelId = channelId
-                    });
-
-                    if (!command.IsSuccess)
-                    {
-                        CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(command.Message ?? "Subscribe failed")));
-                        return;
-                    }
-
-                    _subscriptions.Add(channelId);
-                    CompleteOnMainThread(op, RestApiResult.Success());
+                    op.Complete(RealtimeResult.Fail(commandOp.Result.Code,
+                        commandOp.Result.Message ?? "Subscribe failed"));
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(ex.Message)));
-                }
+
+                _subscriptions.Add(channelId);
+                op.Complete(RealtimeResult.Success());
             });
 
             return op;
         }
 
-        public AsyncOperation<RestApiResult> UnsubscribeAsync(string channelId)
+        public AsyncOperation<RealtimeResult> UnsubscribeAsync(string channelId)
         {
             if (string.IsNullOrWhiteSpace(channelId))
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("validation", "channelId is required."));
+
+            if (!_connection.IsConnected)
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("not_connected", "Realtime connection is not established."));
+
+            var op = new AsyncOperation<RealtimeResult>();
+            var commandOp = _connection.SendCommand("unsubscribe", new RealtimeAckChannelPayload
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("channelId is required."));
-            }
+                RoomId = channelId
+            });
 
-            var op = new AsyncOperation<RestApiResult>();
-            _ = Task.Run(async () =>
+            commandOp.UseCompleted(_ =>
             {
-                try
+                if (!commandOp.Result.IsSuccess)
                 {
-                    var command = await _connection.SendCommandAsync("unsubscribe", new RealtimeAckChannelPayload
-                    {
-                        ChannelId = channelId
-                    });
-
-                    if (!command.IsSuccess)
-                    {
-                        CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(command.Message ?? "Unsubscribe failed")));
-                        return;
-                    }
-
-                    _subscriptions.Remove(channelId);
-                    CompleteOnMainThread(op, RestApiResult.Success());
+                    op.Complete(RealtimeResult.Fail(commandOp.Result.Code,
+                        commandOp.Result.Message ?? "Unsubscribe failed"));
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(ex.Message)));
-                }
+
+                _subscriptions.Remove(channelId);
+                op.Complete(RealtimeResult.Success());
             });
 
             return op;
@@ -315,7 +291,8 @@ namespace MirraCloud.Core.Chats
         {
             if (string.IsNullOrWhiteSpace(channelId))
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("channelId is required."));
+                return AsyncOperation<RestApiResult>.CreateCompleted(
+                    RestApiResult.ValidationFail("channelId is required."));
             }
 
             var route = $"{ControllerApi}/{_configuration.ProjectId}/channels/{channelId}/members";
@@ -326,7 +303,8 @@ namespace MirraCloud.Core.Chats
         {
             if (string.IsNullOrWhiteSpace(channelId))
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("channelId is required."));
+                return AsyncOperation<RestApiResult>.CreateCompleted(
+                    RestApiResult.ValidationFail("channelId is required."));
             }
 
             var profileId = "self";
@@ -334,7 +312,7 @@ namespace MirraCloud.Core.Chats
             return _restApi.DeleteAsync(route);
         }
 
-        public AsyncOperation<RestApiResult<ChatMessageDto>> SendMessageAsync(
+        public AsyncOperation<RealtimeResult<ChatMessageDto>> SendMessageAsync(
             string channelId,
             string body,
             object metadata = null,
@@ -342,46 +320,41 @@ namespace MirraCloud.Core.Chats
             string targetMessageId = null)
         {
             if (string.IsNullOrWhiteSpace(channelId))
+                return AsyncOperation<RealtimeResult<ChatMessageDto>>.CreateCompleted(
+                    RealtimeResult<ChatMessageDto>.Fail("validation", "channelId is required."));
+
+            if (!_connection.IsConnected)
+                return AsyncOperation<RealtimeResult<ChatMessageDto>>.CreateCompleted(
+                    RealtimeResult<ChatMessageDto>.Fail("not_connected", "Realtime connection is not established."));
+
+            var op = new AsyncOperation<RealtimeResult<ChatMessageDto>>();
+            var commandOp = _connection.SendCommand("sendMessage", new
             {
-                return AsyncOperation<RestApiResult<ChatMessageDto>>.CreateCompleted(
-                    RestApiResult<ChatMessageDto>.ValidationFail("channelId is required."));
-            }
+                roomId = channelId,
+                Body = body ?? string.Empty,
+                Metadata = ToJsonValue(metadata),
+                TaggedProfileIds = taggedProfileIds ?? Array.Empty<string>(),
+                TargetMessageId = targetMessageId ?? string.Empty
+            });
 
-            var op = new AsyncOperation<RestApiResult<ChatMessageDto>>();
-            _ = Task.Run(async () =>
+            commandOp.UseCompleted(_ =>
             {
-                try
+                if (!commandOp.Result.IsSuccess)
                 {
-                    var result = await _connection.SendCommandAsync("sendMessage", new
-                    {
-                        ChannelId = channelId,
-                        Body = body,
-                        Metadata = ToJsonValue(metadata),
-                        TaggedProfileIds = taggedProfileIds,
-                        TargetMessageId = targetMessageId
-                    });
-
-                    if (!result.IsSuccess)
-                    {
-                        CompleteOnMainThread(op, RestApiResult<ChatMessageDto>.Fail(
-                            RestApiError.Validation(result.Message ?? "Send failed")));
-                        return;
-                    }
-
-                    var dto = JsonValueMapper.Map<ChatMessageDto>(_jsonService, result.Payload);
-                    TrackLastSeen(dto);
-                    CompleteOnMainThread(op, RestApiResult<ChatMessageDto>.Success(dto));
+                    op.Complete(RealtimeResult<ChatMessageDto>.Fail(commandOp.Result.Code,
+                        commandOp.Result.Message ?? "Send failed"));
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    CompleteOnMainThread(op, RestApiResult<ChatMessageDto>.Fail(RestApiError.Validation(ex.Message)));
-                }
+
+                var dto = Deserialize<ChatMessageDto>(commandOp.Result.Payload);
+                TrackLastSeen(dto);
+                op.Complete(RealtimeResult<ChatMessageDto>.Success(dto));
             });
 
             return op;
         }
 
-        public AsyncOperation<RestApiResult<ChatMessageDto>> EditMessageAsync(
+        public AsyncOperation<RealtimeResult<ChatMessageDto>> EditMessageAsync(
             string channelId,
             string messageId,
             string body,
@@ -389,116 +362,142 @@ namespace MirraCloud.Core.Chats
             string[] taggedProfileIds = null)
         {
             if (string.IsNullOrWhiteSpace(channelId))
-            {
-                return AsyncOperation<RestApiResult<ChatMessageDto>>.CreateCompleted(
-                    RestApiResult<ChatMessageDto>.ValidationFail("channelId is required."));
-            }
+                return AsyncOperation<RealtimeResult<ChatMessageDto>>.CreateCompleted(
+                    RealtimeResult<ChatMessageDto>.Fail("validation", "channelId is required."));
 
             if (string.IsNullOrWhiteSpace(messageId))
+                return AsyncOperation<RealtimeResult<ChatMessageDto>>.CreateCompleted(
+                    RealtimeResult<ChatMessageDto>.Fail("validation", "messageId is required."));
+
+            if (!_connection.IsConnected)
+                return AsyncOperation<RealtimeResult<ChatMessageDto>>.CreateCompleted(
+                    RealtimeResult<ChatMessageDto>.Fail("not_connected", "Realtime connection is not established."));
+
+            var op = new AsyncOperation<RealtimeResult<ChatMessageDto>>();
+            var commandOp = _connection.SendCommand("editMessage", new
             {
-                return AsyncOperation<RestApiResult<ChatMessageDto>>.CreateCompleted(
-                    RestApiResult<ChatMessageDto>.ValidationFail("messageId is required."));
-            }
-
-            var op = new AsyncOperation<RestApiResult<ChatMessageDto>>();
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var result = await _connection.SendCommandAsync("editMessage", new
-                    {
-                        ChannelId = channelId,
-                        MessageId = messageId,
-                        Body = body,
-                        Metadata = ToJsonValue(metadata),
-                        TaggedProfileIds = taggedProfileIds
-                    });
-
-                    if (!result.IsSuccess)
-                    {
-                        CompleteOnMainThread(op, RestApiResult<ChatMessageDto>.Fail(
-                            RestApiError.Validation(result.Message ?? "Edit failed")));
-                        return;
-                    }
-
-                    var dto = JsonValueMapper.Map<ChatMessageDto>(_jsonService, result.Payload);
-                    TrackLastSeen(dto);
-                    CompleteOnMainThread(op, RestApiResult<ChatMessageDto>.Success(dto));
-                }
-                catch (Exception ex)
-                {
-                    CompleteOnMainThread(op, RestApiResult<ChatMessageDto>.Fail(RestApiError.Validation(ex.Message)));
-                }
+                roomId = channelId,
+                MessageId = messageId,
+                Body = body ?? string.Empty,
+                Metadata = ToJsonValue(metadata),
+                TaggedProfileIds = taggedProfileIds ?? Array.Empty<string>()
             });
 
-            return op;
-        }
-
-        public AsyncOperation<RestApiResult> DeleteMessageAsync(string channelId, string messageId)
-        {
-            if (string.IsNullOrWhiteSpace(channelId))
+            commandOp.UseCompleted(_ =>
             {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("channelId is required."));
-            }
-
-            if (string.IsNullOrWhiteSpace(messageId))
-            {
-                return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("messageId is required."));
-            }
-
-            var op = new AsyncOperation<RestApiResult>();
-            _ = Task.Run(async () =>
-            {
-                try
+                if (!commandOp.Result.IsSuccess)
                 {
-                    var result = await _connection.SendCommandAsync("deleteMessage", new
-                    {
-                        ChannelId = channelId,
-                        MessageId = messageId
-                    });
-
-                    if (!result.IsSuccess)
-                    {
-                        CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(result.Message ?? "Delete failed")));
-                        return;
-                    }
-
-                    CompleteOnMainThread(op, RestApiResult.Success());
-                }
-                catch (Exception ex)
-                {
-                    CompleteOnMainThread(op, RestApiResult.Fail(RestApiError.Validation(ex.Message)));
-                }
-            });
-
-            return op;
-        }
-
-        private async Task ConnectInternalAsync(RealtimeSessionInfo sessionInfo, AsyncOperation<RestApiResult> operation)
-        {
-            try
-            {
-                var wsUrl = BuildWsUrl(sessionInfo);
-                if (string.IsNullOrWhiteSpace(wsUrl))
-                {
-                    CompleteOnMainThread(operation, RestApiResult.ValidationFail("Realtime wsUrl is empty."));
+                    op.Complete(RealtimeResult<ChatMessageDto>.Fail(commandOp.Result.Code,
+                        commandOp.Result.Message ?? "Edit failed"));
                     return;
                 }
 
-                await _connection.ConnectAsync(wsUrl);
-                CompleteOnMainThread(operation, RestApiResult.Success());
-            }
-            catch (Exception ex)
+                var dto = Deserialize<ChatMessageDto>(commandOp.Result.Payload);
+                TrackLastSeen(dto);
+                op.Complete(RealtimeResult<ChatMessageDto>.Success(dto));
+            });
+
+            return op;
+        }
+
+        public AsyncOperation<RealtimeResult> DeleteMessageAsync(string channelId, string messageId)
+        {
+            if (string.IsNullOrWhiteSpace(channelId))
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("validation", "channelId is required."));
+
+            if (string.IsNullOrWhiteSpace(messageId))
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("validation", "messageId is required."));
+
+            if (!_connection.IsConnected)
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("not_connected", "Realtime connection is not established."));
+
+            var op = new AsyncOperation<RealtimeResult>();
+            var commandOp = _connection.SendCommand("deleteMessage", new
             {
-                _logger.Error($"Chats realtime connect failed: {ex.Message}");
-                _shouldBeConnected = false;
-                CompleteOnMainThread(operation, RestApiResult.Fail(RestApiError.Validation("Realtime connect failed.")));
+                roomId = channelId,
+                MessageId = messageId
+            });
+
+            commandOp.UseCompleted(_ =>
+            {
+                if (!commandOp.Result.IsSuccess)
+                {
+                    op.Complete(RealtimeResult.Fail(commandOp.Result.Code,
+                        commandOp.Result.Message ?? "Delete failed"));
+                    return;
+                }
+
+                op.Complete(RealtimeResult.Success());
+            });
+
+            return op;
+        }
+
+        public AsyncOperation<RealtimeResult> MarkAsReadAsync(string channelId, long messageNumber)
+        {
+            if (string.IsNullOrWhiteSpace(channelId))
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("validation", "channelId is required."));
+
+            if (messageNumber <= 0)
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("validation", "messageNumber must be greater than 0."));
+
+            if (!_connection.IsConnected)
+                return AsyncOperation<RealtimeResult>.CreateCompleted(
+                    RealtimeResult.Fail("not_connected", "Realtime connection is not established."));
+
+            var op = new AsyncOperation<RealtimeResult>();
+            var commandOp = _connection.SendCommand("markAsRead", new
+            {
+                roomId = channelId,
+                MessageNumber = messageNumber
+            });
+
+            commandOp.UseCompleted(_ =>
+            {
+                if (!commandOp.Result.IsSuccess)
+                {
+                    op.Complete(RealtimeResult.Fail(commandOp.Result.Code,
+                        commandOp.Result.Message ?? "Mark as read failed"));
+                    return;
+                }
+
+                op.Complete(RealtimeResult.Success());
+            });
+
+            return op;
+        }
+
+        private void ConnectInternal(RealtimeSessionInfo sessionInfo, AsyncOperation<RealtimeResult> operation)
+        {
+            var wsUrl = BuildWsUrl(sessionInfo);
+            if (string.IsNullOrWhiteSpace(wsUrl))
+            {
+                operation.Complete(RealtimeResult.Fail("validation", "Realtime wsUrl is empty."));
+                return;
             }
+
+            var connectOp = _connection.Connect(wsUrl);
+            connectOp.UseCompleted(_ =>
+            {
+                if (connectOp.Result.IsSuccess)
+                    operation.Complete(RealtimeResult.Success());
+                else
+                {
+                    _logger.Error($"Chats realtime connect failed: {connectOp.Result.Message}");
+                    _shouldBeConnected = false;
+                    operation.Complete(RealtimeResult.Fail("connect_failed", "Realtime connect failed."));
+                }
+            });
         }
 
         private void HandleConnectionStateChanged(RealtimeConnectionState state)
         {
-            EmitConnectionState(state);
+            OnConnectionStateChanged?.Invoke(state);
 
             if (state == RealtimeConnectionState.Connected)
             {
@@ -515,13 +514,13 @@ namespace MirraCloud.Core.Chats
 
         private async Task StartReconnectLoopAsync()
         {
-            if (Interlocked.CompareExchange(ref _reconnectInProgress, 1, 0) != 0)
-            {
+            if (_reconnectInProgress)
                 return;
-            }
 
-            EmitConnectionState(RealtimeConnectionState.Reconnecting);
+            _reconnectInProgress = true;
+            OnConnectionStateChanged?.Invoke(RealtimeConnectionState.Reconnecting);
             var reconnected = false;
+
             try
             {
                 for (var attempt = 1; attempt <= _reconnectPolicy.MaxAttempts && _shouldBeConnected; attempt++)
@@ -541,24 +540,17 @@ namespace MirraCloud.Core.Chats
                     }
 
                     if (!_shouldBeConnected)
-                    {
                         return;
-                    }
 
-                    try
-                    {
-                        await _connection.ConnectAsync(wsUrl);
-                    }
-                    catch
+                    var connectResult = await AwaitOperation(_connection.Connect(wsUrl));
+                    if (!connectResult.IsSuccess)
                     {
                         await Task.Delay(_reconnectPolicy.GetDelayMs(attempt));
                         continue;
                     }
 
                     if (!_shouldBeConnected)
-                    {
                         return;
-                    }
 
                     await RestoreSubscriptionsAndHistoryAsync();
                     reconnected = true;
@@ -567,11 +559,11 @@ namespace MirraCloud.Core.Chats
             }
             finally
             {
-                Interlocked.Exchange(ref _reconnectInProgress, 0);
+                _reconnectInProgress = false;
 
                 if (!reconnected && _shouldBeConnected)
                 {
-                    EmitError(new ChatErrorEvent
+                    OnError?.Invoke(new ChatErrorEvent
                     {
                         Code = "reconnect_failed",
                         Message = "Realtime reconnect failed."
@@ -585,20 +577,17 @@ namespace MirraCloud.Core.Chats
             var channels = _subscriptions.GetAll();
             foreach (var channelId in channels)
             {
-                var subscribeResult = await _connection.SendCommandAsync("subscribe", new RealtimeAckChannelPayload
-                {
-                    ChannelId = channelId
-                });
+                var subscribeResult = await AwaitOperation(
+                    _connection.SendCommand("subscribe", new RealtimeAckChannelPayload
+                    {
+                        RoomId = channelId
+                    }));
 
                 if (!subscribeResult.IsSuccess)
-                {
                     continue;
-                }
 
                 if (TryGetLastSeen(channelId, out var lastSeenNumber) && lastSeenNumber > 0)
-                {
                     await RecoverChannelHistoryAsync(channelId, lastSeenNumber);
-                }
             }
         }
 
@@ -608,32 +597,25 @@ namespace MirraCloud.Core.Chats
             for (var page = 0; page < MaxRecoveryPages; page++)
             {
                 if (!_shouldBeConnected || !_connection.IsConnected)
-                {
                     return;
-                }
 
-                var history = await AwaitOperation(GetMessagesAsync(channelId, after: after, limit: MaxHistoryPageSize));
+                var history =
+                    await AwaitOperation(GetMessagesAsync(channelId, after: after, limit: MaxHistoryPageSize));
                 if (!history.IsSuccess || history.Data == null || history.Data.Length == 0)
-                {
                     return;
-                }
 
                 var maxSeen = after;
                 foreach (var message in history.Data)
                 {
                     TrackLastSeen(message);
                     if (message != null && message.Number > maxSeen)
-                    {
                         maxSeen = message.Number;
-                    }
 
-                    EmitMessageReceived(message);
+                    OnMessageReceived?.Invoke(message);
                 }
 
                 if (maxSeen <= after || history.Data.Length < MaxHistoryPageSize)
-                {
                     return;
-                }
 
                 after = maxSeen;
             }
@@ -641,142 +623,104 @@ namespace MirraCloud.Core.Chats
 
         private void HandleRealtimeEvent(RealtimeEvent realtimeEvent)
         {
-            switch (realtimeEvent.Name)
-            {
-                case "subscribed":
-                {
-                    if (!JsonValueMapper.TryMap(_jsonService, realtimeEvent.Payload, out RealtimeAckChannelPayload payload))
-                    {
-                        return;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(payload?.ChannelId))
-                    {
-                        _subscriptions.Add(payload.ChannelId);
-                        EmitSubscribed(payload.ChannelId);
-                    }
-
-                    break;
-                }
-                case "messageCreated":
-                {
-                    if (!JsonValueMapper.TryMap(_jsonService, realtimeEvent.Payload, out ChatMessageDto dto))
-                    {
-                        return;
-                    }
-
-                    TrackLastSeen(dto);
-                    EmitMessageReceived(dto);
-                    break;
-                }
-                case "messageEdited":
-                {
-                    if (!JsonValueMapper.TryMap(_jsonService, realtimeEvent.Payload, out ChatMessageDto dto))
-                    {
-                        return;
-                    }
-
-                    TrackLastSeen(dto);
-                    EmitMessageEdited(dto);
-                    break;
-                }
-                case "messageDeleted":
-                {
-                    if (!JsonValueMapper.TryMap(_jsonService, realtimeEvent.Payload, out RealtimeDeletePayload payload))
-                    {
-                        return;
-                    }
-
-                    EmitMessageDeleted(payload);
-                    break;
-                }
-                case "memberAdded":
-                {
-                    if (!JsonValueMapper.TryMap(_jsonService, realtimeEvent.Payload, out RealtimeMemberPayload payload))
-                    {
-                        return;
-                    }
-
-                    EmitMemberAdded(new ChatMemberEvent
-                    {
-                        ChannelId = payload.ChannelId,
-                        ProfileId = payload.ProfileId
-                    });
-                    break;
-                }
-                case "memberRemoved":
-                {
-                    if (!JsonValueMapper.TryMap(_jsonService, realtimeEvent.Payload, out RealtimeMemberPayload payload))
-                    {
-                        return;
-                    }
-
-                    EmitMemberRemoved(new ChatMemberEvent
-                    {
-                        ChannelId = payload.ChannelId,
-                        ProfileId = payload.ProfileId
-                    });
-                    break;
-                }
-                case "channelDeleted":
-                {
-                    if (!string.IsNullOrWhiteSpace(realtimeEvent.ChannelId))
-                    {
-                        EmitChannelDeleted(realtimeEvent.ChannelId);
-                    }
-
-                    break;
-                }
-            }
+            _eventDispatcher.Dispatch(realtimeEvent);
         }
 
         private void HandleRealtimeError(RealtimeError realtimeError)
         {
-            EmitError(new ChatErrorEvent
+            OnError?.Invoke(new ChatErrorEvent
             {
                 Code = realtimeError.Code,
                 Message = realtimeError.Message
             });
         }
 
+        private RealtimeEventDispatcher CreateEventDispatcher()
+        {
+            var dispatcher = new RealtimeEventDispatcher();
+
+            dispatcher.Register("subscribed", new SubscribedEventHandler(_jsonService, _subscriptions, channelId =>
+            {
+                OnSubscribedChannel?.Invoke(channelId);
+            }));
+
+            dispatcher.Register("messageCreated", new MessageCreatedEventHandler(_jsonService, dto =>
+            {
+                TrackLastSeen(dto);
+                OnMessageReceived?.Invoke(dto);
+            }));
+
+            dispatcher.Register("messageEdited", new MessageEditedEventHandler(_jsonService, dto =>
+            {
+                TrackLastSeen(dto);
+                OnMessageEdited?.Invoke(dto);
+            }));
+
+            dispatcher.Register("messageDeleted", new MessageDeletedEventHandler(_jsonService, payload =>
+            {
+                OnMessageDeleted?.Invoke(payload);
+            }));
+
+            dispatcher.Register("memberAdded", new MemberEventHandler(_jsonService, member =>
+            {
+                OnMemberAdded?.Invoke(member);
+            }));
+
+            dispatcher.Register("memberRemoved", new MemberEventHandler(_jsonService, member =>
+            {
+                OnMemberRemoved?.Invoke(member);
+            }));
+
+            dispatcher.Register("memberBanned", new MemberBannedEventHandler(_jsonService, member =>
+            {
+                OnMemberBanned?.Invoke(member);
+            }));
+
+            dispatcher.Register("channelDeleted", new ChannelDeletedEventHandler(channelId =>
+            {
+                OnChannelDeleted?.Invoke(channelId);
+            }));
+
+            return dispatcher;
+        }
+
         private void TrackLastSeen(ChatMessageDto message)
         {
             if (message == null || string.IsNullOrWhiteSpace(message.ChannelId))
-            {
                 return;
-            }
 
-            lock (_lastSeenSync)
+            if (!_lastSeenMessageByChannel.TryGetValue(message.ChannelId, out var existing) ||
+                message.Number > existing)
             {
-                if (!_lastSeenMessageByChannel.TryGetValue(message.ChannelId, out var existing) || message.Number > existing)
-                {
-                    _lastSeenMessageByChannel[message.ChannelId] = message.Number;
-                }
+                _lastSeenMessageByChannel[message.ChannelId] = message.Number;
             }
         }
 
         private bool TryGetLastSeen(string channelId, out long number)
         {
-            lock (_lastSeenSync)
-            {
-                return _lastSeenMessageByChannel.TryGetValue(channelId, out number);
-            }
+            return _lastSeenMessageByChannel.TryGetValue(channelId, out number);
+        }
+
+        private T Deserialize<T>(JsonValue value)
+        {
+            if (value == null) return default;
+            var json = _jsonService.ToJson(value);
+            return _jsonService.FromJson<T>(json);
         }
 
         private JsonValue ToJsonValue(object value)
         {
             if (value == null)
-            {
                 return new JsonValue(JsonValueType.Null);
-            }
 
             var json = _jsonService.ToJson(value);
             return _jsonService.FromJson<JsonValue>(json);
         }
 
-        private static Task<RestApiResult<T>> AwaitOperation<T>(AsyncOperation<RestApiResult<T>> operation)
+        private static Task<RealtimeCommandResult> AwaitOperation(
+            AsyncOperation<RealtimeCommandResult> operation)
         {
-            var tcs = new TaskCompletionSource<RestApiResult<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<RealtimeCommandResult>();
             if (operation.IsDone)
             {
                 tcs.TrySetResult(operation.Result);
@@ -787,82 +731,32 @@ namespace MirraCloud.Core.Chats
             return tcs.Task;
         }
 
-        private void EmitConnectionState(RealtimeConnectionState state)
+        private static Task<RestApiResult<T>> AwaitOperation<T>(AsyncOperation<RestApiResult<T>> operation)
         {
-            _dispatcher.Post(() => OnConnectionStateChanged?.Invoke(state));
-        }
+            var tcs = new TaskCompletionSource<RestApiResult<T>>();
+            if (operation.IsDone)
+            {
+                tcs.TrySetResult(operation.Result);
+                return tcs.Task;
+            }
 
-        private void EmitSubscribed(string channelId)
-        {
-            _dispatcher.Post(() => OnSubscribed?.Invoke(channelId));
-        }
-
-        private void EmitMessageReceived(ChatMessageDto message)
-        {
-            _dispatcher.Post(() => OnMessageReceived?.Invoke(message));
-        }
-
-        private void EmitMessageEdited(ChatMessageDto message)
-        {
-            _dispatcher.Post(() => OnMessageEdited?.Invoke(message));
-        }
-
-        private void EmitMessageDeleted(RealtimeDeletePayload payload)
-        {
-            _dispatcher.Post(() => OnMessageDeleted?.Invoke(payload));
-        }
-
-        private void EmitMemberAdded(ChatMemberEvent payload)
-        {
-            _dispatcher.Post(() => OnMemberAdded?.Invoke(payload));
-        }
-
-        private void EmitMemberRemoved(ChatMemberEvent payload)
-        {
-            _dispatcher.Post(() => OnMemberRemoved?.Invoke(payload));
-        }
-
-        private void EmitChannelDeleted(string channelId)
-        {
-            _dispatcher.Post(() => OnChannelDeleted?.Invoke(channelId));
-        }
-
-        private void EmitError(ChatErrorEvent error)
-        {
-            _dispatcher.Post(() => OnError?.Invoke(error));
-        }
-
-        private void CompleteOnMainThread(AsyncOperation<RestApiResult> operation, RestApiResult result)
-        {
-            _dispatcher.Post(() => operation.Complete(result));
-        }
-
-        private void CompleteOnMainThread<T>(AsyncOperation<RestApiResult<T>> operation, RestApiResult<T> result)
-        {
-            _dispatcher.Post(() => operation.Complete(result));
+            operation.UseCompleted(_ => tcs.TrySetResult(operation.Result));
+            return tcs.Task;
         }
 
         private string BuildWsUrl(RealtimeSessionInfo sessionInfo)
         {
             if (sessionInfo == null)
-            {
                 return string.Empty;
-            }
 
             if (string.IsNullOrWhiteSpace(sessionInfo.WsUrl))
-            {
                 return string.Empty;
-            }
 
             if (string.IsNullOrWhiteSpace(sessionInfo.RtToken))
-            {
                 return sessionInfo.WsUrl;
-            }
 
             if (sessionInfo.WsUrl.IndexOf("token=", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
                 return sessionInfo.WsUrl;
-            }
 
             var separator = sessionInfo.WsUrl.Contains("?") ? "&" : "?";
             return $"{sessionInfo.WsUrl}{separator}token={UnityWebRequest.EscapeURL(sessionInfo.RtToken)}";
@@ -870,32 +764,20 @@ namespace MirraCloud.Core.Chats
 
         private void StartHeartbeat()
         {
-            lock (_heartbeatSync)
-            {
-                if (_heartbeatCts != null)
-                {
-                    return;
-                }
+            if (_heartbeatCts != null)
+                return;
 
-                _heartbeatCts = new CancellationTokenSource();
-                _ = RunHeartbeatLoopAsync(_heartbeatCts.Token);
-            }
+            _heartbeatCts = new CancellationTokenSource();
+            _ = RunHeartbeatLoopAsync(_heartbeatCts.Token);
         }
 
         private void StopHeartbeat()
         {
-            CancellationTokenSource cts = null;
+            if (_heartbeatCts == null)
+                return;
 
-            lock (_heartbeatSync)
-            {
-                if (_heartbeatCts == null)
-                {
-                    return;
-                }
-
-                cts = _heartbeatCts;
-                _heartbeatCts = null;
-            }
+            var cts = _heartbeatCts;
+            _heartbeatCts = null;
 
             try
             {
@@ -924,14 +806,14 @@ namespace MirraCloud.Core.Chats
                 }
 
                 if (!_connection.IsConnected)
-                {
                     return;
-                }
 
                 try
                 {
-                    var result = await _connection.SendCommandAsync("ping", new { }, 5000, token);
-                    if (!result.IsSuccess && string.Equals(result.Code, "not_connected", StringComparison.Ordinal))
+                    var result = await AwaitOperation(
+                        _connection.SendCommand("ping", new JsonValue(JsonValueType.Object), 5000));
+                    if (!result.IsSuccess &&
+                        string.Equals(result.Code, "not_connected", StringComparison.Ordinal))
                     {
                         return;
                     }
@@ -942,7 +824,7 @@ namespace MirraCloud.Core.Chats
                 }
                 catch (Exception ex)
                 {
-                    EmitError(new ChatErrorEvent
+                    OnError?.Invoke(new ChatErrorEvent
                     {
                         Code = "heartbeat_failed",
                         Message = ex.Message

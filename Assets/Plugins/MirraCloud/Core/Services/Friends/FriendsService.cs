@@ -5,7 +5,7 @@ using MirraCloud.Core.Logger;
 
 namespace MirraCloud.Core.Friends
 {
-    public class FriendsService
+    public class FriendsService : ICloudSdkService
     {
         private readonly ILogger _logger;
         private readonly Configuration _configuration;
@@ -133,5 +133,8 @@ namespace MirraCloud.Core.Friends
         }
 
         #endregion
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

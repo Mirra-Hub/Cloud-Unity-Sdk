@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MirraCloud.Core;
+using MirraCloud.Example.Infrastructure.DI;
 using Plugins.MirraCloud.Core.Services.Tournaments;
 using UnityEngine;
 
@@ -12,6 +13,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         [SerializeField] private string _leaderboardid;
         [SerializeField] private List<TournamentConfig> _configs;
 
+        private IMirraCloudSdk _sdk;
+
+        [InjectDep]
+        public void Construct(IMirraCloudSdk sdk)
+        {
+            _sdk = sdk;
+        }
+
 
         private void Update()
         {
@@ -19,7 +28,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             {
                 SendEvent();
             }
-            
+
             if (Input.GetKeyDown(KeyCode.B))
             {
                 Init();
@@ -28,14 +37,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private async void Init()
         {
-            await MirraCloudSDK.Tournaments.InitializeAsync().Task();
+            await _sdk.Tournaments.InitializeAsync().Task();
 
-            _configs = new List<TournamentConfig>(MirraCloudSDK.Tournaments.TournamentConfigs);
+            _configs = new List<TournamentConfig>(_sdk.Tournaments.TournamentConfigs);
         }
 
         public void SendEvent()
         {
-            
+
         }
     }
 }

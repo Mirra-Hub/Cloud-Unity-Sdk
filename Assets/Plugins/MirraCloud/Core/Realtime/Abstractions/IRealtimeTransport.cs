@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +13,7 @@ namespace MirraCloud.Core.Realtime.Abstractions
         event Action OnClosed;
         event Action<Exception> OnError;
 
-        Task ConnectAsync(Uri uri, CancellationToken cancellationToken = default);
+        Task ConnectAsync(Uri uri, Dictionary<string, string> headers = null, CancellationToken cancellationToken = default);
         Task SendAsync(string message, CancellationToken cancellationToken = default);
         Task CloseAsync(CancellationToken cancellationToken = default);
     }

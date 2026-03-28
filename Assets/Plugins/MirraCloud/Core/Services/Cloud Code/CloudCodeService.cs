@@ -7,7 +7,7 @@ using ILogger = MirraCloud.Core.Logger.ILogger;
 
 namespace MirraCloud.Core.CloudCode
 {
-    public sealed class CloudCodeService
+    public sealed class CloudCodeService : ICloudSdkService
     {
         private const string SERVICE_ROUTE = "/cloud-actions/v1/projects";
 
@@ -80,5 +80,8 @@ namespace MirraCloud.Core.CloudCode
 
             return op;
         }
+
+        public void CloudSdkInitialize() { }
+        public void CloudSdkDispose() { }
     }
 }

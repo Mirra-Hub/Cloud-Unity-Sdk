@@ -42,6 +42,14 @@ namespace MirraCloud.Core.Realtime.Connection
             }
         }
 
+        public bool HasSubscribed(string channelId)
+        {
+            lock (_sync)
+            {
+                return _subscriptions.Contains(channelId);
+            }
+        }
+
         public IReadOnlyCollection<string> GetAll()
         {
             lock (_sync)
