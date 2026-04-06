@@ -10,6 +10,7 @@ using MirraCloud.Core.Entities;
 using MirraCloud.Core.Friends;
 using MirraCloud.Core.Groups;
 using MirraCloud.Core.Leaderboard;
+using MirraCloud.Core.Localization;
 using MirraCloud.Core.Logger;
 using MirraCloud.Core.RemoteConfig;
 using MirraCloud.Core.Storage;
@@ -37,6 +38,7 @@ namespace MirraCloud.Core
         public EntitiesService Entities { get; private set; }
         public CloudSaveService CloudSave { get; private set; }
         public LeaderboardService Leaderboard { get; private set; }
+        public LocalizationService Localization { get; private set; }
         public TournamentsService Tournaments { get; private set; }
         public RemoteConfigService RemoteConfig { get; private set; }
         public AssetsStorageService AssetsStorage { get; private set; }
@@ -94,6 +96,7 @@ namespace MirraCloud.Core
             Entities = RegisterService(new EntitiesService(configuration, logger, restApiClient));
             CloudSave = RegisterService(new CloudSaveService(configuration, logger, jsonService, restApiClient));
             Leaderboard = RegisterService(new LeaderboardService(configuration, PlayerAccount, logger, jsonService, restApiClient));
+            Localization = RegisterService(new LocalizationService(configuration, logger, restApiClient));
             Tournaments = RegisterService(new TournamentsService(configuration, restApiClient, PlayerAccount));
             RemoteConfig = RegisterService(new RemoteConfigService(restApiClient, configuration, logger));
             AssetsStorage = RegisterService(new AssetsStorageService(configuration, restApiClient, logger));
