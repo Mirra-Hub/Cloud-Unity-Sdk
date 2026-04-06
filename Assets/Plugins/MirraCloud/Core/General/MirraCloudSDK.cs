@@ -19,6 +19,7 @@ using Plugins.MirraCloud.Core.Services.Analytics;
 using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.Segments;
+using MirraCloud.Core.WebView;
 using Plugins.MirraCloud.Core.Services.Challenges;
 using Plugins.MirraCloud.Core.Services.Tournaments;
 
@@ -46,6 +47,7 @@ namespace MirraCloud.Core
         public GroupsService Groups { get; private set; }
         public DailyRewardsService DailyRewards { get; private set; }
         public ChallengesService Challenges { get; private set; }
+        public WebViewService WebView { get; private set; }
         public static CloudSaveFilesService CloudSaveFiles { get; private set; }
 
         public bool IsInitialized { get; private set; }
@@ -101,6 +103,7 @@ namespace MirraCloud.Core
             Segments = RegisterService(new SegmentService(configuration, logger, restApiClient));
             DailyRewards = RegisterService(new DailyRewardsService(configuration, restApiClient));
             Challenges = RegisterService(new ChallengesService(configuration, PlayerAccount, restApiClient));
+            WebView = RegisterService(new WebViewService());
 
             CloudSaveFiles = new CloudSaveFilesService(configuration, logger, jsonService, restApiClient);
             

@@ -15,6 +15,7 @@ using Plugins.MirraCloud.Core.Services.Challenges;
 using Plugins.MirraCloud.Core.Services.Deployment;
 using Plugins.MirraCloud.Core.Services.PlayerAccount;
 using Plugins.MirraCloud.Core.Services.Segments;
+using MirraCloud.Core.WebView;
 using Plugins.MirraCloud.Core.Services.Tournaments;
 
 namespace MirraCloud.Core
@@ -39,6 +40,7 @@ namespace MirraCloud.Core
         DeploymentService Deployment { get; }
         DailyRewardsService DailyRewards { get; }
         ChallengesService Challenges { get; }
+        WebViewService WebView { get; }
         bool IsInitialized { get; }
 
         void Initialize();

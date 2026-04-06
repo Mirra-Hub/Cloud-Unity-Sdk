@@ -227,6 +227,13 @@
       "dependencies": {},
       "hash": "177dbda557fd652ce7f5d1647a3621653e094373"
     },
+    "net.gree.unity-webview": {
+      "version": "https://github.com/gree/unity-webview.git?path=/dist/package",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "ba27e6149f1f4b5019e0bdca1015476578cc461a"
+    },
     "com.unity.modules.animation": {
       "version": "1.0.0",
       "depth": 1,
