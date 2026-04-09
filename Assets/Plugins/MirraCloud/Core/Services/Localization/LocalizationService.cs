@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MirraCloud.Core.Enums;
 using MirraCloud.Core.Localization.Dto;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using ILogger = MirraCloud.Core.Logger.ILogger;
@@ -28,10 +29,16 @@ namespace MirraCloud.Core.Localization
             return _restApi.GetAsync<List<LocalizationValueDto>>(route);
         }
 
-        public AsyncOperation<RestApiResult<LocalizationValueDto>> GetValueAsync(string collectionId, string key, string languageCode)
+        public AsyncOperation<RestApiResult<LocalizationValueDto>> GetValueAsync(string collectionId, string key, LanguageCode languageCode)
         {
-            string route = $"{BasePath}/collections/{collectionId}/keys/{key}/values/{languageCode}";
+            string route = $"{BasePath}/collections/{collectionId}/keys/{key}/values/{languageCode.ToLanguageString()}";
             return _restApi.GetAsync<LocalizationValueDto>(route);
+        }
+
+        public AsyncOperation<RestApiResult<List<LocalizationResponseDto>>> GetAllLocalizationsAsync(string collectionId)
+        {
+            string route = $"{BasePath}/collections/{collectionId}/localizations";
+            return _restApi.GetAsync<List<LocalizationResponseDto>>(route);
         }
 
         public void CloudSdkInitialize() { }
