@@ -1,4 +1,5 @@
 using System;
+using MirraCloud.Core.Enums;
 
 namespace MirraCloud.Core.Auth
 {
@@ -8,8 +9,8 @@ namespace MirraCloud.Core.Auth
         public string Nickname { get; set; }
         public int Age { get; private set; }
         public IconKeyDto IconKey { get; private set; }
-        public string Country { get; private set; }
-        public string LanguageCode { get; private set; }
+        public CountryCode Country { get; private set; }
+        public LanguageCode LanguageCode { get; private set; }
         public string TimeZone { get; private set; }
         public string Status { get; private set; }
         public string[] SegmentIds { get; private set; }

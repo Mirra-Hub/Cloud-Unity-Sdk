@@ -81,8 +81,8 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                     ? _restApi.JsonService.ToJson(PlayerAccountInfo.IconKey)
                     : string.Empty;
                 config.Headers["Age"] = PlayerAccountInfo.Age.ToString();
-                config.Headers["Country"] = PlayerAccountInfo.Country;
-                config.Headers["LanguageCode"] = PlayerAccountInfo.LanguageCode;
+                config.Headers["Country"] = PlayerAccountInfo.Country.ToCountryString();
+                config.Headers["LanguageCode"] = PlayerAccountInfo.LanguageCode.ToLanguageString();
                 config.Headers["TimeZone"] = PlayerAccountInfo.TimeZone;
                 config.Headers["Status"] = PlayerAccountInfo.Status;
                 config.Headers["AccountSegmentIds"] =  string.Join(',', PlayerAccountInfo.SegmentIds);
@@ -151,14 +151,14 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return _restApi.PatchAsync(route, dto);
         }
 
-        public AsyncOperation<RestApiResult> UpdateCountryAsync(string country)
+        public AsyncOperation<RestApiResult> UpdateCountryAsync(CountryCode country)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/country";
             var dto = new { Country = country };
             return _restApi.PatchAsync(route, dto);
         }
 
-        public AsyncOperation<RestApiResult> UpdateLanguageAsync(string languageCode)
+        public AsyncOperation<RestApiResult> UpdateLanguageAsync(LanguageCode languageCode)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/language";
             var dto = new { LanguageCode = languageCode };
