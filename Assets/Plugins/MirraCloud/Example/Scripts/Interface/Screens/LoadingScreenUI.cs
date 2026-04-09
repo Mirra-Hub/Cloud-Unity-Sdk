@@ -20,15 +20,5 @@ namespace MirraCloud.Example
         {
             _sdk = sdk;
         }
-
-        private IEnumerator LoadingRoutine()
-        {
-            yield return _sdk.Economy.LoadConfigsAsync();
-            yield return _sdk.CloudSave.LoadAsync();
-
-            Container.Instance.PlayerProfile.Initialize();
-
-            UIController.ShowScreen<LobbyScreenUI>();
-        }
     }
 }
