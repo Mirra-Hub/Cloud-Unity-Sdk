@@ -9,6 +9,7 @@ using MirraCloud.Core.Entities;
 using MirraCloud.Core.Friends;
 using MirraCloud.Core.Groups;
 using MirraCloud.Core.Leaderboard;
+using MirraCloud.Core.Localization;
 using MirraCloud.Core.RemoteConfig;
 using Plugins.MirraCloud.Core.Services.Analytics;
 using Plugins.MirraCloud.Core.Services.Challenges;
@@ -31,6 +32,7 @@ namespace MirraCloud.Core
         EntitiesService Entities { get; }
         CloudSaveService CloudSave { get; }
         LeaderboardService Leaderboard { get; }
+        LocalizationService Localization { get; }
         TournamentsService Tournaments { get; }
         RemoteConfigService RemoteConfig { get; }
         AssetsStorageService AssetsStorage { get; }

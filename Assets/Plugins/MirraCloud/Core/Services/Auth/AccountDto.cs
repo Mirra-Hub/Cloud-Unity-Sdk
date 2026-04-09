@@ -1,4 +1,5 @@
 using System;
+using MirraCloud.Core.Enums;
 using MirraCloud.Json;
 
 namespace MirraCloud.Core.Auth
@@ -10,8 +11,8 @@ namespace MirraCloud.Core.Auth
         [JsonNameCamel] public string Nickname;
         [JsonNameCamel] public int Age;
         [JsonName("iconKey")] public IconKeyDto IconKey;
-        [JsonNameCamel] public string Country;
-        [JsonNameCamel] public string LanguageCode;
+        [JsonNameCamel] public CountryCode Country;
+        [JsonNameCamel] public LanguageCode LanguageCode;
         [JsonNameCamel] public string TimeZone;
         [JsonNameCamel] public string[] SegmentIds;
         [JsonNameCamel] public string Status;
