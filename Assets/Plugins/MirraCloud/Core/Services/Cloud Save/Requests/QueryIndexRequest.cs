@@ -11,12 +11,4 @@ namespace MirraCloud.Core.CloudSave.Requests
         public int limit = 20;
         public int? sampleSize;
     }
-
-    public class QueryFilter
-    {
-        public string key;
-        public CloudSaveIndexOp op = CloudSaveIndexOp.Equal;
-        public object value;
-        public bool? asc;
-    }
 }
