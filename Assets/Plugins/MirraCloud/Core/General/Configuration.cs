@@ -13,6 +13,9 @@ namespace MirraCloud
         public string Token;
         public string AnalyticsPlatformId;
 
+        [Header("Editor")]
+        [SerializeField] private string _editorApiUrl;
+
         [Header("Debug")]
         [SerializeField] private int _connectionIndex = -1;
         [SerializeField] private ConnectionSettings[] _connections;
@@ -20,6 +23,7 @@ namespace MirraCloud
         private const string RESOUCRES_PATH = "Configuration";
 
         public string Url { get; private set; }
+        public string EditorApiUrl => _editorApiUrl;
 
         private void Initialize()
         {

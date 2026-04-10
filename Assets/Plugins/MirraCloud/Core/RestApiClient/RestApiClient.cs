@@ -15,7 +15,7 @@ namespace MirraCloud.Core
     {
         public string BaseUrl { get; private set; }
 
-        private readonly CoroutineRunner _coroutineRunner;
+        private readonly ICoroutineRunner _coroutineRunner;
         public readonly IJsonService JsonService;
         private readonly ILogger _logger;
 
@@ -23,7 +23,7 @@ namespace MirraCloud.Core
         private ISessionRefresher _sessionRefresher;
         private static readonly long[] DefaultRedirectHttpStatusCodes = { 301, 302, 303, 307, 308 };
         
-        public RestApiClient(RestApiClientOptions options, CoroutineRunner coroutineRunner, IJsonService jsonService, ILogger logger)
+        public RestApiClient(RestApiClientOptions options, ICoroutineRunner coroutineRunner, IJsonService jsonService, ILogger logger)
         {
             BaseUrl = options.BaseUrl?.TrimEnd('/');
             _coroutineRunner = coroutineRunner;
