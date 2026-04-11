@@ -43,4 +43,11 @@ namespace MirraCloud.Editor.Dto
         public string name;
         public bool isEnabled;
     }
+
+    [Serializable]
+    public class CreateApiTokenRequest
+    {
+        public string name;
+        public string tokenType;
+    }
 }

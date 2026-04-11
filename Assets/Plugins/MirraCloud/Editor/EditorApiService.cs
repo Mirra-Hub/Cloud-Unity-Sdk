@@ -148,6 +148,12 @@ namespace MirraCloud.Editor
         {
             return _restApi.GetAsync<List<EditorApiTokenDto>>($"/api/cloud/organizations/{orgId}/projects/{projectId}/tokens");
         }
+
+        public AsyncOperation<RestApiResult<EditorApiTokenDto>> CreateTokenAsync(string orgId, string projectId, string name)
+        {
+            var body = new CreateApiTokenRequest { name = name, tokenType = "Game" };
+            return _restApi.PostAsync<EditorApiTokenDto>($"/api/cloud/organizations/{orgId}/projects/{projectId}/tokens", body);
+        }
     }
 
     internal class EditorLogger : ILogger
