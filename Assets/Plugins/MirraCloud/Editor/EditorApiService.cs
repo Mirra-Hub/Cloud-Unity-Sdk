@@ -9,7 +9,7 @@ using UnityEditor;
 
 namespace MirraCloud.Editor
 {
-    public class EditorApiService
+    public class EditorApiService : ISessionRefresher
     {
         private const string PREF_SA_KEY = "MirraCloud_SA_Key";
         private const string PREF_JWT_TOKEN = "MirraCloud_Editor_JWT";
@@ -36,6 +36,7 @@ namespace MirraCloud.Editor
 
             _restApi = new RestApiClient(options, coroutineRunner, jsonService, logger);
             _restApi.UseRequestInterceptor(AuthInterceptor);
+            _restApi.SetSessionRefresher(this);
 
             LoadCachedToken();
         }
@@ -111,6 +112,23 @@ namespace MirraCloud.Editor
                     SaveKey(saKey);
                     SaveOrgId(r.Data.orgId);
                 }
+            };
+
+            return op;
+        }
+
+        public bool CanRefresh => !string.IsNullOrEmpty(GetSavedKey());
+
+        public AsyncOperation<RestApiResult> RefreshSessionAsync()
+        {
+            var savedKey = GetSavedKey();
+            var op = new AsyncOperation<RestApiResult>();
+
+            var exchangeOp = ExchangeKeyAsync(savedKey);
+            exchangeOp.OnCompleted += result =>
+            {
+                var r = ((AsyncOperation<RestApiResult<ExchangeKeyResponse>>)result).Result;
+                op.Complete(new RestApiResult { IsSuccess = r.IsSuccess, Error = r.Error, HttpStatusCode = r.HttpStatusCode });
             };
 
             return op;

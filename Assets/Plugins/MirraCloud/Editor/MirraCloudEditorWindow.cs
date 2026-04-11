@@ -67,6 +67,10 @@ namespace MirraCloud.Editor
             {
                 LoadProjects();
             }
+            else if (!string.IsNullOrEmpty(_saKeyInput))
+            {
+                Connect();
+            }
         }
 
         private void OnGUI()
