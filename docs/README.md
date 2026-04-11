@@ -8,13 +8,13 @@ Unity SDK для интеграции с MirraCloud.
 MirraCloudSDK
 ├── Core/
 │   ├── General/          — инициализация, async operations
-│   ├── RestApiClient/    — HTTP клиент
+│   ├── RestApiClient/    — HTTP клиент, ISessionRefresher
 │   ├── Realtime/         — WebSocket (чаты)
 │   ├── Storage/          — локальное хранилище
 │   ├── Logger/           — логирование
 │   ├── Json/             — сериализация
 │   └── Services/         — 18 сервисов (см. ниже)
-├── Editor/               — редактор-утилиты
+├── Editor/               — SA авторизация, управление проектом
 └── Example/              — примеры интеграции
 ```
 
@@ -51,3 +51,54 @@ MirraCloudSDK
 - [AssetsStorage](services/AssetsStorage.md) — загрузка ассетов (текстуры, аудио, бандлы)
 - [CloudCode](services/CloudCode.md) — выполнение серверных скриптов
 - [Analytics](services/Analytics.md) — аналитика и метрики
+
+## Editor Tools
+
+Окно `Tools > Mirra Cloud > Manager` для настройки SDK в Unity Editor.
+
+### Архитектура
+
+```
+MirraCloudEditorWindow          — оркестратор (OnGUI, переключение views)
+├── LoginView                   — авторизация по SA ключу
+├── ProjectSettingsView         — проект, ветка, токен, создание токенов
+└── EditorApiService            — API клиент + ISessionRefresher
+```
+
+### Авторизация (Service Account)
+
+Авторизация через обмен SA ключа на JWT:
+
+```
+SA Key → POST /api/cloud/public/auth/service-account/token → JWT + OrgId
+```
+
+- SA ключ сохраняется в `EditorPrefs` (`MirraCloud_SA_Key`)
+- JWT + expiry кешируются в `EditorPrefs`
+- **Авто-коннект**: при открытии окна, если SA ключ сохранён, автоматически обменивается на JWT
+- **Авто-рефреш**: `EditorApiService` реализует `ISessionRefresher` — при 401 автоматически переобменивает SA ключ на новый JWT и повторяет запрос
+
+### Управление проектом
+
+- **Project** — выбор проекта из списка организации
+- **Branch** — выбор ветки (авто-выбор первой доступной при смене проекта)
+- **API Token** — выбор токена для SDK (авто-выбор первого доступного)
+- **Create Token** — создание Game-токена прямо из редактора (`POST /organizations/{orgId}/projects/{projectId}/tokens`)
+
+Выбранные значения сохраняются в `Configuration` ScriptableObject (`Resources/Configuration.asset`).
+
+### EditorApiService API
+
+| Метод | Описание |
+|-------|----------|
+| `ExchangeKeyAsync(saKey)` | Обмен SA ключа на JWT |
+| `GetProjectsAsync(orgId)` | Список проектов организации |
+| `GetBranchesAsync(projectId)` | Список веток проекта |
+| `GetTokensAsync(orgId, projectId)` | Список API токенов |
+| `CreateTokenAsync(orgId, projectId, name)` | Создание Game-токена |
+| `RefreshSessionAsync()` | ISessionRefresher — переобмен SA ключа |
+
+### Дополнительные инструменты
+
+- **RestApiInspectorWindow** (`Tools > Mirra Cloud > REST Inspector`) — трассировка HTTP запросов SDK для отладки
+- **DeveloperSettings** — переопределение Editor API URL для локальной разработки
