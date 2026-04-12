@@ -87,7 +87,8 @@ namespace MirraCloud.Core
 
             IStorage storage = new PrefsStorage();
 
-            Authentication = RegisterService(new AuthenticationService(configuration, logger, storage, restApiClient));
+            WebView = RegisterService(new WebViewService());
+            Authentication = RegisterService(new AuthenticationService(configuration, logger, storage, restApiClient, WebView));
             PlayerAccount = RegisterService(new PlayerAccountService(Authentication, restApiClient, configuration, logger));
             Friends = RegisterService(new FriendsService(configuration, logger, restApiClient));
             Groups = RegisterService(new GroupsService(configuration, logger, restApiClient));
@@ -106,7 +107,6 @@ namespace MirraCloud.Core
             Segments = RegisterService(new SegmentService(configuration, logger, restApiClient));
             DailyRewards = RegisterService(new DailyRewardsService(configuration, restApiClient));
             Challenges = RegisterService(new ChallengesService(configuration, PlayerAccount, restApiClient));
-            WebView = RegisterService(new WebViewService());
 
             CloudSaveFiles = new CloudSaveFilesService(configuration, logger, jsonService, restApiClient);
             

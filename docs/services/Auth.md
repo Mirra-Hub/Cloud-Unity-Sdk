@@ -28,6 +28,32 @@
 - `BeginOpenIdLoginUrlAsync(providerId, successUrl)` — получить URL для OpenID
 - `StartOpenIdLoginAsync(providerId, successUrl)` / `CompleteOpenIdLoginAsync(openIdKey)` — двухшаговый OpenID
 
+### OpenIdLoginOptions
+
+| Поле | Default | Описание |
+|------|---------|----------|
+| `LoopbackPort` | `0` | Порт локального HTTP-приёмника на Editor/Standalone (0 = авто) |
+| `MobileDeepLinkUrl` | `null` | Deep-link схема для Android/iOS (например `myapp://mirra-openid`) |
+| `UseInAppWebView` | `false` | Открыть OAuth-страницу во встроенном WebView вместо системного браузера |
+| `WebViewCallbackUrl` | `https://mirra-openid.local/callback` | URL, который WebView перехватит для извлечения `mirra_openid_key` |
+
+### Режим in-app WebView
+
+Если `UseInAppWebView = true`, методы `LoginOpenIdAsync` / `LoginGoogleOpenIdAsync` / `LoginYandexOpenIdAsync` открывают OAuth-страницу внутри приложения (через `WebViewService`, обёртка над `gree/unity-webview`), без выхода пользователя в системный браузер и **без необходимости настраивать deep-link схему на мобилках**.
+
+Требования:
+- `WebViewCallbackUrl` должен быть добавлен в список допустимых `successUrl` на бэкенде для соответствующего OpenID-провайдера проекта.
+- `WebViewService` должен быть инициализирован (инициализируется автоматически при `MirraCloudSDK.Initialize()`).
+- Поддерживаемые платформы: Editor, Standalone (Windows/macOS), Android, iOS. На WebGL и Editor/Linux режим вернёт ошибку валидации.
+
+Пример:
+```csharp
+var options = new OpenIdLoginOptions { UseInAppWebView = true };
+var op = MirraCloudSDK.Authentication.LoginGoogleOpenIdAsync(options);
+```
+
+**Замечание:** низкоуровневый `StartOpenIdLoginAsync(providerId, successUrl)` игнорирует `UseInAppWebView` и всегда открывает системный браузер.
+
 ## Привязка аккаунтов (Link)
 
 Аналогично Login-методам, но с префиксом `Link*` и `createAccount = false` по умолчанию.

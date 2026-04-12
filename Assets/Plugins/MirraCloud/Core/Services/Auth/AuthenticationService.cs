@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MirraCloud.Core.Storage;
 using MirraCloud.Core.Auth.OpenId;
+using MirraCloud.Core.WebView;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -14,6 +15,7 @@ namespace MirraCloud.Core.Auth
         private readonly IStorage _storage;
         private readonly RestApiClient _restApi;
         private readonly Configuration _configuration;
+        private readonly WebViewService _webView;
 
         private const string AUTH_ROUTE = "/players/auth/v1/projects";
         private const string AUTH_LINK_ROUTE = "/players/link/v1/projects";
@@ -40,12 +42,13 @@ namespace MirraCloud.Core.Auth
         public event Action OnSessionRefreshed;
         public event Action OnSessionExpired;
 
-        public AuthenticationService(Configuration configuration, Logger.ILogger logger, IStorage storage, RestApiClient restApi)
+        public AuthenticationService(Configuration configuration, Logger.ILogger logger, IStorage storage, RestApiClient restApi, WebViewService webView)
         {
             _configuration = configuration;
             _restApi = restApi;
             _logger = logger;
             _storage = storage;
+            _webView = webView;
 
             _restApi.UseRequestInterceptor(AuthTokenInterceptor);
             _restApi.SetSessionRefresher(this);
@@ -234,7 +237,7 @@ namespace MirraCloud.Core.Auth
         {
             var op = new AsyncOperation<RestApiResult<GetAuthDataDto>>();
 
-            if (!OpenIdCallbackReceiverFactory.TryCreate(options, out var receiver, out var receiverError))
+            if (!OpenIdCallbackReceiverFactory.TryCreate(options, _webView, out var receiver, out var receiverError))
             {
                 op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail(receiverError));
                 return op;
@@ -257,6 +260,13 @@ namespace MirraCloud.Core.Auth
                     return;
                 }
 
+                if (!receiver.LaunchAuthUrl(beginOp.Result.Data))
+                {
+                    receiver.Dispose();
+                    op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail("Failed to display OpenId auth url.").WithMetaFrom(beginOp.Result));
+                    return;
+                }
+
                 var waitOp = receiver.WaitForKeyAsync();
                 waitOp.UseCompleted(_ =>
                 {
@@ -271,8 +281,6 @@ namespace MirraCloud.Core.Auth
                     var completeOp = CompleteOpenIdLoginAsync(waitOp.Result);
                     completeOp.UseCompleted(completed => op.Complete(completed.Result));
                 });
-
-                Application.OpenURL(beginOp.Result.Data);
             });
 
             return op;
