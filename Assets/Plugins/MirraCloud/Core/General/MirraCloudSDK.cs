@@ -50,7 +50,6 @@ namespace MirraCloud.Core
         public DailyRewardsService DailyRewards { get; private set; }
         public ChallengesService Challenges { get; private set; }
         public WebViewService WebView { get; private set; }
-        public static CloudSaveFilesService CloudSaveFiles { get; private set; }
 
         public bool IsInitialized { get; private set; }
 
@@ -63,6 +62,13 @@ namespace MirraCloud.Core
             _disposables.Add(service);
 
             return service;
+        }
+
+        public static MirraCloudSDK Create()
+        {
+            MirraCloudSDK sdk = new MirraCloudSDK();
+
+            return sdk;
         }
 
         public void Initialize()
@@ -108,7 +114,6 @@ namespace MirraCloud.Core
             DailyRewards = RegisterService(new DailyRewardsService(configuration, restApiClient));
             Challenges = RegisterService(new ChallengesService(configuration, PlayerAccount, restApiClient));
 
-            CloudSaveFiles = new CloudSaveFilesService(configuration, logger, jsonService, restApiClient);
             
             _analyticsTracker = AnalyticsTracker.CreateInstance();
             Analytics.SetTracker(_analyticsTracker);
