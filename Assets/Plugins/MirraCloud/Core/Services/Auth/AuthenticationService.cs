@@ -111,39 +111,25 @@ namespace MirraCloud.Core.Auth
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginVkGamesAsync(string userId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginPlatformAsync(
+            string platformId,
+            string externalUserId,
+            string authCode = null,
+            string platformToken = null,
+            Dictionary<string, string> extra = null,
+            bool createAccount = true)
         {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/vk-games", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexGamesAsync(string userId, bool createAccount = true)
-        {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex-games", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGooglePlayAsync(string userId, bool createAccount = true)
-        {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google-play", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginAppleGameCenterAsync(string userId, bool createAccount = true)
-        {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/apple-game-center", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGoogleAsync(string userId, bool createAccount = true)
-        {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginAppleAsync(string userId, bool createAccount = true)
-        {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/apple", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexAsync(string userId, bool createAccount = true)
-        {
-            return LoginByUserIdAsync($"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex", userId, createAccount);
+            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/platform";
+            var dto = new LoginByPlatformDto
+            {
+                PlatformId = platformId,
+                ExternalUserId = externalUserId,
+                AuthCode = authCode,
+                PlatformToken = platformToken,
+                Extra = extra,
+                CreateAccount = createAccount
+            };
+            return PostAuthAsync(route, dto, noAuth: true);
         }
 
         public AsyncOperation<RestApiResult> StartOpenIdLoginAsync(int providerId, string successUrl)
@@ -185,28 +171,6 @@ namespace MirraCloud.Core.Auth
         {
             var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/openid/{providerId}";
             return BeginOpenIdLoginUrlAsync(route, successUrl);
-        }
-
-        public AsyncOperation<RestApiResult<string>> BeginGoogleOpenIdLoginUrlAsync(string successUrl)
-        {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/google";
-            return BeginOpenIdLoginUrlAsync(route, successUrl);
-        }
-
-        public AsyncOperation<RestApiResult<string>> BeginYandexOpenIdLoginUrlAsync(string successUrl)
-        {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/yandex";
-            return BeginOpenIdLoginUrlAsync(route, successUrl);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGoogleOpenIdAsync(OpenIdLoginOptions options = null)
-        {
-            return LoginOpenIdAsync(BeginGoogleOpenIdLoginUrlAsync, options);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexOpenIdAsync(OpenIdLoginOptions options = null)
-        {
-            return LoginOpenIdAsync(BeginYandexOpenIdLoginUrlAsync, options);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginOpenIdAsync(int providerId, OpenIdLoginOptions options = null)
@@ -291,12 +255,6 @@ namespace MirraCloud.Core.Auth
             return request.GetResponseHeader("Location") ?? request.GetResponseHeader("location");
         }
 
-        private AsyncOperation<RestApiResult<GetAuthDataDto>> LoginByUserIdAsync(string route, string userId, bool createAccount)
-        {
-            var dto = new LoginByUserIdDto { UserId = userId, CreateAccount = createAccount };
-            return PostAuthAsync(route, dto, noAuth: true);
-        }
-
         #endregion
 
         #region Link
@@ -335,56 +293,37 @@ namespace MirraCloud.Core.Auth
             return PostAuthAsync(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkVkGamesAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/vk-games", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkYandexGamesAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/yandex-games", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGooglePlayAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/google-play", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkAppleGameCenterAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/apple-game-center", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGoogleAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/google", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkAppleAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/apple", userId, createAccount);
-        }
-
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkYandexAsync(string userId, bool createAccount = false)
-        {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/yandex", userId, createAccount);
-        }
-
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkOpenIdAsync(string userId, bool createAccount = false)
         {
-            return LinkByUserIdAsync($"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/openid", userId, createAccount);
-        }
-
-        private AsyncOperation<RestApiResult<GetAuthDataDto>> LinkByUserIdAsync(string route, string userId, bool createAccount)
-        {
-            var dto = new LoginByUserIdDto { UserId = userId, CreateAccount = createAccount };
+            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/openid";
+            var dto = new LoginByOpenIdDto { UserId = userId, CreateAccount = createAccount };
             return PostAuthAsync(route, dto);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> ResolveLinkConflictAsync(int providerType, string targetAccountId)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkPlatformAsync(
+            string platformId,
+            string externalUserId,
+            string authCode = null,
+            string platformToken = null,
+            Dictionary<string, string> extra = null,
+            bool createAccount = false)
+        {
+            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/platform";
+            var dto = new LoginByPlatformDto
+            {
+                PlatformId = platformId,
+                ExternalUserId = externalUserId,
+                AuthCode = authCode,
+                PlatformToken = platformToken,
+                Extra = extra,
+                CreateAccount = createAccount
+            };
+            return PostAuthAsync(route, dto);
+        }
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> ResolveLinkConflictAsync(LinkAuthProviderDto dto)
         {
             var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/link-conflict/resolve";
-            var dto = new LinkAuthProviderDto { ProviderType = providerType, TargetAccountId = targetAccountId };
             return PostAuthAsync(route, dto);
         }
 
