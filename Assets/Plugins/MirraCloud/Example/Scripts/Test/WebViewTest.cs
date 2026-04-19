@@ -8,7 +8,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
     {
         [Header("URL to load")]
         [SerializeField] private string _url = "https://example.com";
-
+        [SerializeField] private string _anotherUrl = "https://example.com";
+        
         private IMirraCloudSdk _sdk;
 
         [InjectDep]
@@ -40,6 +41,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.Alpha1)) LoadUrl();
+            if (Input.GetKeyDown(KeyCode.Alpha9)) LoadAnotherUrl();
             if (Input.GetKeyDown(KeyCode.Alpha2)) Show();
             if (Input.GetKeyDown(KeyCode.Alpha3)) Hide();
             if (Input.GetKeyDown(KeyCode.Alpha4)) GoBack();
@@ -53,6 +55,14 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             _sdk.WebView.SetMargins(50, 100, 50, 100);
             _sdk.WebView.SetVisibility(true);
             _sdk.WebView.LoadUrl(_url);
+        }
+        
+        private void LoadAnotherUrl()
+        {
+            Debug.Log($"[WebViewTest] Loading URL: {_anotherUrl}");
+            _sdk.WebView.SetMargins(50, 100, 50, 100);
+            _sdk.WebView.SetVisibility(true);
+            _sdk.WebView.LoadUrl(_anotherUrl);
         }
 
         private void Show()
