@@ -132,6 +132,27 @@ namespace MirraCloud.Core.Auth
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginSignInAsync(
+            string signInProviderId,
+            string externalUserId,
+            string authCode = null,
+            string idToken = null,
+            Dictionary<string, string> extra = null,
+            bool createAccount = true)
+        {
+            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/sign-in";
+            var dto = new LoginBySignInProviderDto
+            {
+                SignInProviderId = signInProviderId,
+                ExternalUserId = externalUserId,
+                AuthCode = authCode,
+                IdToken = idToken,
+                Extra = extra,
+                CreateAccount = createAccount
+            };
+            return PostAuthAsync(route, dto, noAuth: true);
+        }
+
         public AsyncOperation<RestApiResult> StartOpenIdLoginAsync(int providerId, string successUrl)
         {
             var op = new AsyncOperation<RestApiResult>();
