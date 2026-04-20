@@ -55,6 +55,17 @@ namespace MirraCloud.Core.Auth.OpenId
             }
         }
 
+        public bool LaunchAuthUrl(string authUrl)
+        {
+            if (string.IsNullOrEmpty(authUrl))
+            {
+                return false;
+            }
+
+            UnityEngine.Application.OpenURL(authUrl);
+            return true;
+        }
+
         public AsyncOperation<string> WaitForKeyAsync()
         {
             return _keyOp;

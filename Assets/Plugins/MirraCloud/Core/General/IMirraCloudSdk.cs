@@ -10,6 +10,7 @@ using MirraCloud.Core.Friends;
 using MirraCloud.Core.Groups;
 using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Localization;
+using MirraCloud.Core.Purchases;
 using MirraCloud.Core.RemoteConfig;
 using Plugins.MirraCloud.Core.Services.Analytics;
 using Plugins.MirraCloud.Core.Services.Challenges;
@@ -42,6 +43,7 @@ namespace MirraCloud.Core
         DeploymentService Deployment { get; }
         DailyRewardsService DailyRewards { get; }
         ChallengesService Challenges { get; }
+        PurchasesService Purchases { get; }
         WebViewService WebView { get; }
         bool IsInitialized { get; }
 

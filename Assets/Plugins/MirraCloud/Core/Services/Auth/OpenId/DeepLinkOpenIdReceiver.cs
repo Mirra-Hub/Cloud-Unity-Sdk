@@ -18,6 +18,17 @@ namespace MirraCloud.Core.Auth.OpenId
             _successUrl = successUrl;
         }
 
+        public bool LaunchAuthUrl(string authUrl)
+        {
+            if (string.IsNullOrEmpty(authUrl))
+            {
+                return false;
+            }
+
+            Application.OpenURL(authUrl);
+            return true;
+        }
+
         public AsyncOperation<string> WaitForKeyAsync()
         {
             if (_isWaiting)

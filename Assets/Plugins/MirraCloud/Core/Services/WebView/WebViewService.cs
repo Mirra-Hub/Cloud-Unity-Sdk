@@ -58,6 +58,12 @@ namespace MirraCloud.Core.WebView
             _bridge.Raw.LoadHTML(html, baseUrl);
         }
 
+        public void SetUrlPattern(string allowPattern, string denyPattern, string hookPattern)
+        {
+            if (!IsReady) return;
+            _bridge.Raw.SetURLPattern(allowPattern, denyPattern, hookPattern);
+        }
+
         public void EvaluateJS(string script)
         {
             if (!IsReady) return;
