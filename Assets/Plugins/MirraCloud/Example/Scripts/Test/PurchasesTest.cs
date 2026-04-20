@@ -3,6 +3,7 @@ using MirraCloud.Core;
 using MirraCloud.Core.Purchases;
 using MirraCloud.Core.Purchases.Models;
 using MirraCloud.Example.Infrastructure.DI;
+using NaughtyAttributes;
 using UnityEngine;
 
 namespace Plugins.MirraCloud.Example.Scripts.Test
@@ -32,14 +33,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                 Debug.LogWarning($"[Purchases] Failed {result.OperationId}: {result.Error}");
         }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.Alpha1)) LoadCatalog();
-            if (Input.GetKeyDown(KeyCode.Alpha2)) Buy();
-            if (Input.GetKeyDown(KeyCode.Alpha3)) GetOrders();
-            if (Input.GetKeyDown(KeyCode.Alpha4)) GetSubscriptions();
-        }
-
+        [Button("Load Catalog")]
         public void LoadCatalog()
         {
             var op = _sdk.Purchases.LoadCatalogAsync();
@@ -62,6 +56,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             });
         }
 
+        [Button("Buy")]
         public void Buy()
         {
             if (string.IsNullOrWhiteSpace(_purchaseKey) || string.IsNullOrWhiteSpace(_providerConfigId))
@@ -78,6 +73,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             });
         }
 
+        [Button("Get Orders")]
         public void GetOrders()
         {
             var op = _sdk.Purchases.GetOrdersAsync();
@@ -97,6 +93,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             });
         }
 
+        [Button("Get Subscriptions")]
         public void GetSubscriptions()
         {
             var op = _sdk.Purchases.GetSubscriptionsAsync();

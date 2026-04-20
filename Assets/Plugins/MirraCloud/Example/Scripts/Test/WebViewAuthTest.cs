@@ -9,8 +9,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
     public class WebViewAuthTest : MonoBehaviour
     {
         [Header("OpenID Provider")]
-        [SerializeField] private AuthProvider _provider = AuthProvider.Google;
-        [SerializeField] private int _customProviderId;
+        [Tooltip("Numeric id of the OpenId provider registered for this project via PlayerAccounts admin API.")]
+        [SerializeField] private int _providerId;
 
         [Header("WebView")]
         [SerializeField] private bool _useWebView = true;
@@ -53,7 +53,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private void LoginOpenId()
         {
-            Debug.Log($"[WebViewAuthTest] LoginOpenId via WebView | provider={_provider}");
+            Debug.Log($"[WebViewAuthTest] LoginOpenId via WebView | providerId={_providerId}");
 
             var options = new OpenIdLoginOptions
             {
@@ -81,7 +81,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private void LoginOpenIdSystemBrowser()
         {
-            Debug.Log($"[WebViewAuthTest] LoginOpenId via system browser | provider={_provider}");
+            Debug.Log($"[WebViewAuthTest] LoginOpenId via system browser | providerId={_providerId}");
 
             var options = new OpenIdLoginOptions
             {
@@ -145,18 +145,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private Plugins.MirraCloud.Core.General.AsyncOperations.AsyncOperation<RestApiResult<GetAuthDataDto>> GetLoginOperation(OpenIdLoginOptions options)
         {
-            switch (_provider)
-            {
-                case AuthProvider.Google:
-                    return _sdk.Authentication.LoginGoogleOpenIdAsync(options);
-                case AuthProvider.Yandex:
-                    return _sdk.Authentication.LoginYandexOpenIdAsync(options);
-                case AuthProvider.Custom:
-                    return _sdk.Authentication.LoginOpenIdAsync(_customProviderId, options);
-                default:
-                    Debug.LogError($"[WebViewAuthTest] Unknown provider: {_provider}");
-                    return null;
-            }
+            return _sdk.Authentication.LoginOpenIdAsync(_providerId, options);
         }
 
         private void HandleLogin(GetAuthDataDto data)
@@ -178,13 +167,6 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         {
             if (string.IsNullOrEmpty(value)) return "(null)";
             return value.Length > 16 ? value.Substring(0, 16) + "..." : value;
-        }
-
-        private enum AuthProvider
-        {
-            Google,
-            Yandex,
-            Custom
         }
     }
 }
