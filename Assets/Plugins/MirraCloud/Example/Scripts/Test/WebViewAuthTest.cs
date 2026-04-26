@@ -15,6 +15,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         [Header("WebView")]
         [SerializeField] private bool _useWebView = true;
         [SerializeField] private string _callbackUrl = OpenIdLoginOptions.DefaultWebViewCallbackUrl;
+        [Tooltip("Margins (left, top, right, bottom) applied to the in-app WebView when it is shown for the OpenID auth page.")]
+        [SerializeField] private Vector4 _webViewMargins = new Vector4(50, 100, 50, 100);
 
         [Header("Fallback (system browser)")]
         [SerializeField] private string _mobileDeepLinkUrl;
@@ -54,6 +56,18 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void LoginOpenId()
         {
             Debug.Log($"[WebViewAuthTest] LoginOpenId via WebView | providerId={_providerId}");
+
+            // The SDK only flips the WebView visibility on; the host app is responsible for sizing it.
+            // Without explicit margins the native WebView may render at zero size, making the auth page
+            // invisible — that is exactly why login through providers used to silently fail here.
+            if (_useWebView && _sdk.WebView != null && _sdk.WebView.IsReady)
+            {
+                _sdk.WebView.SetMargins(
+                    (int)_webViewMargins.x,
+                    (int)_webViewMargins.y,
+                    (int)_webViewMargins.z,
+                    (int)_webViewMargins.w);
+            }
 
             var options = new OpenIdLoginOptions
             {

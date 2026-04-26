@@ -70,8 +70,14 @@ namespace MirraCloud.Core.WebView.Dispatching
                 return null;
             }
 
+            // Native WebView bridges (Android, iOS) typically run the hook regex with full-match
+            // semantics (Pattern.matches / NSRegularExpression on the whole string), so a bare
+            // "^(https://callback)" pattern would NOT match the real callback URL that arrives with
+            // a query string ("https://callback?mirra_openid_key=...").
+            // Anchor on both sides and explicitly accept any trailing path/query/fragment so the
+            // hook fires reliably across platforms.
             var builder = new StringBuilder();
-            builder.Append("^(");
+            builder.Append("^(?:");
             for (var i = 0; i < _registrations.Count; i++)
             {
                 if (i > 0)
@@ -80,7 +86,7 @@ namespace MirraCloud.Core.WebView.Dispatching
                 }
                 builder.Append(Regex.Escape(_registrations[i].RawKey));
             }
-            builder.Append(')');
+            builder.Append(")(?:[/?#].*)?$");
             return builder.ToString();
         }
 

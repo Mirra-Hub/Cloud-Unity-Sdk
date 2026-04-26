@@ -17,19 +17,23 @@ namespace MirraCloud.Core.Auth
         private readonly Configuration _configuration;
         private readonly WebViewService _webView;
 
-        private const string AUTH_ROUTE = "/players/auth/v1/projects";
-        private const string AUTH_LINK_ROUTE = "/players/link/v1/projects";
+        // Routes that include the {branchId} segment.
+        private const string AUTH_BRANCH_ROUTE = "/players/auth/v1/projects";
+        private const string LINK_BRANCH_ROUTE = "/players/link/v1/projects";
+        // Routes that do NOT include {branchId} (refresh, logout, unlink, openid result).
         private const string ACCOUNTS_ROUTE = "/players/accounts/v1/projects";
+        private const string AUTH_ROUTE = "/players/auth/v1/projects";
+        private const string UNLINK_ROUTE = "/players/unlink/v1/projects";
         private const string OPENID_RESULT_ROUTE = "/players/auth/v1/openid/result";
 
         private const string GUESTID_KEY = "GuestId";
         private const string REFRESH_TOKEN_KEY = "RefreshToken";
         private const string SESSIONID_KEY = "SessionId";
         private const string SESSION_EXPIRESAT_KEY = "SessionExpiresAt";
-        
+
         private string _authToken;
         public string AuthToken => _authToken;
-        
+
         private string _sessionId;
         private string _refreshToken;
         private DateTime _sessionExpiresAt;
@@ -54,6 +58,14 @@ namespace MirraCloud.Core.Auth
             _restApi.SetSessionRefresher(this);
         }
 
+        // Helpers for URL composition. All login/link routes are scoped per branch;
+        // refresh / logout / unlink are NOT — they use the branch already stored on the Session.
+        private string AuthLoginScope() => $"{AUTH_BRANCH_ROUTE}/{_configuration.ProjectId}/branches/{_configuration.BranchId}/login";
+        private string LinkScope() => $"{LINK_BRANCH_ROUTE}/{_configuration.ProjectId}/branches/{_configuration.BranchId}";
+        private string UnlinkScope() => $"{UNLINK_ROUTE}/{_configuration.ProjectId}";
+        private string SessionScope() => $"{AUTH_ROUTE}/{_configuration.ProjectId}";
+        private string AccountsScope() => $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}";
+
         public AsyncOperation<RestApiResult<GetAuthDataDto>> InitializeAsync()
         {
             if (_storage.HasKey(REFRESH_TOKEN_KEY) == false)
@@ -70,16 +82,23 @@ namespace MirraCloud.Core.Auth
 
             _refreshToken = savedRefresh;
 
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/session";
-            var dto = new RefreshSessionDto { RefreshToken = _refreshToken };
-            return PostAuthAsync(route, dto, noAuth: true);
+            // Restore session via the refresh endpoint — branch comes from the stored Session, not the URL.
+            var op = new AsyncOperation<RestApiResult<GetAuthDataDto>>();
+            var refreshOp = RefreshSessionAsync();
+            refreshOp.UseCompleted(_ =>
+            {
+                op.Complete(refreshOp.Result.IsSuccess
+                    ? RestApiResult<GetAuthDataDto>.Success(null)
+                    : RestApiResult<GetAuthDataDto>.Fail(refreshOp.Result.Error).WithMetaFrom(refreshOp.Result));
+            });
+            return op;
         }
 
         #region Login
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/guest";
+            var route = $"{AuthLoginScope()}/guest";
             var dto = new LoginAsGuestDto { CreateAccount = createAccount };
 
             if (_storage.HasKey(GUESTID_KEY))
@@ -92,21 +111,21 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginDeviceAsync(string deviceId, bool createAccount = true)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/device";
+            var route = $"{AuthLoginScope()}/device";
             var dto = new LoginByDeviceIdDto { DeviceId = deviceId, CreateAccount = createAccount };
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginEmailAsync(string email, string password, bool createAccount = true)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/email";
+            var route = $"{AuthLoginScope()}/email";
             var dto = new LoginByEmailDto { Email = email, Password = password, CreateAccount = createAccount };
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginUsernameAsync(string username, string password, bool createAccount = true)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/username";
+            var route = $"{AuthLoginScope()}/username";
             var dto = new LoginByUsernameDto { Login = username, Password = password, CreateAccount = createAccount };
             return PostAuthAsync(route, dto, noAuth: true);
         }
@@ -119,37 +138,32 @@ namespace MirraCloud.Core.Auth
             Dictionary<string, string> extra = null,
             bool createAccount = true)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/platform";
-            var dto = new LoginByPlatformDto
-            {
-                PlatformId = platformId,
-                ExternalUserId = externalUserId,
-                AuthCode = authCode,
-                PlatformToken = platformToken,
-                Extra = extra,
-                CreateAccount = createAccount
-            };
+            var route = $"{AuthLoginScope()}/platform";
+            var dto = BuildPlatformDto(platformId, externalUserId, authCode, platformToken, extra, createAccount);
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginSignInAsync(
-            string signInProviderId,
-            string externalUserId,
-            string authCode = null,
-            string idToken = null,
-            Dictionary<string, string> extra = null,
-            bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGoogleSignInAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null, bool createAccount = true)
+            => PostSignInAsync("google-sign-in", externalUserId, idToken, authCode, extra, createAccount);
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginSignInWithAppleAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null, bool createAccount = true)
+            => PostSignInAsync("sign-in-with-apple", externalUserId, idToken, authCode, extra, createAccount);
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexSignInAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null, bool createAccount = true)
+            => PostSignInAsync("yandex-sign-in", externalUserId, idToken, authCode, extra, createAccount);
+
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> PostSignInAsync(
+            string suffix, string externalUserId, string idToken, string authCode,
+            Dictionary<string, string> extra, bool createAccount)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/sign-in";
-            var dto = new LoginBySignInProviderDto
-            {
-                SignInProviderId = signInProviderId,
-                ExternalUserId = externalUserId,
-                AuthCode = authCode,
-                IdToken = idToken,
-                Extra = extra,
-                CreateAccount = createAccount
-            };
+            var route = $"{AuthLoginScope()}/{suffix}";
+            var dto = BuildSignInDto(externalUserId, idToken, authCode, extra, createAccount);
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
@@ -190,7 +204,7 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult<string>> BeginOpenIdLoginUrlAsync(int providerId, string successUrl)
         {
-            var route = $"{AUTH_ROUTE}/{_configuration.ProjectId}/login/openid/{providerId}";
+            var route = $"{AuthLoginScope()}/openid/{providerId}";
             return BeginOpenIdLoginUrlAsync(route, successUrl);
         }
 
@@ -282,7 +296,7 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGuestAsync(bool createAccount = false)
         {
-            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/guest";
+            var route = $"{LinkScope()}/guest";
             var dto = new LoginAsGuestDto { CreateAccount = createAccount };
 
             if (_storage.HasKey(GUESTID_KEY))
@@ -295,28 +309,28 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkDeviceAsync(string deviceId, bool createAccount = false)
         {
-            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/device";
+            var route = $"{LinkScope()}/device";
             var dto = new LoginByDeviceIdDto { DeviceId = deviceId, CreateAccount = createAccount };
             return PostAuthAsync(route, dto);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkEmailAsync(string email, string password, bool createAccount = false)
         {
-            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/email";
+            var route = $"{LinkScope()}/email";
             var dto = new LoginByEmailDto { Email = email, Password = password, CreateAccount = createAccount };
             return PostAuthAsync(route, dto);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkUsernameAsync(string username, string password, bool createAccount = false)
         {
-            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/username";
+            var route = $"{LinkScope()}/username";
             var dto = new LoginByUsernameDto { Login = username, Password = password, CreateAccount = createAccount };
             return PostAuthAsync(route, dto);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkOpenIdAsync(string userId, bool createAccount = false)
         {
-            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/openid";
+            var route = $"{LinkScope()}/openid";
             var dto = new LoginByOpenIdDto { UserId = userId, CreateAccount = createAccount };
             return PostAuthAsync(route, dto);
         }
@@ -329,23 +343,97 @@ namespace MirraCloud.Core.Auth
             Dictionary<string, string> extra = null,
             bool createAccount = false)
         {
-            var route = $"{AUTH_LINK_ROUTE}/{_configuration.ProjectId}/platform";
-            var dto = new LoginByPlatformDto
-            {
-                PlatformId = platformId,
-                ExternalUserId = externalUserId,
-                AuthCode = authCode,
-                PlatformToken = platformToken,
-                Extra = extra,
-                CreateAccount = createAccount
-            };
+            var route = $"{LinkScope()}/platform";
+            var dto = BuildPlatformDto(platformId, externalUserId, authCode, platformToken, extra, createAccount);
+            return PostAuthAsync(route, dto);
+        }
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkGoogleSignInAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null, bool createAccount = false)
+            => PostLinkSignInAsync("google-sign-in", externalUserId, idToken, authCode, extra, createAccount);
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkSignInWithAppleAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null, bool createAccount = false)
+            => PostLinkSignInAsync("sign-in-with-apple", externalUserId, idToken, authCode, extra, createAccount);
+
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LinkYandexSignInAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null, bool createAccount = false)
+            => PostLinkSignInAsync("yandex-sign-in", externalUserId, idToken, authCode, extra, createAccount);
+
+        private AsyncOperation<RestApiResult<GetAuthDataDto>> PostLinkSignInAsync(
+            string suffix, string externalUserId, string idToken, string authCode,
+            Dictionary<string, string> extra, bool createAccount)
+        {
+            var route = $"{LinkScope()}/{suffix}";
+            var dto = BuildSignInDto(externalUserId, idToken, authCode, extra, createAccount);
             return PostAuthAsync(route, dto);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> ResolveLinkConflictAsync(LinkAuthProviderDto dto)
         {
-            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/link-conflict/resolve";
+            var route = $"{LinkScope()}/conflict/resolve";
             return PostAuthAsync(route, dto);
+        }
+
+        #endregion
+
+        #region Unlink
+
+        public AsyncOperation<RestApiResult> UnlinkOpenIdAsync(string userId)
+        {
+            var route = $"{UnlinkScope()}/openid";
+            var dto = new LoginByOpenIdDto { UserId = userId };
+            return DeleteAsync(route, dto);
+        }
+
+        public AsyncOperation<RestApiResult> UnlinkPlatformAsync(
+            string platformId, string externalUserId, string authCode = null,
+            string platformToken = null, Dictionary<string, string> extra = null)
+        {
+            var route = $"{UnlinkScope()}/platform";
+            var dto = BuildPlatformDto(platformId, externalUserId, authCode, platformToken, extra, createAccount: false);
+            return DeleteAsync(route, dto);
+        }
+
+        public AsyncOperation<RestApiResult> UnlinkGoogleSignInAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null)
+            => DeleteSignInAsync("google-sign-in", externalUserId, idToken, authCode, extra);
+
+        public AsyncOperation<RestApiResult> UnlinkSignInWithAppleAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null)
+            => DeleteSignInAsync("sign-in-with-apple", externalUserId, idToken, authCode, extra);
+
+        public AsyncOperation<RestApiResult> UnlinkYandexSignInAsync(
+            string externalUserId, string idToken = null, string authCode = null,
+            Dictionary<string, string> extra = null)
+            => DeleteSignInAsync("yandex-sign-in", externalUserId, idToken, authCode, extra);
+
+        private AsyncOperation<RestApiResult> DeleteSignInAsync(
+            string suffix, string externalUserId, string idToken, string authCode, Dictionary<string, string> extra)
+        {
+            var route = $"{UnlinkScope()}/{suffix}";
+            var dto = BuildSignInDto(externalUserId, idToken, authCode, extra, createAccount: false);
+            return DeleteAsync(route, dto);
+        }
+
+        private AsyncOperation<RestApiResult> DeleteAsync(string route, object dto)
+        {
+            // Unlink revokes all sessions on success — clear local state too.
+            var op = _restApi.DeleteAsync(route, dto);
+            op.UseCompleted(_ =>
+            {
+                if (op.Result.IsSuccess)
+                {
+                    ClearSessionAndStorage();
+                    OnSessionExpired?.Invoke();
+                }
+            });
+            return op;
         }
 
         #endregion
@@ -360,7 +448,8 @@ namespace MirraCloud.Core.Auth
                 return AsyncOperation<RestApiResult>.CreateCompleted(RestApiResult.ValidationFail("Refresh token is empty."));
             }
 
-            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/refresh";
+            // Refresh URL does NOT include branchId — the server reads branch/environment from the Session.
+            var route = $"{SessionScope()}/session/refresh";
             var dto = new RefreshSessionDto { RefreshToken = _refreshToken };
 
             var refreshOp = _restApi.PostAsync<SessionRefreshResultDto>(route, dto, new RestRequestConfig { NoAuth = true, DisableRetry = true });
@@ -388,7 +477,7 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult> LogoutAsync()
         {
-            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/logout";
+            var route = $"{AccountsScope()}/logout";
             var dto = new LogoutSessionDto { SessionId = _sessionId };
 
             var op = _restApi.PostAsync(route, dto);
@@ -402,7 +491,7 @@ namespace MirraCloud.Core.Auth
 
         public AsyncOperation<RestApiResult> LogoutAllAsync()
         {
-            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/logout/all";
+            var route = $"{AccountsScope()}/logout/all";
             var op = _restApi.PostAsync(route, new { });
             op.UseCompleted(_ =>
             {
@@ -416,11 +505,36 @@ namespace MirraCloud.Core.Auth
 
         #region Internal handlers
 
+        private static LoginByPlatformDto BuildPlatformDto(
+            string platformId, string externalUserId, string authCode, string platformToken,
+            Dictionary<string, string> extra, bool createAccount)
+            => new LoginByPlatformDto
+            {
+                PlatformId = platformId,
+                ExternalUserId = externalUserId,
+                AuthCode = authCode,
+                PlatformToken = platformToken,
+                Extra = extra,
+                CreateAccount = createAccount
+            };
+
+        private static LoginBySignInProviderDto BuildSignInDto(
+            string externalUserId, string idToken, string authCode,
+            Dictionary<string, string> extra, bool createAccount)
+            => new LoginBySignInProviderDto
+            {
+                ExternalUserId = externalUserId,
+                IdToken = idToken,
+                AuthCode = authCode,
+                Extra = extra,
+                CreateAccount = createAccount
+            };
+
         private AsyncOperation<RestApiResult<GetAuthDataDto>> PostAuthAsync(string route, object dto, bool noAuth = false)
         {
             var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
             var op = _restApi.PostAsync<GetAuthDataDto>(route, dto, config);
-            op.UseCompleted(HandleAuthCompleted); ;
+            op.UseCompleted(HandleAuthCompleted);
             return op;
         }
 
@@ -428,7 +542,7 @@ namespace MirraCloud.Core.Auth
         {
             var config = noAuth ? new RestRequestConfig { NoAuth = true, DisableRetry = true } : null;
             var operation = _restApi.GetAsync<GetAuthDataDto>(route, config);
-            
+
             operation.UseCompleted(HandleAuthCompleted);
             return operation;
         }
@@ -437,7 +551,7 @@ namespace MirraCloud.Core.Auth
         {
             _logger.Log("handle auth");
             var result = operation.Result;
-            
+
             if (!result.IsSuccess)
             {
                 _logger.Error(result.Error?.Message ?? "Auth request failed.");
@@ -524,7 +638,7 @@ namespace MirraCloud.Core.Auth
             {
                 return config;
             }
-            
+
             if (!string.IsNullOrEmpty(_authToken))
             {
                 config.Headers ??= new Dictionary<string, string>();

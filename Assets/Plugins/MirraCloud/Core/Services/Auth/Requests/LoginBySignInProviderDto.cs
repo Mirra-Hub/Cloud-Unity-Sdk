@@ -4,16 +4,16 @@ using System.Collections.Generic;
 namespace MirraCloud.Core.Auth
 {
     /// <summary>
-    /// DTO for /login/sign-in. Identifies the player by (SignInProviderId, ExternalUserId)
-    /// and optionally carries provider-specific verification data:
+    /// DTO for sign-in providers (Google / Apple / Yandex). The provider type is encoded in the URL
+    /// (e.g. /login/google-sign-in), so this body only carries the verification payload:
     /// - AuthCode for OAuth code-flow providers (Yandex ID),
     /// - IdToken for ID-token providers (Google Sign-In, Sign In With Apple),
-    /// - Extra for additional native data (Apple Game Center signature payload).
+    /// - Extra for additional native data,
+    /// - ExternalUserId can be set explicitly when the provider does not return it via the verifier.
     /// </summary>
     [Serializable]
     public class LoginBySignInProviderDto
     {
-        public string SignInProviderId;
         public string ExternalUserId;
         public string AuthCode;
         public string IdToken;

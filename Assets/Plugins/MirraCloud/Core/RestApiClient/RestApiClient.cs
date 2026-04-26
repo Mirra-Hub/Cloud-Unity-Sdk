@@ -136,7 +136,13 @@ namespace MirraCloud.Core
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbDELETE, null, config);
             return SendRequest(finalConfig);
         }
-        
+
+        public AsyncOperation<RestApiResult> DeleteAsync(string route, object body, RestRequestConfig config = null)
+        {
+            var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbDELETE, body, config);
+            return SendRequest(finalConfig);
+        }
+
         public AsyncOperation<RestApiResult<T>> DeleteAsync<T>(string route, RestRequestConfig config = null)
         {
             var finalConfig = BuildConfig(route, UnityWebRequest.kHttpVerbDELETE, null, config);
