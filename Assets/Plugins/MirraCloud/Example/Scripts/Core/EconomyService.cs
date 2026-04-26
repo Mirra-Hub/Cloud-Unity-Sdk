@@ -49,15 +49,15 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
                     Key = item.Key,
                 };
 
-                string iconUrl = (string)item.Fields["icon"];
-
-                var loadIconOperation = _sdk.AssetsStorage.LoadSpriteFromId(iconUrl);
-                loadIconOperation.OnCompleted += asyncOperation =>
-                {
-                    economyItem.SetIcon(loadIconOperation.Result.Data);
-                };
-
-                _items.Add(item.Key, economyItem);
+                // string iconUrl = (string)item.Fields["icon"];
+                //
+                // var loadIconOperation = _sdk.AssetsStorage.LoadSpriteFromId(iconUrl);
+                // loadIconOperation.OnCompleted += asyncOperation =>
+                // {
+                //     economyItem.SetIcon(loadIconOperation.Result.Data);
+                // };
+                //
+                // _items.Add(item.Key, economyItem);
             }
 
             return isSuccess;

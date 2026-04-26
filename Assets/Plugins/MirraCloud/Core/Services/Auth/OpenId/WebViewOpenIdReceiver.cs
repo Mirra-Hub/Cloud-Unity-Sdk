@@ -1,15 +1,17 @@
 using System;
-using System.Text.RegularExpressions;
 using MirraCloud.Core.WebView;
+using MirraCloud.Core.WebView.Dispatching;
+using MirraCloud.Core.WebView.Protocol;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Auth.OpenId
 {
     internal sealed class WebViewOpenIdReceiver : IOpenIdCallbackReceiver
     {
+        private const string KeyParamName = "mirra_openid_key";
+
         private readonly WebViewService _webView;
         private readonly string _callbackUrl;
-        private readonly string _callbackUrlNormalized;
         private readonly AsyncOperation<string> _keyOp = new AsyncOperation<string>();
 
         private bool _disposed;
@@ -21,10 +23,8 @@ namespace MirraCloud.Core.Auth.OpenId
         {
             _webView = webView;
             _callbackUrl = callbackUrl;
-            _callbackUrlNormalized = NormalizeForPrefixCompare(callbackUrl);
 
-            _webView.OnUrlHooked += HandleCallbackUrl;
-            _webView.OnPageStarted += HandleCallbackUrl;
+            _webView.RegisterCallbackHandler(_callbackUrl, new KeyHandler(KeyParamName, CompleteWith));
         }
 
         public bool LaunchAuthUrl(string authUrl)
@@ -44,9 +44,7 @@ namespace MirraCloud.Core.Auth.OpenId
                 return false;
             }
 
-            var hookRegex = "^" + Regex.Escape(_callbackUrl);
-            _webView.SetUrlPattern(null, null, hookRegex);
-
+            _webView.ActivateHookPattern();
             _webView.SetVisibility(true);
             _webView.LoadUrl(authUrl);
             return true;
@@ -66,9 +64,7 @@ namespace MirraCloud.Core.Auth.OpenId
 
             _disposed = true;
 
-            try { _webView.OnUrlHooked -= HandleCallbackUrl; } catch { /* ignored */ }
-            try { _webView.OnPageStarted -= HandleCallbackUrl; } catch { /* ignored */ }
-            try { _webView.SetUrlPattern(null, null, null); } catch { /* ignored */ }
+            try { _webView.ClearCallbackHandlers(); } catch { /* ignored */ }
             try { _webView.SetVisibility(false); } catch { /* ignored */ }
 
             if (!_completed)
@@ -78,20 +74,9 @@ namespace MirraCloud.Core.Auth.OpenId
             }
         }
 
-        private void HandleCallbackUrl(string url)
+        private void CompleteWith(string key)
         {
             if (_completed || _disposed)
-            {
-                return;
-            }
-
-            if (string.IsNullOrEmpty(url))
-            {
-                return;
-            }
-
-            var normalized = NormalizeForPrefixCompare(url);
-            if (!normalized.StartsWith(_callbackUrlNormalized, StringComparison.Ordinal))
             {
                 return;
             }
@@ -99,27 +84,25 @@ namespace MirraCloud.Core.Auth.OpenId
             try { _webView.LoadUrl("about:blank"); } catch { /* ignored */ }
 
             _completed = true;
-
-            if (OpenIdCallbackUrlParser.TryGetOpenIdKey(url, out var key))
-            {
-                _keyOp.Complete(key);
-            }
-            else
-            {
-                _keyOp.Complete(null);
-            }
+            _keyOp.Complete(key);
         }
 
-        private static string NormalizeForPrefixCompare(string url)
+        private sealed class KeyHandler : IWebViewCallbackHandler
         {
-            if (string.IsNullOrEmpty(url))
+            private readonly string _paramName;
+            private readonly Action<string> _onMatch;
+
+            public KeyHandler(string paramName, Action<string> onMatch)
             {
-                return string.Empty;
+                _paramName = paramName;
+                _onMatch = onMatch;
             }
 
-            var questionIndex = url.IndexOf('?');
-            var basePart = questionIndex >= 0 ? url.Substring(0, questionIndex) : url;
-            return basePart.TrimEnd('/').ToLowerInvariant();
+            public void Handle(WebViewCallbackEnvelope envelope)
+            {
+                envelope.QueryParams.TryGetValue(_paramName, out var key);
+                _onMatch(string.IsNullOrWhiteSpace(key) ? null : key);
+            }
         }
     }
 }

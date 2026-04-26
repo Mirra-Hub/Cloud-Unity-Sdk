@@ -1,5 +1,6 @@
 #if UNITY_ANDROID || UNITY_IOS
 using System;
+using MirraCloud.Core.WebView.Utils;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
 
@@ -39,10 +40,7 @@ namespace MirraCloud.Core.Auth.OpenId
             _isWaiting = true;
             Application.deepLinkActivated += OnDeepLinkActivated;
 
-            if (OpenIdCallbackUrlParser.TryGetOpenIdKey(Application.absoluteURL, out var key))
-            {
-                Complete(key);
-            }
+            TryCompleteFromUrl(Application.absoluteURL);
 
             return _keyOp;
         }
@@ -54,7 +52,12 @@ namespace MirraCloud.Core.Auth.OpenId
 
         private void OnDeepLinkActivated(string url)
         {
-            if (OpenIdCallbackUrlParser.TryGetOpenIdKey(url, out var key))
+            TryCompleteFromUrl(url);
+        }
+
+        private void TryCompleteFromUrl(string url)
+        {
+            if (CallbackUrlParser.ParseQuery(url).TryGetValue("mirra_openid_key", out var key) && !string.IsNullOrWhiteSpace(key))
             {
                 Complete(key);
             }

@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using MirraCloud.Core.WebView.Utils;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Auth.OpenId
@@ -111,7 +112,8 @@ namespace MirraCloud.Core.Auth.OpenId
                     var context = await _listener.GetContextAsync();
                     var callbackUrl = context.Request.Url?.ToString();
 
-                    var ok = OpenIdCallbackUrlParser.TryGetOpenIdKey(callbackUrl, out var key);
+                    CallbackUrlParser.ParseQuery(callbackUrl).TryGetValue("mirra_openid_key", out var key);
+                    var ok = !string.IsNullOrWhiteSpace(key);
                     await WriteHtmlAsync(context.Response, ok);
 
                     _syncContext.Post(_ => _keyOp.Complete(ok ? key : null), null);

@@ -1,4 +1,7 @@
 using System;
+using MirraCloud.Core.WebView.Dispatching;
+using MirraCloud.Core.WebView.Protocol;
+using MirraCloud.Core.WebView.Utils;
 using Plugins.MirraCloud.Core.General.LifeCycle;
 using UnityEngine;
 
@@ -7,6 +10,7 @@ namespace MirraCloud.Core.WebView
     public sealed class WebViewService : ICloudSdkService
     {
         private WebViewBridge _bridge;
+        private readonly WebViewCallbackDispatcher _dispatcher = new WebViewCallbackDispatcher();
 
         public event Action<string> OnMessageReceived;
         public event Action<string> OnError;
@@ -64,6 +68,27 @@ namespace MirraCloud.Core.WebView
             _bridge.Raw.SetURLPattern(allowPattern, denyPattern, hookPattern);
         }
 
+        internal void RegisterCallbackHandler(string urlKey, IWebViewCallbackHandler handler)
+        {
+            _dispatcher.Register(urlKey, handler);
+        }
+
+        internal void UnregisterCallbackHandler(string urlKey)
+        {
+            _dispatcher.Unregister(urlKey);
+        }
+
+        internal void ClearCallbackHandlers()
+        {
+            _dispatcher.Clear();
+            SetUrlPattern(null, null, null);
+        }
+
+        internal void ActivateHookPattern()
+        {
+            SetUrlPattern(null, null, _dispatcher.BuildHookRegex());
+        }
+
         public void EvaluateJS(string script)
         {
             if (!IsReady) return;
@@ -109,8 +134,19 @@ namespace MirraCloud.Core.WebView
         private void HandleMessageReceived(string msg) => OnMessageReceived?.Invoke(msg);
         private void HandleError(string err) => OnError?.Invoke(err);
         private void HandleHttpError(string err) => OnHttpError?.Invoke(err);
-        private void HandlePageStarted(string url) => OnPageStarted?.Invoke(url);
+
+        private void HandlePageStarted(string url)
+        {
+            _dispatcher.Dispatch(CallbackUrlParser.BuildEnvelope(url, WebViewCallbackSource.PageStarted));
+            OnPageStarted?.Invoke(url);
+        }
+
         private void HandlePageLoaded(string url) => OnPageLoaded?.Invoke(url);
-        private void HandleUrlHooked(string url) => OnUrlHooked?.Invoke(url);
+
+        private void HandleUrlHooked(string url)
+        {
+            _dispatcher.Dispatch(CallbackUrlParser.BuildEnvelope(url, WebViewCallbackSource.UrlHooked));
+            OnUrlHooked?.Invoke(url);
+        }
     }
 }

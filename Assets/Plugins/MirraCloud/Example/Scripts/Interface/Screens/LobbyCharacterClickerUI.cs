@@ -20,17 +20,17 @@ namespace MirraCloud.Example
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            _leaderboardTest.SendEvent();
+            // _leaderboardTest.SendEvent();
 
-            _sequence?.Kill();
-            _characterTransform.transform.localScale = Vector3.one;
+            // _sequence?.Kill();
+            // _characterTransform.transform.localScale = Vector3.one;
 
-            _sequence = DOTween.Sequence();
+            // _sequence = DOTween.Sequence();
             
-            _sequence
-                .Append(_characterTransform.DOScale(1.1f, 0.2f))
-                .Append(_characterTransform.DOScale(1f, 0.2f))
-                .SetEase(Ease.InOutSine);
+            // _sequence
+            //     .Append(_characterTransform.DOScale(1.1f, 0.2f))
+            //     .Append(_characterTransform.DOScale(1f, 0.2f))
+            //    .SetEase(Ease.InOutSine);
         }
     }
 }

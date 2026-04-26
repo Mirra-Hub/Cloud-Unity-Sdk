@@ -1,6 +1,7 @@
 using System;
-using System.Text.RegularExpressions;
 using MirraCloud.Core.WebView;
+using MirraCloud.Core.WebView.Dispatching;
+using MirraCloud.Core.WebView.Protocol;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Core.Purchases.WebView
@@ -10,8 +11,6 @@ namespace MirraCloud.Core.Purchases.WebView
         private readonly WebViewService _webView;
         private readonly string _successUrl;
         private readonly string _cancelUrl;
-        private readonly string _successUrlNormalized;
-        private readonly string _cancelUrlNormalized;
         private readonly AsyncOperation<PaymentFlowOutcome> _outcomeOp = new AsyncOperation<PaymentFlowOutcome>();
 
         private bool _disposed;
@@ -22,11 +21,9 @@ namespace MirraCloud.Core.Purchases.WebView
             _webView = webView;
             _successUrl = successUrl;
             _cancelUrl = cancelUrl;
-            _successUrlNormalized = NormalizeForPrefixCompare(successUrl);
-            _cancelUrlNormalized = NormalizeForPrefixCompare(cancelUrl);
 
-            _webView.OnUrlHooked += HandleCallbackUrl;
-            _webView.OnPageStarted += HandleCallbackUrl;
+            _webView.RegisterCallbackHandler(_successUrl, new OutcomeHandler(PaymentFlowOutcome.Success, CompleteWith));
+            _webView.RegisterCallbackHandler(_cancelUrl, new OutcomeHandler(PaymentFlowOutcome.Cancelled, CompleteWith));
         }
 
         public bool LaunchPaymentUrl(string paymentUrl)
@@ -46,9 +43,7 @@ namespace MirraCloud.Core.Purchases.WebView
                 return false;
             }
 
-            var hookRegex = "^(" + Regex.Escape(_successUrl) + "|" + Regex.Escape(_cancelUrl) + ")";
-            _webView.SetUrlPattern(null, null, hookRegex);
-
+            _webView.ActivateHookPattern();
             _webView.SetVisibility(true);
             _webView.LoadUrl(paymentUrl);
             return true;
@@ -68,9 +63,7 @@ namespace MirraCloud.Core.Purchases.WebView
 
             _disposed = true;
 
-            try { _webView.OnUrlHooked -= HandleCallbackUrl; } catch { /* ignored */ }
-            try { _webView.OnPageStarted -= HandleCallbackUrl; } catch { /* ignored */ }
-            try { _webView.SetUrlPattern(null, null, null); } catch { /* ignored */ }
+            try { _webView.ClearCallbackHandlers(); } catch { /* ignored */ }
             try { _webView.SetVisibility(false); } catch { /* ignored */ }
 
             if (!_completed)
@@ -80,30 +73,9 @@ namespace MirraCloud.Core.Purchases.WebView
             }
         }
 
-        private void HandleCallbackUrl(string url)
+        private void CompleteWith(PaymentFlowOutcome outcome)
         {
             if (_completed || _disposed)
-            {
-                return;
-            }
-
-            if (string.IsNullOrEmpty(url))
-            {
-                return;
-            }
-
-            var normalized = NormalizeForPrefixCompare(url);
-
-            PaymentFlowOutcome outcome;
-            if (normalized.StartsWith(_successUrlNormalized, StringComparison.Ordinal))
-            {
-                outcome = PaymentFlowOutcome.Success;
-            }
-            else if (normalized.StartsWith(_cancelUrlNormalized, StringComparison.Ordinal))
-            {
-                outcome = PaymentFlowOutcome.Cancelled;
-            }
-            else
             {
                 return;
             }
@@ -114,16 +86,21 @@ namespace MirraCloud.Core.Purchases.WebView
             _outcomeOp.Complete(outcome);
         }
 
-        private static string NormalizeForPrefixCompare(string url)
+        private sealed class OutcomeHandler : IWebViewCallbackHandler
         {
-            if (string.IsNullOrEmpty(url))
+            private readonly PaymentFlowOutcome _outcome;
+            private readonly Action<PaymentFlowOutcome> _onMatch;
+
+            public OutcomeHandler(PaymentFlowOutcome outcome, Action<PaymentFlowOutcome> onMatch)
             {
-                return string.Empty;
+                _outcome = outcome;
+                _onMatch = onMatch;
             }
 
-            var questionIndex = url.IndexOf('?');
-            var basePart = questionIndex >= 0 ? url.Substring(0, questionIndex) : url;
-            return basePart.TrimEnd('/').ToLowerInvariant();
+            public void Handle(WebViewCallbackEnvelope envelope)
+            {
+                _onMatch(_outcome);
+            }
         }
     }
 }
