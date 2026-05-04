@@ -22,9 +22,9 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
             return _sdk.Authentication.IsAuth;
         }
 
-        public async Task<bool> LoginGuest()
+        public async Task<bool> LoginGuest(string nickname = null)
         {
-            var authOperation = _sdk.Authentication.LoginGuestAsync();
+            var authOperation = _sdk.Authentication.LoginGuestAsync(nickname: nickname);
 
             await authOperation.Task();
 

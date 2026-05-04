@@ -1,5 +1,6 @@
 using MirraCloud.Example.Infrastructure.DI;
 using Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,8 @@ namespace MirraCloud.Example
     {
         [SerializeField] private Button _logiDevicenButton;
         [SerializeField] private Button _logiGuestButton;
-       
+        [SerializeField] private TMP_InputField _nicknameInputField;
+
         private LoginService _loginService;
 
         [InjectDep]
@@ -17,7 +19,7 @@ namespace MirraCloud.Example
         {
             _loginService = loginService;
         }
-        
+
         protected override void OnEnableScreen()
         {
             _logiDevicenButton.onClick.AddListener(LoginDevice);
@@ -34,10 +36,11 @@ namespace MirraCloud.Example
         {
             _loginService.LoginDevice();
         }
-        
+
         private void LoginGuest()
         {
-            _loginService.LoginGuest();
+            string nickname = _nicknameInputField != null ? _nicknameInputField.text : null;
+            _loginService.LoginGuest(nickname);
         }
     }
 }

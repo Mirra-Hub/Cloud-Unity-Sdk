@@ -22,10 +22,10 @@ namespace Plugins.MirraCloud.Example.Scripts.Infrastructure.Lobby
             _uiController = uiController;
         }
         
-        public async void LoginGuest()
+        public async void LoginGuest(string nickname = null)
         {
-            bool isSuccess = await _authService.LoginGuest();
-            
+            bool isSuccess = await _authService.LoginGuest(nickname);
+
             HandleLogin(isSuccess);
         }
 
