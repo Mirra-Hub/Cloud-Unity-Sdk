@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using MirraCloud.Core;
 using MirraCloud.Core.Auth;
 using MirraCloud.Core.Auth.OpenId;
@@ -8,12 +10,24 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 {
     public class WebViewAuthTest : MonoBehaviour
     {
-        public enum OpenIdAuthPlatform
+        public enum AuthMethod
         {
-            // Let OpenIdCallbackReceiverFactory pick the receiver based on compile-time defines:
-            // loopback on Editor/Standalone, deep link on Android/iOS.
+            // LoginOpenIdAsync — full OAuth/OIDC flow against a custom OpenID provider
+            // configured in the project admin. Identified by numeric providerId.
+            OpenId = 0,
+            // LoginPlatformAsync — login through a backend Platform entity (Google Play,
+            // Apple Game Center, Sign In With Apple, Google Sign-In, VK Games, Yandex Games,
+            // Yandex ID). Identified by the Platform's ObjectId. Requires marketplace-specific
+            // fields (externalUserId / authCode / platformToken / extra) to be filled.
+            Platform = 1,
+        }
+
+        public enum OpenIdTransport
+        {
+            // Let OpenIdCallbackReceiverFactory pick the receiver based on compile-time
+            // defines: loopback on Editor/Standalone, deep link on Android/iOS.
             Auto = 0,
-            // In-app WebView. Works on Editor/Standalone/Android/iOS, no deep-link setup required.
+            // In-app WebView. Editor/Standalone/Android/iOS, no deep-link setup required.
             InAppWebView = 1,
             // System browser + local HTTP loopback listener. Editor/Standalone only.
             DesktopLoopback = 2,
@@ -21,26 +35,46 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             MobileDeepLink = 3,
         }
 
-        [Header("OpenID Provider")]
+        [Serializable]
+        private struct ExtraEntry
+        {
+            public string Key;
+            public string Value;
+        }
+
+        [Header("Auth method")]
+        [Tooltip("Which SDK call to make on F1.")]
+        [SerializeField] private AuthMethod _method = AuthMethod.OpenId;
+
+        [Header("Common")]
+        [SerializeField] private bool _createAccount = true;
+        [Tooltip("Nickname used by the server only when CreateAccount=true and the account does not yet exist.")]
+        [SerializeField] private string _nickname;
+
+        [Header("OpenID provider (method = OpenId)")]
         [Tooltip("Numeric id of the OpenId provider registered for this project via PlayerAccounts admin API.")]
         [SerializeField] private int _providerId;
-
-        [Header("Auth Platform")]
         [Tooltip("Transport used to display the OAuth page and intercept the callback.")]
-        [SerializeField] private OpenIdAuthPlatform _platform = OpenIdAuthPlatform.InAppWebView;
-
-        [Header("InAppWebView settings")]
+        [SerializeField] private OpenIdTransport _transport = OpenIdTransport.InAppWebView;
         [SerializeField] private string _webViewCallbackUrl = OpenIdLoginOptions.DefaultWebViewCallbackUrl;
         [Tooltip("Margins (left, top, right, bottom) applied to the in-app WebView when it is shown for the OpenID auth page.")]
         [SerializeField] private Vector4 _webViewMargins = new Vector4(50, 100, 50, 100);
-
-        [Header("DesktopLoopback settings")]
         [Tooltip("Local TCP port for the loopback HTTP listener. 0 = auto-pick a free port.")]
         [SerializeField] private int _loopbackPort;
-
-        [Header("MobileDeepLink settings")]
         [Tooltip("Custom-scheme URL the system browser must redirect to (e.g. myapp://mirra-openid).")]
         [SerializeField] private string _mobileDeepLinkUrl;
+
+        [Header("Platform provider (method = Platform)")]
+        [Tooltip("ObjectId of the backend Platform entity (admin → Cloud → Platforms). Marketplace type drives which of the fields below are required.")]
+        [SerializeField] private string _platformId;
+        [Tooltip("Stable user id from the marketplace (e.g. Google Player ID, Apple teamPlayerID, VK user_id). Empty for marketplaces that derive it from a token (GoogleSignIn, SignInWithApple, Yandex ID).")]
+        [SerializeField] private string _externalUserId;
+        [Tooltip("OAuth code (Yandex ID OAuth from passport.yandex.ru, or Google Play server auth code).")]
+        [SerializeField] private string _authCode;
+        [Tooltip("Platform-issued signed token: Google ID token (GoogleSignIn), Apple identity JWT (SignInWithApple), Yandex Games signed token, etc.")]
+        [SerializeField] private string _platformToken;
+        [Tooltip("Free-form key/value pairs (Apple Game Center publicKeyUrl/signature/salt/timestamp, VK Games launch params, etc.).")]
+        [SerializeField] private List<ExtraEntry> _extra = new List<ExtraEntry>();
 
         private IMirraCloudSdk _sdk;
 
@@ -66,17 +100,30 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F1)) LoginOpenId();
+            if (Input.GetKeyDown(KeyCode.F1)) Login();
             if (Input.GetKeyDown(KeyCode.F2)) CheckAuthState();
             if (Input.GetKeyDown(KeyCode.F3)) Logout();
             if (Input.GetKeyDown(KeyCode.F4)) TestWebViewReuse();
         }
 
+        private void Login()
+        {
+            switch (_method)
+            {
+                case AuthMethod.OpenId:
+                    LoginOpenId();
+                    break;
+                case AuthMethod.Platform:
+                    LoginPlatform();
+                    break;
+            }
+        }
+
         private void LoginOpenId()
         {
-            Debug.Log($"[WebViewAuthTest] LoginOpenId | providerId={_providerId} platform={_platform}");
+            Debug.Log($"[WebViewAuthTest] LoginOpenId | providerId={_providerId} transport={_transport}");
 
-            var options = BuildOptions();
+            var options = BuildOpenIdOptions();
 
             // The SDK only flips the WebView visibility on; the host app is responsible for sizing it.
             // Without explicit margins the native WebView may render at zero size, making the auth page
@@ -91,26 +138,36 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             }
 
             var op = _sdk.Authentication.LoginOpenIdAsync(_providerId, options);
-            op.UseCompleted(completed =>
-            {
-                var result = completed.Result;
-                if (result.IsSuccess)
-                {
-                    var data = result.Data;
-                    Debug.Log($"[WebViewAuthTest] Login SUCCESS | status={data.Status} token={Truncate(data.Token)} sessionId={data.Session?.SessionId}");
-                }
-                else
-                {
-                    Debug.LogError($"[WebViewAuthTest] Login FAILED | {result.Error?.Message}");
-                }
-            });
+            op.UseCompleted(completed => LogResult("LoginOpenId", completed.Result));
         }
 
-        private OpenIdLoginOptions BuildOptions()
+        private void LoginPlatform()
         {
-            switch (_platform)
+            Debug.Log($"[WebViewAuthTest] LoginPlatform | platformId={_platformId} externalUserId={_externalUserId}");
+
+            if (string.IsNullOrWhiteSpace(_platformId))
             {
-                case OpenIdAuthPlatform.InAppWebView:
+                Debug.LogError("[WebViewAuthTest] PlatformId is empty — fill it in the inspector.");
+                return;
+            }
+
+            var op = _sdk.Authentication.LoginPlatformAsync(
+                platformId: _platformId,
+                externalUserId: _externalUserId,
+                authCode: NullIfEmpty(_authCode),
+                platformToken: NullIfEmpty(_platformToken),
+                extra: BuildExtra(),
+                createAccount: _createAccount,
+                nickname: NullIfEmpty(_nickname));
+
+            op.UseCompleted(completed => LogResult("LoginPlatform", completed.Result));
+        }
+
+        private OpenIdLoginOptions BuildOpenIdOptions()
+        {
+            switch (_transport)
+            {
+                case OpenIdTransport.InAppWebView:
                     return new OpenIdLoginOptions
                     {
                         UseInAppWebView = true,
@@ -119,29 +176,54 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                             : _webViewCallbackUrl,
                     };
 
-                case OpenIdAuthPlatform.DesktopLoopback:
+                case OpenIdTransport.DesktopLoopback:
                     return new OpenIdLoginOptions
                     {
                         UseInAppWebView = false,
                         LoopbackPort = _loopbackPort,
                     };
 
-                case OpenIdAuthPlatform.MobileDeepLink:
+                case OpenIdTransport.MobileDeepLink:
                     return new OpenIdLoginOptions
                     {
                         UseInAppWebView = false,
                         MobileDeepLinkUrl = _mobileDeepLinkUrl,
                     };
 
-                case OpenIdAuthPlatform.Auto:
+                case OpenIdTransport.Auto:
                 default:
-                    // Hand both desktop and mobile fields to the factory; it picks one by compile-time defines.
                     return new OpenIdLoginOptions
                     {
                         UseInAppWebView = false,
                         LoopbackPort = _loopbackPort,
                         MobileDeepLinkUrl = _mobileDeepLinkUrl,
                     };
+            }
+        }
+
+        private Dictionary<string, string> BuildExtra()
+        {
+            if (_extra == null || _extra.Count == 0) return null;
+
+            var dict = new Dictionary<string, string>(_extra.Count);
+            foreach (var entry in _extra)
+            {
+                if (string.IsNullOrEmpty(entry.Key)) continue;
+                dict[entry.Key] = entry.Value;
+            }
+            return dict.Count > 0 ? dict : null;
+        }
+
+        private void LogResult(string label, RestApiResult<GetAuthDataDto> result)
+        {
+            if (result.IsSuccess)
+            {
+                var data = result.Data;
+                Debug.Log($"[WebViewAuthTest] {label} SUCCESS | status={data.Status} token={Truncate(data.Token)} sessionId={data.Session?.SessionId}");
+            }
+            else
+            {
+                Debug.LogError($"[WebViewAuthTest] {label} FAILED | {result.Error?.Message}");
             }
         }
 
@@ -197,6 +279,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         {
             Debug.LogWarning("[WebViewAuthTest] EVENT OnSessionExpired");
         }
+
+        private static string NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
         private static string Truncate(string value)
         {
