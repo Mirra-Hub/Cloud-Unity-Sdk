@@ -272,18 +272,25 @@ namespace MirraCloud.Core.Auth
                     return;
                 }
 
-                var waitOp = receiver.WaitForKeyAsync();
+                var waitOp = receiver.WaitForCallbackAsync();
                 waitOp.UseCompleted(_ =>
                 {
                     receiver.Dispose();
 
-                    if (string.IsNullOrWhiteSpace(waitOp.Result))
+                    var callbackResult = waitOp.Result;
+                    if (!string.IsNullOrEmpty(callbackResult.ErrorMessage))
+                    {
+                        op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail(callbackResult.ErrorMessage));
+                        return;
+                    }
+
+                    if (!callbackResult.IsSuccess)
                     {
                         op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId callback key was not received."));
                         return;
                     }
 
-                    var completeOp = CompleteOpenIdLoginAsync(waitOp.Result);
+                    var completeOp = CompleteOpenIdLoginAsync(callbackResult.Key);
                     completeOp.UseCompleted(completed => op.Complete(completed.Result));
                 });
             });

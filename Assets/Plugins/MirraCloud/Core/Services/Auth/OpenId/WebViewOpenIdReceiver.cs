@@ -9,10 +9,11 @@ namespace MirraCloud.Core.Auth.OpenId
     internal sealed class WebViewOpenIdReceiver : IOpenIdCallbackReceiver
     {
         private const string KeyParamName = "mirra_openid_key";
+        private const string ErrorParamName = "mirra_openid_error";
 
         private readonly WebViewService _webView;
         private readonly string _callbackUrl;
-        private readonly AsyncOperation<string> _keyOp = new AsyncOperation<string>();
+        private readonly AsyncOperation<OpenIdCallbackResult> _resultOp = new AsyncOperation<OpenIdCallbackResult>();
 
         private bool _disposed;
         private bool _completed;
@@ -24,7 +25,7 @@ namespace MirraCloud.Core.Auth.OpenId
             _webView = webView;
             _callbackUrl = callbackUrl;
 
-            _webView.RegisterCallbackHandler(_callbackUrl, new KeyHandler(KeyParamName, CompleteWith));
+            _webView.RegisterCallbackHandler(_callbackUrl, new CallbackHandler(CompleteWith));
         }
 
         public bool LaunchAuthUrl(string authUrl)
@@ -50,9 +51,9 @@ namespace MirraCloud.Core.Auth.OpenId
             return true;
         }
 
-        public AsyncOperation<string> WaitForKeyAsync()
+        public AsyncOperation<OpenIdCallbackResult> WaitForCallbackAsync()
         {
-            return _keyOp;
+            return _resultOp;
         }
 
         public void Dispose()
@@ -70,11 +71,11 @@ namespace MirraCloud.Core.Auth.OpenId
             if (!_completed)
             {
                 _completed = true;
-                _keyOp.Complete(null);
+                _resultOp.Complete(OpenIdCallbackResult.Empty);
             }
         }
 
-        private void CompleteWith(string key)
+        private void CompleteWith(OpenIdCallbackResult result)
         {
             if (_completed || _disposed)
             {
@@ -84,24 +85,36 @@ namespace MirraCloud.Core.Auth.OpenId
             try { _webView.LoadUrl("about:blank"); } catch { /* ignored */ }
 
             _completed = true;
-            _keyOp.Complete(key);
+            _resultOp.Complete(result);
         }
 
-        private sealed class KeyHandler : IWebViewCallbackHandler
+        private sealed class CallbackHandler : IWebViewCallbackHandler
         {
-            private readonly string _paramName;
-            private readonly Action<string> _onMatch;
+            private readonly Action<OpenIdCallbackResult> _onMatch;
 
-            public KeyHandler(string paramName, Action<string> onMatch)
+            public CallbackHandler(Action<OpenIdCallbackResult> onMatch)
             {
-                _paramName = paramName;
                 _onMatch = onMatch;
             }
 
             public void Handle(WebViewCallbackEnvelope envelope)
             {
-                envelope.QueryParams.TryGetValue(_paramName, out var key);
-                _onMatch(string.IsNullOrWhiteSpace(key) ? null : key);
+                // Error wins over key — the backend redirects with one or the
+                // other, but if both ever appeared we'd want the error to
+                // surface so the caller can show a proper message.
+                if (envelope.QueryParams.TryGetValue(ErrorParamName, out var error) && !string.IsNullOrWhiteSpace(error))
+                {
+                    _onMatch(OpenIdCallbackResult.Failure(error));
+                    return;
+                }
+
+                if (envelope.QueryParams.TryGetValue(KeyParamName, out var key) && !string.IsNullOrWhiteSpace(key))
+                {
+                    _onMatch(OpenIdCallbackResult.Success(key));
+                    return;
+                }
+
+                _onMatch(OpenIdCallbackResult.Empty);
             }
         }
     }
