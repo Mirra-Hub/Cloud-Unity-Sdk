@@ -137,6 +137,10 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             {
                 if (completed.Result.IsSuccess && PlayerAccountInfo != null)
                 {
+                    // Nickname is now the *displayed* value (Base or Base+Suffix). The server
+                    // composes the displayed result and may keep a suffix, so the value below
+                    // is approximate; the caller should refresh the account if it needs the
+                    // canonical displayed string.
                     PlayerAccountInfo.Nickname = nickname;
                 }
             });

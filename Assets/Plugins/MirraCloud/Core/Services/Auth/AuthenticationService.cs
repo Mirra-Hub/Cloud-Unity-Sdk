@@ -96,10 +96,13 @@ namespace MirraCloud.Core.Auth
 
         #region Login
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true)
+        // `nickname` is required by the server only when CreateAccount=true and the lookup
+        // misses (i.e. a brand-new account is about to be created). Pass null/empty for
+        // existing-player flows.
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true, string nickname = null)
         {
             var route = $"{AuthLoginScope()}/guest";
-            var dto = new LoginAsGuestDto { CreateAccount = createAccount };
+            var dto = new LoginAsGuestDto { CreateAccount = createAccount, Nickname = nickname };
 
             if (_storage.HasKey(GUESTID_KEY))
             {
@@ -109,24 +112,24 @@ namespace MirraCloud.Core.Auth
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginDeviceAsync(string deviceId, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginDeviceAsync(string deviceId, bool createAccount = true, string nickname = null)
         {
             var route = $"{AuthLoginScope()}/device";
-            var dto = new LoginByDeviceIdDto { DeviceId = deviceId, CreateAccount = createAccount };
+            var dto = new LoginByDeviceIdDto { DeviceId = deviceId, CreateAccount = createAccount, Nickname = nickname };
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginEmailAsync(string email, string password, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginEmailAsync(string email, string password, bool createAccount = true, string nickname = null)
         {
             var route = $"{AuthLoginScope()}/email";
-            var dto = new LoginByEmailDto { Email = email, Password = password, CreateAccount = createAccount };
+            var dto = new LoginByEmailDto { Email = email, Password = password, CreateAccount = createAccount, Nickname = nickname };
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginUsernameAsync(string username, string password, bool createAccount = true)
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginUsernameAsync(string username, string password, bool createAccount = true, string nickname = null)
         {
             var route = $"{AuthLoginScope()}/username";
-            var dto = new LoginByUsernameDto { Login = username, Password = password, CreateAccount = createAccount };
+            var dto = new LoginByUsernameDto { Login = username, Password = password, CreateAccount = createAccount, Nickname = nickname };
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
@@ -136,34 +139,37 @@ namespace MirraCloud.Core.Auth
             string authCode = null,
             string platformToken = null,
             Dictionary<string, string> extra = null,
-            bool createAccount = true)
+            bool createAccount = true,
+            string nickname = null)
         {
             var route = $"{AuthLoginScope()}/platform";
             var dto = BuildPlatformDto(platformId, externalUserId, authCode, platformToken, extra, createAccount);
+            dto.Nickname = nickname;
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGoogleSignInAsync(
             string externalUserId, string idToken = null, string authCode = null,
-            Dictionary<string, string> extra = null, bool createAccount = true)
-            => PostSignInAsync("google-sign-in", externalUserId, idToken, authCode, extra, createAccount);
+            Dictionary<string, string> extra = null, bool createAccount = true, string nickname = null)
+            => PostSignInAsync("google-sign-in", externalUserId, idToken, authCode, extra, createAccount, nickname);
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginSignInWithAppleAsync(
             string externalUserId, string idToken = null, string authCode = null,
-            Dictionary<string, string> extra = null, bool createAccount = true)
-            => PostSignInAsync("sign-in-with-apple", externalUserId, idToken, authCode, extra, createAccount);
+            Dictionary<string, string> extra = null, bool createAccount = true, string nickname = null)
+            => PostSignInAsync("sign-in-with-apple", externalUserId, idToken, authCode, extra, createAccount, nickname);
 
         public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginYandexSignInAsync(
             string externalUserId, string idToken = null, string authCode = null,
-            Dictionary<string, string> extra = null, bool createAccount = true)
-            => PostSignInAsync("yandex-sign-in", externalUserId, idToken, authCode, extra, createAccount);
+            Dictionary<string, string> extra = null, bool createAccount = true, string nickname = null)
+            => PostSignInAsync("yandex-sign-in", externalUserId, idToken, authCode, extra, createAccount, nickname);
 
         private AsyncOperation<RestApiResult<GetAuthDataDto>> PostSignInAsync(
             string suffix, string externalUserId, string idToken, string authCode,
-            Dictionary<string, string> extra, bool createAccount)
+            Dictionary<string, string> extra, bool createAccount, string nickname)
         {
             var route = $"{AuthLoginScope()}/{suffix}";
             var dto = BuildSignInDto(externalUserId, idToken, authCode, extra, createAccount);
+            dto.Nickname = nickname;
             return PostAuthAsync(route, dto, noAuth: true);
         }
 
