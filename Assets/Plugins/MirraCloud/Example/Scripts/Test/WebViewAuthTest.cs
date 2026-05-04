@@ -8,19 +8,39 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 {
     public class WebViewAuthTest : MonoBehaviour
     {
+        public enum OpenIdAuthPlatform
+        {
+            // Let OpenIdCallbackReceiverFactory pick the receiver based on compile-time defines:
+            // loopback on Editor/Standalone, deep link on Android/iOS.
+            Auto = 0,
+            // In-app WebView. Works on Editor/Standalone/Android/iOS, no deep-link setup required.
+            InAppWebView = 1,
+            // System browser + local HTTP loopback listener. Editor/Standalone only.
+            DesktopLoopback = 2,
+            // System browser + custom-scheme deep link callback. Android/iOS only.
+            MobileDeepLink = 3,
+        }
+
         [Header("OpenID Provider")]
         [Tooltip("Numeric id of the OpenId provider registered for this project via PlayerAccounts admin API.")]
         [SerializeField] private int _providerId;
 
-        [Header("WebView")]
-        [SerializeField] private bool _useWebView = true;
-        [SerializeField] private string _callbackUrl = OpenIdLoginOptions.DefaultWebViewCallbackUrl;
+        [Header("Auth Platform")]
+        [Tooltip("Transport used to display the OAuth page and intercept the callback.")]
+        [SerializeField] private OpenIdAuthPlatform _platform = OpenIdAuthPlatform.InAppWebView;
+
+        [Header("InAppWebView settings")]
+        [SerializeField] private string _webViewCallbackUrl = OpenIdLoginOptions.DefaultWebViewCallbackUrl;
         [Tooltip("Margins (left, top, right, bottom) applied to the in-app WebView when it is shown for the OpenID auth page.")]
         [SerializeField] private Vector4 _webViewMargins = new Vector4(50, 100, 50, 100);
 
-        [Header("Fallback (system browser)")]
-        [SerializeField] private string _mobileDeepLinkUrl;
+        [Header("DesktopLoopback settings")]
+        [Tooltip("Local TCP port for the loopback HTTP listener. 0 = auto-pick a free port.")]
         [SerializeField] private int _loopbackPort;
+
+        [Header("MobileDeepLink settings")]
+        [Tooltip("Custom-scheme URL the system browser must redirect to (e.g. myapp://mirra-openid).")]
+        [SerializeField] private string _mobileDeepLinkUrl;
 
         private IMirraCloudSdk _sdk;
 
@@ -47,20 +67,21 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.F1)) LoginOpenId();
-            if (Input.GetKeyDown(KeyCode.F2)) LoginOpenIdSystemBrowser();
-            if (Input.GetKeyDown(KeyCode.F3)) CheckAuthState();
-            if (Input.GetKeyDown(KeyCode.F4)) Logout();
-            if (Input.GetKeyDown(KeyCode.F5)) TestWebViewReuse();
+            if (Input.GetKeyDown(KeyCode.F2)) CheckAuthState();
+            if (Input.GetKeyDown(KeyCode.F3)) Logout();
+            if (Input.GetKeyDown(KeyCode.F4)) TestWebViewReuse();
         }
 
         private void LoginOpenId()
         {
-            Debug.Log($"[WebViewAuthTest] LoginOpenId via WebView | providerId={_providerId}");
+            Debug.Log($"[WebViewAuthTest] LoginOpenId | providerId={_providerId} platform={_platform}");
+
+            var options = BuildOptions();
 
             // The SDK only flips the WebView visibility on; the host app is responsible for sizing it.
             // Without explicit margins the native WebView may render at zero size, making the auth page
             // invisible — that is exactly why login through providers used to silently fail here.
-            if (_useWebView && _sdk.WebView != null && _sdk.WebView.IsReady)
+            if (options.UseInAppWebView && _sdk.WebView != null && _sdk.WebView.IsReady)
             {
                 _sdk.WebView.SetMargins(
                     (int)_webViewMargins.x,
@@ -69,15 +90,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
                     (int)_webViewMargins.w);
             }
 
-            var options = new OpenIdLoginOptions
-            {
-                UseInAppWebView = _useWebView,
-                WebViewCallbackUrl = _callbackUrl,
-                MobileDeepLinkUrl = _mobileDeepLinkUrl,
-                LoopbackPort = _loopbackPort
-            };
-
-            var op = GetLoginOperation(options);
+            var op = _sdk.Authentication.LoginOpenIdAsync(_providerId, options);
             op.UseCompleted(completed =>
             {
                 var result = completed.Result;
@@ -93,30 +106,43 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             });
         }
 
-        private void LoginOpenIdSystemBrowser()
+        private OpenIdLoginOptions BuildOptions()
         {
-            Debug.Log($"[WebViewAuthTest] LoginOpenId via system browser | providerId={_providerId}");
-
-            var options = new OpenIdLoginOptions
+            switch (_platform)
             {
-                UseInAppWebView = false,
-                MobileDeepLinkUrl = _mobileDeepLinkUrl,
-                LoopbackPort = _loopbackPort
-            };
+                case OpenIdAuthPlatform.InAppWebView:
+                    return new OpenIdLoginOptions
+                    {
+                        UseInAppWebView = true,
+                        WebViewCallbackUrl = string.IsNullOrWhiteSpace(_webViewCallbackUrl)
+                            ? OpenIdLoginOptions.DefaultWebViewCallbackUrl
+                            : _webViewCallbackUrl,
+                    };
 
-            var op = GetLoginOperation(options);
-            op.UseCompleted(completed =>
-            {
-                var result = completed.Result;
-                if (result.IsSuccess)
-                {
-                    Debug.Log($"[WebViewAuthTest] Login SUCCESS (browser) | status={result.Data.Status}");
-                }
-                else
-                {
-                    Debug.LogError($"[WebViewAuthTest] Login FAILED (browser) | {result.Error?.Message}");
-                }
-            });
+                case OpenIdAuthPlatform.DesktopLoopback:
+                    return new OpenIdLoginOptions
+                    {
+                        UseInAppWebView = false,
+                        LoopbackPort = _loopbackPort,
+                    };
+
+                case OpenIdAuthPlatform.MobileDeepLink:
+                    return new OpenIdLoginOptions
+                    {
+                        UseInAppWebView = false,
+                        MobileDeepLinkUrl = _mobileDeepLinkUrl,
+                    };
+
+                case OpenIdAuthPlatform.Auto:
+                default:
+                    // Hand both desktop and mobile fields to the factory; it picks one by compile-time defines.
+                    return new OpenIdLoginOptions
+                    {
+                        UseInAppWebView = false,
+                        LoopbackPort = _loopbackPort,
+                        MobileDeepLinkUrl = _mobileDeepLinkUrl,
+                    };
+            }
         }
 
         private void CheckAuthState()
@@ -155,11 +181,6 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             _sdk.WebView.SetVisibility(true);
             _sdk.WebView.LoadUrl("https://example.com");
             Debug.Log("[WebViewAuthTest] WebView should show example.com without URL interception");
-        }
-
-        private Plugins.MirraCloud.Core.General.AsyncOperations.AsyncOperation<RestApiResult<GetAuthDataDto>> GetLoginOperation(OpenIdLoginOptions options)
-        {
-            return _sdk.Authentication.LoginOpenIdAsync(_providerId, options);
         }
 
         private void HandleLogin(GetAuthDataDto data)
