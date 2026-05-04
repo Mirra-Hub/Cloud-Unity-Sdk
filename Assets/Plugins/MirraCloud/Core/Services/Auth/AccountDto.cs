@@ -4,13 +4,30 @@ using MirraCloud.Json;
 
 namespace MirraCloud.Core.Auth
 {
+    /// <summary>
+    /// Server-side composition of the player's nickname.
+    /// Base is what the player typed; Suffix is the server-generated random suffix
+    /// (null when the suffix is not active for this account); Displayed is what the UI
+    /// should render and is computed by the server based on project settings.
+    /// </summary>
+    [Serializable]
+    public class AccountNicknameDto
+    {
+        [JsonNameCamel] public string Base;
+        [JsonNameCamel] public string Suffix;
+        [JsonNameCamel] public string Displayed;
+    }
+
     [Serializable]
     public class AccountDto
     {
         [JsonNameCamel] public string Id;
-        [JsonNameCamel] public string Nickname;
+        [JsonNameCamel] public string Environment;
+        [JsonNameCamel] public AccountNicknameDto Nickname;
         [JsonNameCamel] public int Age;
         [JsonName("iconKey")] public IconKeyDto IconKey;
+        /// <summary>Public Dicebear-rendered URL when the account uses a Dicebear preset; null otherwise.</summary>
+        [JsonNameCamel] public string AvatarUrl;
         [JsonNameCamel] public CountryCode Country;
         [JsonNameCamel] public LanguageCode LanguageCode;
         [JsonNameCamel] public string TimeZone;

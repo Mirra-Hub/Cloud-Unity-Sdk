@@ -18,5 +18,7 @@ namespace MirraCloud.Core.Auth
         public string AuthCode;
         public string PlatformToken;
         public Dictionary<string, string> Extra;
+        /// <summary>Required when the linked provider has to create a new account.</summary>
+        public string Nickname;
     }
 }

@@ -8,6 +8,8 @@ namespace MirraCloud.Core.Auth
         public string Email;
         public string Password;
         public bool CreateAccount;
+        /// <summary>Required when CreateAccount=true and the account does not yet exist.</summary>
+        public string Nickname;
     }
 }
 
