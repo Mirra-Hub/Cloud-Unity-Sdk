@@ -202,6 +202,7 @@ Transform:
   - {fileID: 1778212151}
   - {fileID: 1940606806}
   - {fileID: 1218704720}
+  - {fileID: 1270403979}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &543945411
@@ -606,6 +607,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 389900969}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1270403978
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1270403979}
+  - component: {fileID: 1270403980}
+  m_Layer: 0
+  m_Name: ChatsTest
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1270403979
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1270403978}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 389900969}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1270403980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1270403978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b252d1a5c229f4b4d9f2ae95ac80d85f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _channelId: 4c806d03-5130-43e8-a1d2-6f5b05a4ccbd
+  _messageBody: FUCK YOU!
+  _editedBody: Edited message
 --- !u!1 &1778212150
 GameObject:
   m_ObjectHideFlags: 0
@@ -622,7 +670,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1778212151
 Transform:
   m_ObjectHideFlags: 0
@@ -715,7 +763,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1940606806
 Transform:
   m_ObjectHideFlags: 0
@@ -743,11 +791,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09674f1f75e2f9a4b88638e691004c7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _providerId: 0
-  _useWebView: 1
-  _callbackUrl: https://localhost:8080/callback
-  _mobileDeepLinkUrl: 
+  _method: 0
+  _createAccount: 1
+  _nickname: NEW
+  _providerId: 3
+  _transport: 1
+  _webViewCallbackUrl: https://mirra-openid.local/callback
+  _webViewMargins: {x: 50, y: 100, z: 50, w: 100}
   _loopbackPort: 0
+  _mobileDeepLinkUrl: 
+  _platformId: 
+  _externalUserId: 
+  _authCode: 
+  _platformToken: 
+  _extra: []
 --- !u!1 &2039557169 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5434824272305701590, guid: fbe5f0f75bf1ae44c8ac01801e9bd838, type: 3}

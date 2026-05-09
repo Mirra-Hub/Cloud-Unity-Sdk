@@ -22,13 +22,16 @@ namespace Plugins.MirraCloud.Example.Scripts.Core
             return _sdk.Authentication.IsAuth;
         }
 
-        public async Task<bool> LoginGuest(string nickname = null)
+        public async Task<bool> LoginGuest()
         {
-            var authOperation = _sdk.Authentication.LoginGuestAsync(nickname: nickname);
+            // Guest login is anonymous — the server generates a nickname based
+            // on the project's NicknameSettings, so nothing needs to be passed
+            // from the client.
+            var authOperation = _sdk.Authentication.LoginGuestAsync();
 
             await authOperation.Task();
 
-           return _sdk.Authentication.IsAuth;
+            return _sdk.Authentication.IsAuth;
         }
     }
 }

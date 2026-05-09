@@ -96,13 +96,15 @@ namespace MirraCloud.Core.Auth
 
         #region Login
 
-        // `nickname` is required by the server only when CreateAccount=true and the lookup
-        // misses (i.e. a brand-new account is about to be created). Pass null/empty for
-        // existing-player flows.
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true, string nickname = null)
+        // Guest login is anonymous by design — the player doesn't pick a nickname,
+        // the server generates one based on ProjectAuthSettings (regex / random
+        // suffix / mode). The SDK therefore intentionally does not expose a
+        // nickname argument here; if a project later wants to let guests choose
+        // a display name they should be using device or username login instead.
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true)
         {
             var route = $"{AuthLoginScope()}/guest";
-            var dto = new LoginAsGuestDto { CreateAccount = createAccount, Nickname = nickname };
+            var dto = new LoginAsGuestDto { CreateAccount = createAccount };
 
             if (_storage.HasKey(GUESTID_KEY))
             {
@@ -272,18 +274,25 @@ namespace MirraCloud.Core.Auth
                     return;
                 }
 
-                var waitOp = receiver.WaitForKeyAsync();
+                var waitOp = receiver.WaitForCallbackAsync();
                 waitOp.UseCompleted(_ =>
                 {
                     receiver.Dispose();
 
-                    if (string.IsNullOrWhiteSpace(waitOp.Result))
+                    var callbackResult = waitOp.Result;
+                    if (!string.IsNullOrEmpty(callbackResult.ErrorMessage))
+                    {
+                        op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail(callbackResult.ErrorMessage));
+                        return;
+                    }
+
+                    if (!callbackResult.IsSuccess)
                     {
                         op.Complete(RestApiResult<GetAuthDataDto>.ValidationFail("OpenId callback key was not received."));
                         return;
                     }
 
-                    var completeOp = CompleteOpenIdLoginAsync(waitOp.Result);
+                    var completeOp = CompleteOpenIdLoginAsync(callbackResult.Key);
                     completeOp.UseCompleted(completed => op.Complete(completed.Result));
                 });
             });

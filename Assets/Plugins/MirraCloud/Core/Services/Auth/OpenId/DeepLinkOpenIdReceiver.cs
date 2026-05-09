@@ -8,8 +8,11 @@ namespace MirraCloud.Core.Auth.OpenId
 {
     internal sealed class DeepLinkOpenIdReceiver : IOpenIdCallbackReceiver
     {
+        private const string KeyParamName = "mirra_openid_key";
+        private const string ErrorParamName = "mirra_openid_error";
+
         private readonly string _successUrl;
-        private readonly AsyncOperation<string> _keyOp = new AsyncOperation<string>();
+        private readonly AsyncOperation<OpenIdCallbackResult> _resultOp = new AsyncOperation<OpenIdCallbackResult>();
         private bool _isWaiting;
 
         public string SuccessUrl => _successUrl;
@@ -30,11 +33,11 @@ namespace MirraCloud.Core.Auth.OpenId
             return true;
         }
 
-        public AsyncOperation<string> WaitForKeyAsync()
+        public AsyncOperation<OpenIdCallbackResult> WaitForCallbackAsync()
         {
             if (_isWaiting)
             {
-                return _keyOp;
+                return _resultOp;
             }
 
             _isWaiting = true;
@@ -42,7 +45,7 @@ namespace MirraCloud.Core.Auth.OpenId
 
             TryCompleteFromUrl(Application.absoluteURL);
 
-            return _keyOp;
+            return _resultOp;
         }
 
         public void Dispose()
@@ -57,18 +60,25 @@ namespace MirraCloud.Core.Auth.OpenId
 
         private void TryCompleteFromUrl(string url)
         {
-            if (CallbackUrlParser.ParseQuery(url).TryGetValue("mirra_openid_key", out var key) && !string.IsNullOrWhiteSpace(key))
+            var query = CallbackUrlParser.ParseQuery(url);
+
+            if (query.TryGetValue(ErrorParamName, out var error) && !string.IsNullOrWhiteSpace(error))
             {
-                Complete(key);
+                Complete(OpenIdCallbackResult.Failure(error));
+                return;
+            }
+
+            if (query.TryGetValue(KeyParamName, out var key) && !string.IsNullOrWhiteSpace(key))
+            {
+                Complete(OpenIdCallbackResult.Success(key));
             }
         }
 
-        private void Complete(string key)
+        private void Complete(OpenIdCallbackResult result)
         {
             Application.deepLinkActivated -= OnDeepLinkActivated;
-            _keyOp.Complete(key);
+            _resultOp.Complete(result);
         }
     }
 }
 #endif
-

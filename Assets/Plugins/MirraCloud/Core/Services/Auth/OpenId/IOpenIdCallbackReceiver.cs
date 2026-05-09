@@ -7,6 +7,6 @@ namespace MirraCloud.Core.Auth.OpenId
     {
         string SuccessUrl { get; }
         bool LaunchAuthUrl(string authUrl);
-        AsyncOperation<string> WaitForKeyAsync();
+        AsyncOperation<OpenIdCallbackResult> WaitForCallbackAsync();
     }
 }
