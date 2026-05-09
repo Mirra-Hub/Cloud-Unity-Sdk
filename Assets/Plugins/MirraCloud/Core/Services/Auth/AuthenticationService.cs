@@ -96,13 +96,15 @@ namespace MirraCloud.Core.Auth
 
         #region Login
 
-        // `nickname` is required by the server only when CreateAccount=true and the lookup
-        // misses (i.e. a brand-new account is about to be created). Pass null/empty for
-        // existing-player flows.
-        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true, string nickname = null)
+        // Guest login is anonymous by design — the player doesn't pick a nickname,
+        // the server generates one based on ProjectAuthSettings (regex / random
+        // suffix / mode). The SDK therefore intentionally does not expose a
+        // nickname argument here; if a project later wants to let guests choose
+        // a display name they should be using device or username login instead.
+        public AsyncOperation<RestApiResult<GetAuthDataDto>> LoginGuestAsync(bool createAccount = true)
         {
             var route = $"{AuthLoginScope()}/guest";
-            var dto = new LoginAsGuestDto { CreateAccount = createAccount, Nickname = nickname };
+            var dto = new LoginAsGuestDto { CreateAccount = createAccount };
 
             if (_storage.HasKey(GUESTID_KEY))
             {

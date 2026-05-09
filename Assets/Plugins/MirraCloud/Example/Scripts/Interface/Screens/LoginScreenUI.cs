@@ -10,7 +10,13 @@ namespace MirraCloud.Example
     {
         [SerializeField] private Button _logiDevicenButton;
         [SerializeField] private Button _logiGuestButton;
+        // The nickname input was previously used to seed guest accounts. The
+        // server now generates guest nicknames itself, so the field is unused.
+        // Kept on the prefab for backward compatibility — remove the reference
+        // and the GameObject in a follow-up scene cleanup.
+#pragma warning disable CS0414
         [SerializeField] private TMP_InputField _nicknameInputField;
+#pragma warning restore CS0414
 
         private LoginService _loginService;
 
@@ -39,8 +45,7 @@ namespace MirraCloud.Example
 
         private void LoginGuest()
         {
-            string nickname = _nicknameInputField != null ? _nicknameInputField.text : null;
-            _loginService.LoginGuest(nickname);
+            _loginService.LoginGuest();
         }
     }
 }

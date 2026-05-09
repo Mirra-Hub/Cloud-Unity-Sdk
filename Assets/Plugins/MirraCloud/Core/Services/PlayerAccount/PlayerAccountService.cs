@@ -281,6 +281,27 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return op;
         }
 
+        /// <summary>
+        /// Fetch a random sample of profiles from the project — useful for
+        /// "featured players" widgets, leaderboard previews, or onboarding
+        /// flows that need a few real-looking opponents to display. The server
+        /// caps <paramref name="count"/> at 10 and rejects values below 1, so
+        /// the client validates the same range to fail fast without a network
+        /// round-trip. The returned profiles are NOT merged into the local
+        /// profile cache (they belong to other accounts).
+        /// </summary>
+        public AsyncOperation<RestApiResult<ProfileInfo[]>> GetRandomProfilesAsync(int count)
+        {
+            if (count < 1 || count > 10)
+            {
+                return AsyncOperation<RestApiResult<ProfileInfo[]>>.CreateCompleted(
+                    RestApiResult<ProfileInfo[]>.ValidationFail("count must be between 1 and 10."));
+            }
+
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/random?count={count}";
+            return _restApi.GetAsync<ProfileInfo[]>(route);
+        }
+
         public AsyncOperation<RestApiResult<ProfileInfo>> CreateProfileAsync(CreateProfileDto dto, bool autoSelect = false)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles?autoSelect={autoSelect}";
@@ -428,6 +449,41 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/status";
             var dto = new UpdateProfilePresenceStatusDto { Status = status };
             return _restApi.PatchAsync(route, dto);
+        }
+
+        /// <summary>
+        /// Read another profile's presence status (online/offline/etc). The server
+        /// caches presence with a short TTL, so consecutive calls within a few
+        /// seconds hit the cache and are essentially free. Returns
+        /// <see cref="ProfilePresenceStatus.Offline"/> when the cache has no
+        /// entry for the profile (the server treats absence as "Offline" and
+        /// flattens the failure into a successful Offline response).
+        /// </summary>
+        public AsyncOperation<RestApiResult<ProfilePresenceStatus>> GetProfilePresenceStatusAsync(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId))
+            {
+                var validation = AsyncOperation<RestApiResult<ProfilePresenceStatus>>.CreateCompleted(
+                    RestApiResult<ProfilePresenceStatus>.ValidationFail("profileId is required."));
+                return validation;
+            }
+
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/status";
+            var raw = _restApi.GetAsync<GetProfilePresenceStatusDto>(route);
+            var mapped = new AsyncOperation<RestApiResult<ProfilePresenceStatus>>();
+
+            raw.UseCompleted(completed =>
+            {
+                if (!completed.Result.IsSuccess || completed.Result.Data == null)
+                {
+                    mapped.Complete(RestApiResult<ProfilePresenceStatus>.Fail(completed.Result.Error).WithMetaFrom(completed.Result));
+                    return;
+                }
+
+                mapped.Complete(RestApiResult<ProfilePresenceStatus>.Success(completed.Result.Data.Status).WithMetaFrom(completed.Result));
+            });
+
+            return mapped;
         }
 
         public AsyncOperation<RestApiResult<ProfileInfo>> ReplaceProfileAsync(string profileId, CreateProfileDto dto)
