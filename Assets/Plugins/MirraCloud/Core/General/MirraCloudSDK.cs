@@ -12,6 +12,7 @@ using MirraCloud.Core.Groups;
 using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Localization;
 using MirraCloud.Core.Logger;
+using MirraCloud.Core.ProfanityFilter;
 using MirraCloud.Core.Purchases;
 using MirraCloud.Core.RemoteConfig;
 using MirraCloud.Core.Storage;
@@ -51,6 +52,7 @@ namespace MirraCloud.Core
         public DailyRewardsService DailyRewards { get; private set; }
         public ChallengesService Challenges { get; private set; }
         public PurchasesService Purchases { get; private set; }
+        public ProfanityFilterService ProfanityFilter { get; private set; }
         public WebViewService WebView { get; private set; }
 
         public bool IsInitialized { get; private set; }
@@ -116,6 +118,7 @@ namespace MirraCloud.Core
             DailyRewards = RegisterService(new DailyRewardsService(configuration, restApiClient));
             Challenges = RegisterService(new ChallengesService(configuration, PlayerAccount, restApiClient));
             Purchases = RegisterService(new PurchasesService(configuration, logger, restApiClient, WebView, coroutineRunner));
+            ProfanityFilter = RegisterService(new ProfanityFilterService(restApiClient, configuration, logger));
 
             
             _analyticsTracker = AnalyticsTracker.CreateInstance();
