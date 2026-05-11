@@ -11,7 +11,7 @@ namespace MirraCloud.Core.CloudSave
         public string UpdatedAtUtc;
 
         public PlayerDataField(string key, string currentValue, CloudSaveFieldType fieldType,
-            AccessMask readMask = AccessMask.None, AccessMask writeMask = AccessMask.None,
+            AccessMask readMask = AccessMask.Owner, AccessMask writeMask = AccessMask.Owner,
             long version = 0, string updatedAtUtc = null)
         {
             Key = key;

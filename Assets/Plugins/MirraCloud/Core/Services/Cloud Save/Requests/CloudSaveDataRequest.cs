@@ -8,7 +8,7 @@ namespace MirraCloud.Core.CloudSave.Requests
         public List<CloudSaveDataItem> items = new List<CloudSaveDataItem>();
 
         public CloudSaveDataRequest AddInt(string key, int value,
-            AccessMask readMask = AccessMask.None, AccessMask writeMask = AccessMask.None,
+            AccessMask readMask = AccessMask.Owner, AccessMask writeMask = AccessMask.Owner,
             ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
@@ -24,7 +24,7 @@ namespace MirraCloud.Core.CloudSave.Requests
         }
 
         public CloudSaveDataRequest AddFloat(string key, float value,
-            AccessMask readMask = AccessMask.None, AccessMask writeMask = AccessMask.None,
+            AccessMask readMask = AccessMask.Owner, AccessMask writeMask = AccessMask.Owner,
             ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
@@ -40,7 +40,7 @@ namespace MirraCloud.Core.CloudSave.Requests
         }
 
         public CloudSaveDataRequest AddBool(string key, bool value,
-            AccessMask readMask = AccessMask.None, AccessMask writeMask = AccessMask.None,
+            AccessMask readMask = AccessMask.Owner, AccessMask writeMask = AccessMask.Owner,
             ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
@@ -56,7 +56,7 @@ namespace MirraCloud.Core.CloudSave.Requests
         }
 
         public CloudSaveDataRequest AddString(string key, string value,
-            AccessMask readMask = AccessMask.None, AccessMask writeMask = AccessMask.None,
+            AccessMask readMask = AccessMask.Owner, AccessMask writeMask = AccessMask.Owner,
             ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
@@ -72,7 +72,7 @@ namespace MirraCloud.Core.CloudSave.Requests
         }
 
         public CloudSaveDataRequest AddJson(string key, JsonValue value, CloudSaveFieldType fieldType = CloudSaveFieldType.String,
-            AccessMask readMask = AccessMask.None, AccessMask writeMask = AccessMask.None,
+            AccessMask readMask = AccessMask.Owner, AccessMask writeMask = AccessMask.Owner,
             ulong? expectedVersion = null)
         {
             items.Add(new CloudSaveDataItem
@@ -84,18 +84,6 @@ namespace MirraCloud.Core.CloudSave.Requests
                 writeMask = writeMask,
                 expectedVersion = expectedVersion
             });
-            return this;
-        }
-
-        public CloudSaveDataRequest WithDefaultAccess(AccessMask readMask, AccessMask writeMask)
-        {
-            foreach (var item in items)
-            {
-                if (item.readMask == AccessMask.None)
-                    item.readMask = readMask;
-                if (item.writeMask == AccessMask.None)
-                    item.writeMask = writeMask;
-            }
             return this;
         }
     }

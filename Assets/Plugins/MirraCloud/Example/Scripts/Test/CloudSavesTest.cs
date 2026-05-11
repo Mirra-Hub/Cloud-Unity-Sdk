@@ -36,10 +36,9 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private void Save()
         {
             var cloudSaveData = new CloudSaveDataRequest();
-            cloudSaveData.AddInt("level", _numberValue);
-            cloudSaveData.AddInt("attack", _factorValue);
-            cloudSaveData.AddString("region", ConvertRegion(_regionValue));
-            cloudSaveData.WithDefaultAccess(AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddInt("level", _numberValue, AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddInt("attack", _factorValue, AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddString("region", ConvertRegion(_regionValue), AccessMask.Other, AccessMask.Owner);
 
             var op = _sdk.CloudSave.SaveAsync(cloudSaveData);
         }
@@ -96,10 +95,9 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private async void SaveGlobal()
         {
             var cloudSaveData = new CloudSaveDataRequest();
-            cloudSaveData.AddInt("level_global", _numberValue);
-            cloudSaveData.AddInt("global_counter", _numberValue);
-            cloudSaveData.AddString("region", ConvertRegion(_regionValue));
-            cloudSaveData.WithDefaultAccess(AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddInt("level_global", _numberValue, AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddInt("global_counter", _numberValue, AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddString("region", ConvertRegion(_regionValue), AccessMask.Other, AccessMask.Owner);
 
             var op = _sdk.CloudSave.SaveGlobalDataAsync(cloudSaveData);
             await op.Task();
@@ -124,9 +122,8 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
         private async void SaveCustom()
         {
             var cloudSaveData = new CloudSaveDataRequest();
-            cloudSaveData.AddInt("level_global", _numberValue);
-            cloudSaveData.AddInt("global_counter", _numberValue);
-            cloudSaveData.WithDefaultAccess(AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddInt("level_global", _numberValue, AccessMask.Other, AccessMask.Owner);
+            cloudSaveData.AddInt("global_counter", _numberValue, AccessMask.Other, AccessMask.Owner);
 
             var op = _sdk.CloudSave.SaveCustomDataAsync(_customId, cloudSaveData);
             await op.Task();
