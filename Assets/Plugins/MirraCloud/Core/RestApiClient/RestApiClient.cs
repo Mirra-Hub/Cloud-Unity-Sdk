@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using MirraCloud.Core.Errors;
 using MirraCloud.Json;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
@@ -288,7 +289,8 @@ namespace MirraCloud.Core
                     Url = preparedConfig.Url,
                     HttpStatusCode = httpCode,
                     NetworkResult = request.result,
-                    ResponseBody = responseBody
+                    ResponseBody = responseBody,
+                    Errors = TryParseCloudErrors(responseBody)
                 });
             }
             else
@@ -486,7 +488,8 @@ namespace MirraCloud.Core
                     Url = preparedConfig.Url,
                     HttpStatusCode = httpCode,
                     NetworkResult = request.result,
-                    ResponseBody = responseBody
+                    ResponseBody = responseBody,
+                    Errors = TryParseCloudErrors(responseBody)
                 });
             }
             else
@@ -516,6 +519,33 @@ namespace MirraCloud.Core
             #endif
 
             operation.Complete(result);
+        }
+
+        /// <summary>
+        /// Attempt to parse a non-2xx response body as the Cloud typed-error
+        /// envelope (<c>{ "errors": [ ... ] }</c>). Returns null when the body
+        /// is empty or does not match the contract — callers fall back to
+        /// the raw <see cref="RestApiError.ResponseBody"/>.
+        /// </summary>
+        private List<CloudApiError> TryParseCloudErrors(string responseBody)
+        {
+            if (string.IsNullOrEmpty(responseBody))
+            {
+                return null;
+            }
+
+            try
+            {
+                var dto = JsonService.FromJson<ErrorResponseDto>(responseBody);
+                return dto?.Errors;
+            }
+            catch
+            {
+                // Non-cloud endpoints, HTML error pages, or bodies that simply
+                // don't match the envelope all land here. The raw text remains
+                // available via ResponseBody for diagnostics.
+                return null;
+            }
         }
 
         private RestRequestConfig BuildConfig(string route, string method, object body, RestRequestConfig config)
