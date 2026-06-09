@@ -11,6 +11,7 @@ using MirraCloud.Core.Groups;
 using MirraCloud.Core.Leaderboard;
 using MirraCloud.Core.Localization;
 using MirraCloud.Core.ProfanityFilter;
+using MirraCloud.Core.PromoCodes;
 using MirraCloud.Core.Purchases;
 using MirraCloud.Core.RemoteConfig;
 using Plugins.MirraCloud.Core.Services.Analytics;
@@ -46,6 +47,7 @@ namespace MirraCloud.Core
         ChallengesService Challenges { get; }
         PurchasesService Purchases { get; }
         ProfanityFilterService ProfanityFilter { get; }
+        PromoCodesService PromoCodes { get; }
         WebViewService WebView { get; }
         bool IsInitialized { get; }
 
