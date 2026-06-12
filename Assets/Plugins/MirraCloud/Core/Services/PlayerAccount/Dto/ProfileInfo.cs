@@ -1,6 +1,7 @@
 using System;
 using MirraCloud.Json;
 using MirraCloud.Core.Auth;
+using MirraCloud.Core.Enums;
 
 namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
 {
@@ -10,6 +11,9 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
         [JsonNameCamel] public string Id;
         [JsonNameCamel] public string AccountId;
         [JsonNameCamel] public string Nickname;
+        /// <summary>Mutable, project-unique public handle (stored with the pr_ prefix).</summary>
+        [JsonNameCamel] public string Username;
+        [JsonNameCamel] public Gender Gender;
         [JsonName("iconKey")] public IconKeyDto IconKey;
         [JsonNameCamel] public string Status;
         [JsonNameCamel] public string[] SegmentIds;

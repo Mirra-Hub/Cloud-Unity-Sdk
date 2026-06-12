@@ -519,6 +519,11 @@ namespace MirraCloud.Core.Errors
         public const string PlayerAccountsNicknameProfanity = "player_accounts.nickname_profanity";
         public const string PlayerAccountsNicknameRequired = "player_accounts.nickname_required";
         public const string PlayerAccountsNicknameTaken = "player_accounts.nickname_taken";
+        public const string PlayerAccountsUsernamePatternInvalid = "player_accounts.username_pattern_invalid";
+        public const string PlayerAccountsUsernamePatternMismatch = "player_accounts.username_pattern_mismatch";
+        public const string PlayerAccountsUsernameProfanity = "player_accounts.username_profanity";
+        public const string PlayerAccountsUsernameRequired = "player_accounts.username_required";
+        public const string PlayerAccountsUsernameTaken = "player_accounts.username_taken";
         public const string PlayerAccountsPlatformDisabled = "player_accounts.platform_disabled";
         public const string PlayerAccountsPlatformIdInvalid = "player_accounts.platform_id_invalid";
         public const string PlayerAccountsPlatformNotFound = "player_accounts.platform_not_found";

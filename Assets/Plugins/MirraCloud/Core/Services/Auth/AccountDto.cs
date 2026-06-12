@@ -24,6 +24,9 @@ namespace MirraCloud.Core.Auth
         [JsonNameCamel] public string Id;
         [JsonNameCamel] public string Environment;
         [JsonNameCamel] public AccountNicknameDto Nickname;
+        /// <summary>Mutable, project-unique public handle (stored with the acc_ prefix).</summary>
+        [JsonNameCamel] public string Username;
+        [JsonNameCamel] public Gender Gender;
         [JsonNameCamel] public int Age;
         [JsonName("iconKey")] public IconKeyDto IconKey;
         /// <summary>Public Dicebear-rendered URL when the account uses a Dicebear preset; null otherwise.</summary>

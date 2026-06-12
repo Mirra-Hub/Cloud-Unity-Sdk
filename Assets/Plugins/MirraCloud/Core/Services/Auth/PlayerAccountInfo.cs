@@ -15,6 +15,10 @@ namespace MirraCloud.Core.Auth
         /// <summary>Server-composed display nickname (Base or Base+Suffix). Use this for UI.</summary>
         public string Nickname { get; set; }
 
+        /// <summary>Mutable, project-unique public handle (stored with the acc_ prefix).</summary>
+        public string Username { get; set; }
+        public Gender Gender { get; set; }
+
         public int Age { get; private set; }
         public IconKeyDto IconKey { get; private set; }
         /// <summary>Public Dicebear avatar URL when the account uses a Dicebear preset; null otherwise.</summary>
@@ -45,6 +49,8 @@ namespace MirraCloud.Core.Auth
             NicknameBase = dto.Nickname?.Base;
             NicknameSuffix = dto.Nickname?.Suffix;
             Nickname = dto.Nickname?.Displayed ?? dto.Nickname?.Base;
+            Username = dto.Username;
+            Gender = dto.Gender;
             Age = dto.Age;
             IconKey = dto.IconKey;
             AvatarUrl = dto.AvatarUrl;
