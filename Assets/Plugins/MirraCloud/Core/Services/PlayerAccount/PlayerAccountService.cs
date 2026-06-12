@@ -76,7 +76,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
 
             if (PlayerAccountInfo != null)
             {
-                config.Headers["Username"] = PlayerAccountInfo.Nickname;
+                config.Headers["Nickname"] = PlayerAccountInfo.Nickname;
                 config.Headers["IconKey"] = PlayerAccountInfo.IconKey != null
                     ? _restApi.JsonService.ToJson(PlayerAccountInfo.IconKey)
                     : string.Empty;
@@ -142,6 +142,42 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                     // is approximate; the caller should refresh the account if it needs the
                     // canonical displayed string.
                     PlayerAccountInfo.Nickname = nickname;
+                }
+            });
+
+            return operation;
+        }
+
+        public AsyncOperation<RestApiResult> UpdateUsernameAsync(string username)
+        {
+            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/username";
+            var dto = new { Username = username };
+            var operation = _restApi.PatchAsync(route, dto);
+
+            operation.UseCompleted(completed =>
+            {
+                if (completed.Result.IsSuccess && PlayerAccountInfo != null)
+                {
+                    // Server prepends the acc_ prefix and may append a uniqueness suffix; the value
+                    // below is approximate — refresh the account if you need the canonical handle.
+                    PlayerAccountInfo.Username = $"acc_{username}";
+                }
+            });
+
+            return operation;
+        }
+
+        public AsyncOperation<RestApiResult> UpdateGenderAsync(Gender gender)
+        {
+            var route = $"{ACCOUNTS_ROUTE}/{_configuration.ProjectId}/accounts/gender";
+            var dto = new { Gender = (int)gender };
+            var operation = _restApi.PatchAsync(route, dto);
+
+            operation.UseCompleted(completed =>
+            {
+                if (completed.Result.IsSuccess && PlayerAccountInfo != null)
+                {
+                    PlayerAccountInfo.Gender = gender;
                 }
             });
 
@@ -337,10 +373,44 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
             return op;
         }
 
-        public AsyncOperation<RestApiResult> UpdateProfileNicknameAsync(string profileId, string username)
+        public AsyncOperation<RestApiResult> UpdateProfileNicknameAsync(string profileId, string nickname)
         {
             var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/nickname";
-            var dto = new UpdateProfileNicknameDto { Username = username };
+            var dto = new UpdateProfileNicknameDto { Nickname = nickname };
+            var op = _restApi.PatchAsync(route, dto);
+
+            op.UseCompleted(completed =>
+            {
+                if (completed.Result.IsSuccess)
+                {
+                    RefreshProfile(profileId);
+                }
+            });
+
+            return op;
+        }
+
+        public AsyncOperation<RestApiResult> UpdateProfileUsernameAsync(string profileId, string username)
+        {
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/username";
+            var dto = new UpdateProfileUsernameDto { Username = username };
+            var op = _restApi.PatchAsync(route, dto);
+
+            op.UseCompleted(completed =>
+            {
+                if (completed.Result.IsSuccess)
+                {
+                    RefreshProfile(profileId);
+                }
+            });
+
+            return op;
+        }
+
+        public AsyncOperation<RestApiResult> UpdateProfileGenderAsync(string profileId, Gender gender)
+        {
+            var route = $"{PROFILES_ROUTE}/{_configuration.ProjectId}/profiles/{profileId}/gender";
+            var dto = new { Gender = (int)gender };
             var op = _restApi.PatchAsync(route, dto);
 
             op.UseCompleted(completed =>

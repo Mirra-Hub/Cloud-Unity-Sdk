@@ -6,7 +6,7 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
     [Serializable]
     public class UpdateProfileNicknameDto
     {
-        [JsonNameCamel] public string Username;
+        [JsonNameCamel] public string Nickname;
     }
 }
 
