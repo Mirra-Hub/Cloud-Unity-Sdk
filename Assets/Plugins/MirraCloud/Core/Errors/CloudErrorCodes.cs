@@ -77,6 +77,7 @@ namespace MirraCloud.Core.Errors
         public const string ChatsChannelNotActive = "chats.channel_not_active";
         public const string ChatsChannelNotFound = "chats.channel_not_found";
         public const string ChatsChannelOwnerRefRequired = "chats.channel_owner_ref_required";
+        public const string ChatsChannelTemplateKeyRequired = "chats.channel_template_key_required";
         public const string ChatsMemberBannedByRequired = "chats.member_banned_by_required";
         public const string ChatsMemberNotInChannel = "chats.member_not_in_channel";
         public const string ChatsMemberProfileIdRequired = "chats.member_profile_id_required";
@@ -89,6 +90,7 @@ namespace MirraCloud.Core.Errors
         public const string ChatsMessageNumberInvalid = "chats.message_number_invalid";
         public const string ChatsMessageTaggedMemberInvalid = "chats.message_tagged_member_invalid";
         public const string ChatsMessageTargetNotFound = "chats.message_target_not_found";
+        public const string ChatsTemplateNotFound = "chats.template_not_found";
 
         // === cloud_packages ===
         public const string CloudPackagesFileStorageNotConfigured = "cloud_packages.file_storage_not_configured";

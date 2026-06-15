@@ -10,8 +10,10 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 {
     public class ChatsTest : MonoBehaviour
     {
-        [Header("Channel (create via Admin API first)")]
+        [Header("Channel (press C to create from a template, or paste an existing id)")]
         [SerializeField] private string _channelId;
+        [SerializeField] private string _channelName = "My room";
+        [SerializeField] private string _templateKey = "global-chat";
 
         [Header("Messages")]
         [SerializeField] private string _messageBody = "Hello from SDK!";
@@ -55,6 +57,7 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
 
         private void Update()
         {
+            if (Input.GetKeyDown(KeyCode.C)) CreateChannel();
             if (Input.GetKeyDown(KeyCode.Alpha1)) Connect();
             if (Input.GetKeyDown(KeyCode.Alpha2)) JoinChannel();
             if (Input.GetKeyDown(KeyCode.Alpha3)) Subscribe();
@@ -67,6 +70,23 @@ namespace Plugins.MirraCloud.Example.Scripts.Test
             if (Input.GetKeyDown(KeyCode.Alpha0)) LeaveChannel();
             if (Input.GetKeyDown(KeyCode.Minus)) Unsubscribe();
             if (Input.GetKeyDown(KeyCode.Equals)) Disconnect();
+        }
+
+        private void CreateChannel()
+        {
+            Debug.Log($"[ChatsTest] Creating channel '{_channelName}' from template '{_templateKey}'...");
+            var op = _sdk.Chats.CreateChannelAsync(_channelName, _templateKey);
+            op.OnCompleted += completed =>
+            {
+                if (!completed.Result.IsSuccess)
+                {
+                    Debug.LogError($"[ChatsTest] CreateChannel failed: {completed.Result.Error?.Message}");
+                    return;
+                }
+                var ch = completed.Result.Data;
+                _channelId = ch.ChannelId;
+                Debug.Log($"[ChatsTest] Created channel {ch.ChannelId} (template={ch.TemplateKey}). _channelId set.");
+            };
         }
 
         private void Connect()

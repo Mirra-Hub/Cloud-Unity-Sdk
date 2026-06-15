@@ -11,6 +11,7 @@ namespace MirraCloud.Core.Chats.Dto
         [JsonNameCamel] public ChatOwnerRefDto OwnerRef;
         [JsonNameCamel] public string Name;
         [JsonNameCamel] public string Topic;
+        [JsonNameCamel] public string TemplateKey;
         [JsonNameCamel] public string State;
         [JsonNameCamel] public long LastMessageNumber;
         [JsonNameCamel] public DateTime? LastMessageAt;

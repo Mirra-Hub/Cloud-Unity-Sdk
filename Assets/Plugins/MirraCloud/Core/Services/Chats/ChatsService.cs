@@ -98,6 +98,34 @@ namespace MirraCloud.Core.Chats
             _connection.Disconnect();
         }
 
+        /// <summary>
+        /// Creates a chat (a room channel) from a chat template and joins the caller as its first
+        /// member. <paramref name="templateKey"/> is required and must reference an existing template.
+        /// </summary>
+        public AsyncOperation<RestApiResult<ChatChannelDto>> CreateChannelAsync(
+            string name, string templateKey, string topic = null)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return AsyncOperation<RestApiResult<ChatChannelDto>>.CreateCompleted(
+                    RestApiResult<ChatChannelDto>.ValidationFail("name is required."));
+            }
+
+            if (string.IsNullOrWhiteSpace(templateKey))
+            {
+                return AsyncOperation<RestApiResult<ChatChannelDto>>.CreateCompleted(
+                    RestApiResult<ChatChannelDto>.ValidationFail("templateKey is required."));
+            }
+
+            var route = $"{ControllerApi}/{_configuration.ProjectId}/channels";
+            return _restApi.PostAsync<ChatChannelDto>(route, new CreateChatChannelDto
+            {
+                Name = name,
+                Topic = topic,
+                TemplateKey = templateKey
+            });
+        }
+
         public AsyncOperation<RestApiResult<ChatChannelDto>> LookupGroupChannelAsync(string groupId)
         {
             if (string.IsNullOrWhiteSpace(groupId))
