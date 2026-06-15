@@ -4,6 +4,7 @@
 
 ## REST API
 
+- `CreateChannelAsync(name, templateKey, topic = null)` → `ChatChannelDto` — создать чат (room-канал) по ключу шаблона; вызывающий автоматически становится первым участником. `templateKey` обязателен и должен ссылаться на существующий шаблон чата.
 - `LookupGroupChannelAsync(groupId)` → `ChatChannelDto` — канал группы
 - `GetChannelAsync(channelId)` → `ChatChannelDto`
 - `GetMembersAsync(channelId)` → `ChatMemberDto[]`
