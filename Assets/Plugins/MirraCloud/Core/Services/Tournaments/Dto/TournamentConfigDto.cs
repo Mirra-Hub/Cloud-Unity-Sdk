@@ -8,6 +8,7 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments.Dto
     public class TournamentConfigDto
     {
         public string id;
+        public string key;
         public string name;
 
         public TournamentTableDto[] tables;

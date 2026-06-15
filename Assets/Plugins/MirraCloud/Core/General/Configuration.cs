@@ -11,6 +11,11 @@ namespace MirraCloud
 
         [Header("General")]
         public string ProjectId;
+        /// <summary>
+        /// Branch reference used in API routes (<c>branches/{branch}</c>). Holds the branch NAME;
+        /// the server resolves a branch by name, with a transitional fallback that still accepts a
+        /// branch ObjectId for backward compatibility.
+        /// </summary>
         public string BranchId;
         public string Token;
         public string AnalyticsPlatformId;

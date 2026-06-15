@@ -8,6 +8,5 @@ namespace Plugins.MirraCloud.Core.Services.Deployment.Dto
         public string branchId;
         public string branchName;
         public string buildVersion;
-        public string environment;
     }
 }

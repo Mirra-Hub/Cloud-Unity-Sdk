@@ -7,6 +7,8 @@ namespace Plugins.MirraCloud.Core.Services.Challenges.Entities
     public class ChallengeConfig
     {
         public readonly string Id;
+        /// <summary>Business key — pass this to the service methods; the server resolves challenges by key.</summary>
+        public readonly string Key;
         public readonly string Name;
 
         public readonly double TargetValue;
@@ -36,6 +38,7 @@ namespace Plugins.MirraCloud.Core.Services.Challenges.Entities
         public ChallengeConfig(ChallengeConfigDto dto)
         {
             Id = dto.id;
+            Key = dto.key;
             Name = dto.name;
             TargetValue = dto.targetValue;
             RewardMode = dto.rewardMode;

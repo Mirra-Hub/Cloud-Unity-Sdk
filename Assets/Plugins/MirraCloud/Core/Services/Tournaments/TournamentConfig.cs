@@ -8,6 +8,8 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
     public class TournamentConfig
     {
         public readonly string Id;
+        /// <summary>Business key — pass this to the service methods; the server resolves tournaments by key.</summary>
+        public readonly string Key;
         public readonly string Name;
         
         public readonly TournamentTableDto[] tables;
@@ -30,6 +32,7 @@ namespace Plugins.MirraCloud.Core.Services.Tournaments
         public TournamentConfig(TournamentConfigDto dto)
         {
             Id = dto.id;
+            Key = dto.key;
             Name = dto.name;
             OrderType = dto.orderType;
             Type = dto.type;

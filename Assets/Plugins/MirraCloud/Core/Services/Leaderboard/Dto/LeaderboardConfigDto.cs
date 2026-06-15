@@ -7,6 +7,7 @@ namespace MirraCloud.Core.Leaderboard.Dto
     public sealed class LeaderboardConfigDto
     {
         public string id;
+        public string key;
         public string name;
 
         public RewardRangeDto[] rewardsForPlaces;
