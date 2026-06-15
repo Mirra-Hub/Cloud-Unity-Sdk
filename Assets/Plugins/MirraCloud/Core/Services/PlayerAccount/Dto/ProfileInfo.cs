@@ -15,8 +15,10 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount.Dto
         [JsonNameCamel] public string Username;
         [JsonNameCamel] public Gender Gender;
         [JsonName("iconKey")] public IconKeyDto IconKey;
+        [JsonNameCamel] public string IconUrl;
         [JsonNameCamel] public string Status;
-        [JsonNameCamel] public string[] SegmentIds;
+        [JsonNameCamel] public string[] SegmentKeys;
+        [JsonNameCamel] public string[] AbTestKeys;
         [JsonNameCamel] public DateTime LastLogin;
         [JsonNameCamel] public DateTime CreatedDate;
         [JsonNameCamel] public DateTime UpdatedDate;

@@ -85,8 +85,8 @@ namespace Plugins.MirraCloud.Core.Services.PlayerAccount
                 config.Headers["LanguageCode"] = PlayerAccountInfo.LanguageCode.ToLanguageString();
                 config.Headers["TimeZone"] = PlayerAccountInfo.TimeZone;
                 config.Headers["Status"] = PlayerAccountInfo.Status;
-                config.Headers["AccountSegmentIds"] =  string.Join(',', PlayerAccountInfo.SegmentIds);
-                config.Headers["ProfileSegmentIds"] = string.Join(',', PlayerAccountInfo.SegmentIds);
+                config.Headers["AccountSegments"] = string.Join(',', PlayerAccountInfo.SegmentKeys);
+                config.Headers["ProfileSegments"] = string.Join(',', PlayerAccountInfo.SegmentKeys);
             }
 
             return config;

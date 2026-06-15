@@ -7,6 +7,8 @@ namespace MirraCloud.Core.Leaderboard.Entities
     public class LeaderboardConfig
     {
         public readonly string Id;
+        /// <summary>Business key — pass this to the service methods; the server resolves leaderboards by key.</summary>
+        public readonly string Key;
         public readonly string Name;
 
         public readonly RewardRangeDto[] RewardsForPlaces;
@@ -29,6 +31,7 @@ namespace MirraCloud.Core.Leaderboard.Entities
         public LeaderboardConfig(LeaderboardConfigDto dto)
         {
             Id = dto.id;
+            Key = dto.key;
             Name = dto.name;
             RewardsForPlaces = dto.rewardsForPlaces;
             OrderType = dto.orderType;

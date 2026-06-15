@@ -22,7 +22,7 @@ namespace MirraCloud.Core.Auth
     public class AccountDto
     {
         [JsonNameCamel] public string Id;
-        [JsonNameCamel] public string Environment;
+        [JsonNameCamel] public string ScopeId;
         [JsonNameCamel] public AccountNicknameDto Nickname;
         /// <summary>Mutable, project-unique public handle (stored with the acc_ prefix).</summary>
         [JsonNameCamel] public string Username;
@@ -34,7 +34,8 @@ namespace MirraCloud.Core.Auth
         [JsonNameCamel] public CountryCode Country;
         [JsonNameCamel] public LanguageCode LanguageCode;
         [JsonNameCamel] public string TimeZone;
-        [JsonNameCamel] public string[] SegmentIds;
+        [JsonNameCamel] public string[] SegmentKeys;
+        [JsonNameCamel] public string[] AbTestKeys;
         [JsonNameCamel] public string Status;
         [JsonNameCamel] public DateTime LastLoginDate;
         [JsonNameCamel] public DateTime CreatedDate;

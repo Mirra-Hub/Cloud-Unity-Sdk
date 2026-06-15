@@ -6,7 +6,7 @@ namespace MirraCloud.Core.Auth
     public class PlayerAccountInfo
     {
         public string Id { get; private set; }
-        public string Environment { get; private set; }
+        public string ScopeId { get; private set; }
 
         /// <summary>Base nickname the player typed (without any random suffix).</summary>
         public string NicknameBase { get; private set; }
@@ -27,7 +27,8 @@ namespace MirraCloud.Core.Auth
         public LanguageCode LanguageCode { get; private set; }
         public string TimeZone { get; private set; }
         public string Status { get; private set; }
-        public string[] SegmentIds { get; private set; }
+        public string[] SegmentKeys { get; private set; }
+        public string[] AbTestKeys { get; private set; }
         public DateTime CreatedDate { get; private set; }
         public DateTime UpdatedDate { get; private set; }
         public DateTime LastLoginDate { get; private set; }
@@ -45,7 +46,7 @@ namespace MirraCloud.Core.Auth
             }
 
             Id = dto.Id;
-            Environment = dto.Environment;
+            ScopeId = dto.ScopeId;
             NicknameBase = dto.Nickname?.Base;
             NicknameSuffix = dto.Nickname?.Suffix;
             Nickname = dto.Nickname?.Displayed ?? dto.Nickname?.Base;
@@ -58,7 +59,8 @@ namespace MirraCloud.Core.Auth
             LanguageCode = dto.LanguageCode;
             TimeZone = dto.TimeZone;
             Status = dto.Status;
-            SegmentIds = dto.SegmentIds ?? Array.Empty<string>();
+            SegmentKeys = dto.SegmentKeys ?? Array.Empty<string>();
+            AbTestKeys = dto.AbTestKeys ?? Array.Empty<string>();
             CreatedDate = dto.CreatedDate;
             UpdatedDate = dto.UpdatedDate;
             LastLoginDate = dto.LastLoginDate;

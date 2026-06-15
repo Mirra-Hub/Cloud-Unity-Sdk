@@ -23,13 +23,12 @@ namespace Plugins.MirraCloud.Core.Services.Deployment
             _restApi = restApiClient;
         }
 
-        public AsyncOperation<RestApiResult<ResolveBranchResponseDto>> ResolveBranchAsync(string environmentId, string version)
+        public AsyncOperation<RestApiResult<ResolveBranchResponseDto>> ResolveBranchAsync(string version)
         {
             string route = $"{ControllerApi}/projects/{_configuration.ProjectId}/resolve-branch";
 
             var response = _restApi.PostAsync<ResolveBranchResponseDto>(route, new ResolveBranchRequestDto
             {
-                EnvironmentId = environmentId,
                 ClientVersion = version,
             });
 

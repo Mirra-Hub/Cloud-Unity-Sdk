@@ -7,6 +7,7 @@ namespace Plugins.MirraCloud.Core.Services.Challenges.Dto
     public sealed class ChallengeConfigDto
     {
         public string id;
+        public string key;
         public string name;
 
         public double targetValue;

@@ -1,6 +1,7 @@
 {
 	"name": "MirraCloudSDK",
 	"references": [
-		"unity-webview"
+		"unity-webview",
+		"MirraCloud.External.SimpleWeb"
 	]
 }
