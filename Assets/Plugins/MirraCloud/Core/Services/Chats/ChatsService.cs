@@ -57,7 +57,8 @@ namespace MirraCloud.Core.Chats
             Configuration configuration,
             ILogger logger,
             RestApiClient restApi,
-            IJsonService jsonService)
+            IJsonService jsonService,
+            ICoroutineRunner coroutineRunner)
         {
             _configuration = configuration;
             _logger = logger;
@@ -68,7 +69,7 @@ namespace MirraCloud.Core.Chats
             _subscriptions = new RealtimeSubscriptionStore();
 
             _connection = new RealtimeConnection(
-                new ClientWebSocketTransport(logger),
+                RealtimeTransportFactory.Create(logger, coroutineRunner),
                 new JsonRealtimeSerializer(jsonService),
                 new RealtimeRequestTracker(),
                 logger);
