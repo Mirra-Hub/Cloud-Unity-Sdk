@@ -203,7 +203,9 @@
     margin-bottom: 16px;
 }
 .auth-email-row { flex-direction: row; flex-wrap: wrap; align-items: center; }
-.field { min-width: 220px; margin-right: 8px; margin-bottom: 8px; }
+.field { width: 280px; flex-grow: 0; flex-shrink: 0; margin-right: 8px; margin-bottom: 8px; }
+.field-toggle { flex-direction: row; align-items: center; margin-right: 12px; margin-bottom: 8px; }
+.field-toggle .unity-base-field__label { color: #8A8A92; font-size: 12px; }
 .field .unity-base-field__label { color: #8A8A92; font-size: 12px; min-width: 64px; }
 .field .unity-base-text-field__input {
     background-color: #0A0A0C;

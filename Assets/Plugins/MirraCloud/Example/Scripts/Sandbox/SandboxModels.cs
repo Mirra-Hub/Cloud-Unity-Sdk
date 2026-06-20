@@ -31,14 +31,18 @@ namespace MirraCloud.Example.Sandbox
         public long DurationMs;
     }
 
+    public enum FieldType { String, Int, Float, Bool }
+
     /// <summary>
-    /// A single typed input for a parametrized control. M2 ships string fields; later
-    /// milestones add enum/bool/DTO field types.
+    /// A single typed input for a parametrized control. The renderer picks the UITK
+    /// control by <see cref="Type"/>; values still flow to the closure as strings
+    /// (parsed via <see cref="SandboxParse"/>).
     /// </summary>
     public sealed class FieldDescriptor
     {
         public string Label;
         public string Default;
+        public FieldType Type = FieldType.String;
     }
 
     /// <summary>

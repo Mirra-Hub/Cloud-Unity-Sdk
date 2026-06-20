@@ -246,20 +246,62 @@ namespace MirraCloud.Example.Sandbox
                 var local = c;
                 var row = New("control-row");
 
-                var fieldRefs = new List<TextField>();
+                var getters = new List<Func<string>>();
                 foreach (var f in c.Fields)
                 {
-                    var tf = new TextField(f.Label);
-                    tf.AddToClassList("field");
-                    if (!string.IsNullOrEmpty(f.Default)) tf.value = f.Default;
-                    fieldRefs.Add(tf);
-                    row.Add(tf);
+                    VisualElement fieldEl;
+                    Func<string> getter;
+                    switch (f.Type)
+                    {
+                        case FieldType.Int:
+                        {
+                            var x = new IntegerField(f.Label);
+                            if (int.TryParse(f.Default, out var d)) x.value = d;
+                            x.AddToClassList("field");
+                            fieldEl = x;
+                            getter = () => x.value.ToString();
+                            break;
+                        }
+                        case FieldType.Float:
+                        {
+                            var x = new FloatField(f.Label);
+                            if (float.TryParse(f.Default, System.Globalization.NumberStyles.Any,
+                                    System.Globalization.CultureInfo.InvariantCulture, out var d))
+                            {
+                                x.value = d;
+                            }
+                            x.AddToClassList("field");
+                            fieldEl = x;
+                            getter = () => x.value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            break;
+                        }
+                        case FieldType.Bool:
+                        {
+                            var x = new Toggle(f.Label);
+                            x.value = f.Default == "true";
+                            x.AddToClassList("field-toggle");
+                            fieldEl = x;
+                            getter = () => x.value ? "true" : "false";
+                            break;
+                        }
+                        default:
+                        {
+                            var x = new TextField(f.Label);
+                            if (!string.IsNullOrEmpty(f.Default)) x.value = f.Default;
+                            x.AddToClassList("field");
+                            fieldEl = x;
+                            getter = () => x.value;
+                            break;
+                        }
+                    }
+                    getters.Add(getter);
+                    row.Add(fieldEl);
                 }
 
                 var b = new Button(() =>
                 {
-                    var vals = new List<string>(fieldRefs.Count);
-                    foreach (var tf in fieldRefs) vals.Add(tf.value);
+                    var vals = new List<string>(getters.Count);
+                    foreach (var g in getters) vals.Add(g());
                     InvokeRequested?.Invoke(local, vals);
                 })
                 { text = c.Label };

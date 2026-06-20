@@ -143,4 +143,27 @@ namespace MirraCloud.Example.Sandbox
             return sb.ToString();
         }
     }
+
+    /// <summary>
+    /// Tolerant string→primitive parsing for field values (invariant culture, never throws).
+    /// </summary>
+    public static class SandboxParse
+    {
+        public static int Int(string s)
+        {
+            return int.TryParse(s, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0;
+        }
+
+        public static double Double(string s)
+        {
+            return double.TryParse(s, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0d;
+        }
+
+        public static bool Bool(string s)
+        {
+            return bool.TryParse(s, out var v) && v;
+        }
+    }
 }

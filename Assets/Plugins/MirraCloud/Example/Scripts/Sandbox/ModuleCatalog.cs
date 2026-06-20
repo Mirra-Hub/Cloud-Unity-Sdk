@@ -95,6 +95,76 @@ namespace MirraCloud.Example.Sandbox
                         Param("Resolve Branch", v => SandboxOps.Run(sdk.Deployment.ResolveBranchAsync(v[0])), F("version (e.g. 1.0.0)")),
                     }
                 },
+                new ModuleDescriptor
+                {
+                    Id = "economy", Title = "Economy", Glyph = "$", Accent = Hex("#5BD15B"),
+                    Info = () => "Currencies/items/energies. LoadConfigs first. Mutating ops write real balances.",
+                    Controls =
+                    {
+                        Query("Load Configs", _ => SandboxOps.Run(sdk.Economy.LoadConfigsAsync())),
+                        Query("Load Inventory", _ => SandboxOps.Run(sdk.Economy.LoadInventoryAsync())),
+                        Query("Get Energies", _ => SandboxOps.Run(sdk.Economy.GetEnergiesAsync())),
+                        Param("Get Energy", v => SandboxOps.Run(sdk.Economy.GetEnergyAsync(v[0])), F("energyId")),
+                        Mutate("Add Item", v => SandboxOps.Run(sdk.Economy.AddItemAsync(v[0], SandboxParse.Int(v[1]))), F("itemId"), Fi("amount", "1")),
+                        Mutate("Subtract Item", v => SandboxOps.Run(sdk.Economy.SubtractItemAsync(v[0], SandboxParse.Int(v[1]))), F("itemId"), Fi("amount", "1")),
+                        Mutate("Consume Item", v => SandboxOps.Run(sdk.Economy.ConsumeItemAsync(v[0])), F("itemId")),
+                        Mutate("Spend Energy", v => SandboxOps.Run(sdk.Economy.SpendEnergyAsync(v[0], SandboxParse.Int(v[1]))), F("energyId"), Fi("amount", "1")),
+                        Mutate("Add Energy", v => SandboxOps.Run(sdk.Economy.AddEnergyAsync(v[0], SandboxParse.Int(v[1]))), F("energyId"), Fi("amount", "1")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "cloudSave", Title = "Cloud Save", Glyph = "DB", Accent = Hex("#6BD0E0"),
+                    Info = () => "Read player/global data + delete by key. (Upsert/query DTO-builders land later.)",
+                    Controls =
+                    {
+                        Query("Get Player Data", _ => SandboxOps.Run(sdk.CloudSave.GetPlayerDataAsync())),
+                        Query("Load Global Data", _ => SandboxOps.Run(sdk.CloudSave.LoadGlobalDataAsync())),
+                        Mutate("Delete Player Data", v => SandboxOps.Run(sdk.CloudSave.DeletePlayerDataAsync(v[0])), F("key")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "challenges", Title = "Challenges", Glyph = "CH", Accent = Hex("#B6D94C"),
+                    Info = () => "Initialize for keys. challengeId = business Key. Join/Submit/Claim mutate player state.",
+                    Controls =
+                    {
+                        Query("Initialize", _ => SandboxOps.Run(sdk.Challenges.InitializeAsync())),
+                        Param("Get Config", v => SandboxOps.Run(sdk.Challenges.GetConfigAsync(v[0])), F("challengeId (key)")),
+                        Param("Get Top", v => SandboxOps.Run(sdk.Challenges.GetTopAsync(v[0])), F("challengeId (key)")),
+                        Param("Get My Top", v => SandboxOps.Run(sdk.Challenges.GetMyTopAsync(v[0])), F("challengeId (key)")),
+                        Mutate("Join", v => SandboxOps.Run(sdk.Challenges.JoinAsync(v[0])), F("challengeId (key)")),
+                        Mutate("Leave", v => SandboxOps.Run(sdk.Challenges.LeaveAsync(v[0])), F("challengeId (key)")),
+                        Mutate("Submit Score", v => SandboxOps.Run(sdk.Challenges.SubmitScoreAsync(v[0], SandboxParse.Double(v[1]))), F("challengeId (key)"), Ff("score", "100")),
+                        Mutate("Claim Reward", v => SandboxOps.Run(sdk.Challenges.ClaimRewardAsync(v[0])), F("challengeId (key)")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "tournaments", Title = "Tournaments", Glyph = "TR", Accent = Hex("#E89B3D"),
+                    Info = () => "Initialize for keys. tournamentId = Key, tableId from config. GetRewards(reset=true) consumes!",
+                    Controls =
+                    {
+                        Query("Initialize", _ => SandboxOps.Run(sdk.Tournaments.InitializeAsync())),
+                        Param("Get Config", v => SandboxOps.Run(sdk.Tournaments.GetConfigAsync(v[0])), F("tournamentId (key)")),
+                        Param("Get Top", v => SandboxOps.Run(sdk.Tournaments.GetTopAsync(v[0], v[1])), F("tournamentId (key)"), F("tableId")),
+                        Param("Get League Meta", v => SandboxOps.Run(sdk.Tournaments.GetPlayerLeagueMetaAsync(v[0])), F("tournamentId (key)")),
+                        Param("Get Rewards", v => SandboxOps.Run(sdk.Tournaments.GetRewardsAsync(SandboxParse.Bool(v[0]))), Fb("reset (consumes!)", "false")),
+                        Mutate("Submit Score", v => SandboxOps.Run(sdk.Tournaments.SubmitScoreAsync(v[0], SandboxParse.Double(v[1]))), F("tournamentId (key)"), Ff("score", "100")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "dailyRewards", Title = "Daily Rewards", Glyph = "DR", Accent = Hex("#F2843B"),
+                    Info = () => "Calendars + status; Claim grants rewards (once per UTC reset).",
+                    Controls =
+                    {
+                        Query("Get Calendars", _ => SandboxOps.Run(sdk.DailyRewards.GetCalendarsAsync())),
+                        Query("Get Status (all)", _ => SandboxOps.Run(sdk.DailyRewards.GetStatusAsync())),
+                        Param("Get Status (calendar)", v => SandboxOps.Run(sdk.DailyRewards.GetStatusAsync(v[0])), F("calendarId")),
+                        Mutate("Claim", v => SandboxOps.Run(sdk.DailyRewards.ClaimAsync(v[0])), F("calendarId")),
+                    }
+                },
             };
         }
 
@@ -110,9 +180,32 @@ namespace MirraCloud.Example.Sandbox
             return c;
         }
 
+        // Mutating / state-changing call: styled red (no confirm — this is a raw dev tool).
+        private static ControlDescriptor Mutate(string label, System.Func<IReadOnlyList<string>, System.Threading.Tasks.Task<OpResult>> invoke, params FieldDescriptor[] fields)
+        {
+            var c = new ControlDescriptor { Label = label, Kind = ControlKind.Action, Destructive = true, Invoke = invoke };
+            c.Fields.AddRange(fields);
+            return c;
+        }
+
         private static FieldDescriptor F(string label, string def = null)
         {
             return new FieldDescriptor { Label = label, Default = def };
+        }
+
+        private static FieldDescriptor Fi(string label, string def = null)
+        {
+            return new FieldDescriptor { Label = label, Default = def, Type = FieldType.Int };
+        }
+
+        private static FieldDescriptor Ff(string label, string def = null)
+        {
+            return new FieldDescriptor { Label = label, Default = def, Type = FieldType.Float };
+        }
+
+        private static FieldDescriptor Fb(string label, string def = null)
+        {
+            return new FieldDescriptor { Label = label, Default = def, Type = FieldType.Bool };
         }
 
         private static Color Hex(string hex)
