@@ -17,13 +17,18 @@ namespace MirraCloud.Example.Sandbox
     }
 
     /// <summary>
-    /// Normalized result of any SDK call, ready for the output area.
+    /// Normalized result of any SDK call: ready for the output area + history.
     /// </summary>
     public sealed class OpResult
     {
+        public string Label;   // which control produced this
         public bool Ok;
-        public string Status; // one-line meta: OK/FAIL · HTTP · ms · retries
-        public string Body;   // pretty-printed JSON body or error detail
+        public string Status;  // one-line meta: OK/FAIL · HTTP · ms · retries
+        public string Body;    // pretty-printed JSON body or error detail
+        public string Method;  // GET/POST/...
+        public string Route;
+        public long? Http;
+        public long DurationMs;
     }
 
     /// <summary>

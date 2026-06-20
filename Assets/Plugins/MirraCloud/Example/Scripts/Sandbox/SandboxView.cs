@@ -6,29 +6,50 @@ using UnityEngine.UIElements;
 namespace MirraCloud.Example.Sandbox
 {
     /// <summary>
-    /// Owns the UI Toolkit DOM: a session bar, a home card grid, and per-module detail
-    /// screens built generically from <see cref="ModuleDescriptor"/>s. Raises events for
-    /// login / control invocation; the app layer owns the SDK calls.
+    /// Owns the UI Toolkit DOM: a persistent status bar (config + auth state), an inline
+    /// Auth panel, an auth-gated home card grid, per-module screens, toasts, and a history
+    /// overlay. Raises intent events; the app layer owns the SDK calls.
     /// </summary>
     public sealed class SandboxView
     {
         private readonly VisualElement _root;
         private readonly List<ModuleDescriptor> _modules;
+        private readonly string _project, _branch, _platform, _url;
 
-        private Label _status;
-        private Button _loginBtn;
         private VisualElement _content;
+        private Label _authPill;
+        private Button _logoutBtn;
+
+        private VisualElement _toastHost;
+        private VisualElement _historyOverlay;
+        private bool _historyVisible;
+
+        private bool _authed;
 
         private Label _output;
         private readonly List<Button> _controlButtons = new List<Button>();
+        private readonly List<Button> _authButtons = new List<Button>();
+        private readonly List<VisualElement> _cards = new List<VisualElement>();
+        private Label _gateNote;
 
-        public event Action LoginRequested;
+        private TextField _email, _password;
+
+        public event Action GuestLoginRequested;
+        public event Action DeviceLoginRequested;
+        public event Action<string, string> EmailLoginRequested;
+        public event Action LogoutRequested;
+        public event Action HistoryToggleRequested;
         public event Action<ControlDescriptor> InvokeRequested;
 
-        public SandboxView(VisualElement root, List<ModuleDescriptor> modules)
+        public SandboxView(VisualElement root, List<ModuleDescriptor> modules,
+            string project, string branch, string platform, string url)
         {
             _root = root;
             _modules = modules;
+            _project = project;
+            _branch = branch;
+            _platform = platform;
+            _url = url;
             Build();
         }
 
@@ -37,32 +58,81 @@ namespace MirraCloud.Example.Sandbox
             var screen = _root.Q<VisualElement>("screen-root") ?? _root;
             screen.Clear();
 
-            var bar = New("session-bar");
-            var brand = new Label("BRIDGE · SANDBOX");
-            brand.AddToClassList("brand");
-            var spacer = New("spacer");
-            _status = new Label("…");
-            _status.AddToClassList("status-pill");
-            _loginBtn = new Button(() => LoginRequested?.Invoke()) { text = "Login Guest" };
-            _loginBtn.AddToClassList("btn");
-            _loginBtn.AddToClassList("btn--primary");
-            bar.Add(brand);
-            bar.Add(spacer);
-            bar.Add(_status);
-            bar.Add(_loginBtn);
-            screen.Add(bar);
+            screen.Add(BuildTopBar());
 
             _content = New("content");
             screen.Add(_content);
+
+            _toastHost = New("toast-host");
+            _toastHost.pickingMode = PickingMode.Ignore;
+            screen.Add(_toastHost);
+
+            _historyOverlay = BuildHistoryOverlay();
+            _historyOverlay.style.display = DisplayStyle.None;
+            screen.Add(_historyOverlay);
         }
+
+        private VisualElement BuildTopBar()
+        {
+            var bar = New("topbar");
+
+            var brand = new Label("BRIDGE · SANDBOX");
+            brand.AddToClassList("brand");
+            bar.Add(brand);
+
+            bar.Add(Chip("project", _project));
+            bar.Add(Chip("branch", _branch));
+            bar.Add(Chip("platform", _platform));
+
+            bar.Add(New("spacer"));
+
+            _authPill = new Label("…");
+            _authPill.AddToClassList("status-pill");
+            bar.Add(_authPill);
+
+            var historyBtn = new Button(() => HistoryToggleRequested?.Invoke()) { text = "History" };
+            historyBtn.AddToClassList("btn");
+            bar.Add(historyBtn);
+
+            _logoutBtn = new Button(() => LogoutRequested?.Invoke()) { text = "Logout" };
+            _logoutBtn.AddToClassList("btn");
+            _logoutBtn.style.display = DisplayStyle.None;
+            bar.Add(_logoutBtn);
+
+            return bar;
+        }
+
+        private VisualElement Chip(string key, string value)
+        {
+            var chip = New("config-chip");
+            bool empty = string.IsNullOrEmpty(value);
+            var k = new Label(key);
+            k.AddToClassList("config-chip__key");
+            var v = new Label(empty ? "—" : value);
+            v.AddToClassList("config-chip__val");
+            if (empty) v.AddToClassList("config-chip__val--missing");
+            chip.Add(k);
+            chip.Add(v);
+            return chip;
+        }
+
+        // ---- HOME ----
 
         public void ShowHome()
         {
             _content.Clear();
             _output = null;
             _controlButtons.Clear();
+            _authButtons.Clear();
+            _cards.Clear();
+
+            _content.Add(BuildAuthPanel());
 
             var panel = New("panel");
+            _gateNote = new Label("Login required — authenticate above to enable the modules.");
+            _gateNote.AddToClassList("gate-note");
+            panel.Add(_gateNote);
+
             var grid = New("card-grid");
             foreach (var m in _modules)
             {
@@ -70,6 +140,44 @@ namespace MirraCloud.Example.Sandbox
             }
             panel.Add(grid);
             _content.Add(panel);
+
+            ApplyGate();
+        }
+
+        private VisualElement BuildAuthPanel()
+        {
+            var p = New("auth-panel");
+
+            var title = new Label("Authentication");
+            title.AddToClassList("section-title");
+            p.Add(title);
+
+            var row1 = New("controls");
+            row1.Add(AuthBtn("Login Guest", "btn--primary", () => GuestLoginRequested?.Invoke()));
+            row1.Add(AuthBtn("Login Device", null, () => DeviceLoginRequested?.Invoke()));
+            p.Add(row1);
+
+            var row2 = New("auth-email-row");
+            _email = new TextField("email");
+            _email.AddToClassList("field");
+            _password = new TextField("password") { isPasswordField = true };
+            _password.AddToClassList("field");
+            var emailBtn = AuthBtn("Login Email", null, () => EmailLoginRequested?.Invoke(_email.value, _password.value));
+            row2.Add(_email);
+            row2.Add(_password);
+            row2.Add(emailBtn);
+            p.Add(row2);
+
+            return p;
+        }
+
+        private Button AuthBtn(string label, string extraClass, Action onClick)
+        {
+            var b = new Button(onClick) { text = label };
+            b.AddToClassList("btn");
+            if (!string.IsNullOrEmpty(extraClass)) b.AddToClassList(extraClass);
+            _authButtons.Add(b);
+            return b;
         }
 
         private VisualElement BuildCard(ModuleDescriptor m)
@@ -89,14 +197,32 @@ namespace MirraCloud.Example.Sandbox
 
             card.Add(chip);
             card.Add(label);
-            card.RegisterCallback<ClickEvent>(_ => ShowModule(m));
+            card.RegisterCallback<ClickEvent>(_ =>
+            {
+                if (_authed) ShowModule(m);
+            });
+            _cards.Add(card);
             return card;
         }
+
+        private void ApplyGate()
+        {
+            foreach (var c in _cards)
+            {
+                c.SetEnabled(_authed);
+                c.EnableInClassList("card--disabled", !_authed);
+            }
+            if (_gateNote != null) _gateNote.style.display = _authed ? DisplayStyle.None : DisplayStyle.Flex;
+        }
+
+        // ---- MODULE ----
 
         public void ShowModule(ModuleDescriptor m)
         {
             _content.Clear();
             _controlButtons.Clear();
+            _cards.Clear();
+            _gateNote = null;
 
             var panel = New("panel");
 
@@ -123,10 +249,7 @@ namespace MirraCloud.Example.Sandbox
                 var local = c;
                 var b = new Button(() => InvokeRequested?.Invoke(local)) { text = c.Label };
                 b.AddToClassList("btn");
-                if (c.Destructive)
-                {
-                    b.AddToClassList("btn--danger");
-                }
+                if (c.Destructive) b.AddToClassList("btn--danger");
                 _controlButtons.Add(b);
                 controls.Add(b);
             }
@@ -143,12 +266,75 @@ namespace MirraCloud.Example.Sandbox
             _content.Add(panel);
         }
 
-        public void SetStatus(string text, bool ok)
+        // ---- history overlay ----
+
+        private VisualElement BuildHistoryOverlay()
         {
-            if (_status == null) return;
-            _status.text = text;
-            _status.EnableInClassList("status-pill--ok", ok);
-            _status.EnableInClassList("status-pill--bad", !ok);
+            var overlay = New("history-overlay");
+            var head = New("history-head");
+            var t = new Label("Request history");
+            t.AddToClassList("section-title");
+            var close = new Button(() => HistoryToggleRequested?.Invoke()) { text = "✕" };
+            close.AddToClassList("back-btn");
+            head.Add(t);
+            head.Add(New("spacer"));
+            head.Add(close);
+            overlay.Add(head);
+
+            var list = new ScrollView(ScrollViewMode.Vertical);
+            list.name = "history-list";
+            list.AddToClassList("history-list");
+            overlay.Add(list);
+            return overlay;
+        }
+
+        public void ShowHistory(IReadOnlyList<OpResult> entries)
+        {
+            _historyVisible = !_historyVisible;
+            _historyOverlay.style.display = _historyVisible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!_historyVisible) return;
+
+            var list = _historyOverlay.Q<ScrollView>("history-list");
+            list.Clear();
+            if (entries == null || entries.Count == 0)
+            {
+                var empty = new Label("(no calls yet)");
+                empty.AddToClassList("history-empty");
+                list.Add(empty);
+                return;
+            }
+            foreach (var e in entries)
+            {
+                var row = New("history-row");
+                var dot = New("history-dot");
+                dot.EnableInClassList("history-dot--ok", e.Ok);
+                dot.EnableInClassList("history-dot--bad", !e.Ok);
+                var label = new Label((e.Label ?? "call") + "  ·  " + (e.Status ?? ""));
+                label.AddToClassList("history-row__label");
+                var route = new Label(((e.Method ?? "") + " " + (e.Route ?? "")).Trim());
+                route.AddToClassList("history-row__route");
+                var col = New("history-row__col");
+                col.Add(label);
+                col.Add(route);
+                row.Add(dot);
+                row.Add(col);
+                list.Add(row);
+            }
+        }
+
+        // ---- state updates ----
+
+        public void SetAuthed(bool authed)
+        {
+            _authed = authed;
+            if (_authPill != null)
+            {
+                _authPill.text = authed ? "logged in" : "not logged in";
+                _authPill.EnableInClassList("status-pill--ok", authed);
+                _authPill.EnableInClassList("status-pill--bad", !authed);
+            }
+            if (_logoutBtn != null) _logoutBtn.style.display = authed ? DisplayStyle.Flex : DisplayStyle.None;
+            ApplyGate();
         }
 
         public void SetOutput(OpResult r)
@@ -169,12 +355,25 @@ namespace MirraCloud.Example.Sandbox
 
         public void SetBusy(bool busy)
         {
-            if (_loginBtn != null) _loginBtn.SetEnabled(!busy);
-            foreach (var b in _controlButtons)
-            {
-                b.SetEnabled(!busy);
-            }
+            foreach (var b in _authButtons) b.SetEnabled(!busy);
+            foreach (var b in _controlButtons) b.SetEnabled(!busy);
         }
+
+        public void Toast(string msg, bool ok)
+        {
+            if (_toastHost == null) return;
+            var t = new Label(msg);
+            t.AddToClassList("toast");
+            t.EnableInClassList("toast--ok", ok);
+            t.EnableInClassList("toast--bad", !ok);
+            _toastHost.Add(t);
+            t.schedule.Execute(() =>
+            {
+                if (t.parent != null) t.RemoveFromHierarchy();
+            }).StartingIn(2800);
+        }
+
+        // ---- helpers ----
 
         private static VisualElement New(string cls)
         {

@@ -44,23 +44,37 @@ namespace MirraCloud.Example.Sandbox
             string http = r.HttpStatusCode.HasValue ? r.HttpStatusCode.Value.ToString() : "-";
             string status = $"{(r.IsSuccess ? "OK" : "FAIL")} · HTTP {http} · {r.DurationMs}ms · retries {r.RetryCount}";
 
+            string body;
             if (r.IsSuccess)
             {
-                return new OpResult { Ok = true, Status = status, Body = JsonPretty.Format(r.ResponseBody) };
+                body = JsonPretty.Format(r.ResponseBody);
+            }
+            else
+            {
+                var sb = new StringBuilder();
+                var e = r.Error;
+                if (e != null)
+                {
+                    sb.Append("Type: ").Append(e.Type).Append('\n');
+                    if (!string.IsNullOrEmpty(e.Message))
+                    {
+                        sb.Append("Message: ").Append(e.Message).Append('\n');
+                    }
+                }
+                sb.Append("\n--- response body ---\n").Append(JsonPretty.Format(r.ResponseBody));
+                body = sb.ToString();
             }
 
-            var sb = new StringBuilder();
-            var e = r.Error;
-            if (e != null)
+            return new OpResult
             {
-                sb.Append("Type: ").Append(e.Type).Append('\n');
-                if (!string.IsNullOrEmpty(e.Message))
-                {
-                    sb.Append("Message: ").Append(e.Message).Append('\n');
-                }
-            }
-            sb.Append("\n--- response body ---\n").Append(JsonPretty.Format(r.ResponseBody));
-            return new OpResult { Ok = false, Status = status, Body = sb.ToString() };
+                Ok = r.IsSuccess,
+                Status = status,
+                Body = body,
+                Method = r.Method,
+                Route = r.Route,
+                Http = r.HttpStatusCode,
+                DurationMs = r.DurationMs,
+            };
         }
     }
 
