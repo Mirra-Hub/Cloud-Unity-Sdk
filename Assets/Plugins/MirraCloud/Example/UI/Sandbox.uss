@@ -1,0 +1,160 @@
+/* ===== MirraCloud Dev Sandbox — UI Toolkit ===== */
+
+.screen-root {
+    flex-grow: 1;
+    background-color: #18181C;
+    padding-top: 22px;
+    padding-right: 22px;
+    padding-bottom: 22px;
+    padding-left: 22px;
+    /* project default runtime font renders as solid boxes — pin an explicit one */
+    -unity-font: url("project://database/Assets/TextMesh Pro/Fonts/LiberationSans.ttf?fileID=12800000&guid=e3265ab4bf004d28a9537516768c1c75&type=3#LiberationSans");
+    -unity-font-definition: initial;
+}
+
+/* ---- session bar ---- */
+.session-bar {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 18px;
+}
+.brand {
+    color: #FFFFFF;
+    font-size: 20px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+}
+.spacer { flex-grow: 1; }
+.status-pill {
+    color: #C9C9CF;
+    font-size: 13px;
+    -unity-font-style: bold;
+    background-color: #26262C;
+    border-radius: 11px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 12px;
+    padding-right: 12px;
+    margin-right: 12px;
+}
+.status-pill--ok { color: #2FCFA0; background-color: rgba(47, 207, 160, 0.14); }
+.status-pill--bad { color: #F0808A; background-color: rgba(240, 128, 138, 0.12); }
+
+/* ---- buttons ---- */
+.btn {
+    color: #FFFFFF;
+    font-size: 14px;
+    -unity-font-style: bold;
+    background-color: #2A2A31;
+    border-radius: 10px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    padding-top: 9px;
+    padding-bottom: 9px;
+    padding-left: 16px;
+    padding-right: 16px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+.btn:hover { background-color: #34343C; }
+.btn:disabled { opacity: 0.5; }
+.btn--primary { background-color: #7C5CFC; }
+.btn--primary:hover { background-color: #8E70FF; }
+.btn--danger { background-color: #C8434B; }
+.btn--danger:hover { background-color: #D85059; }
+
+/* ---- panel + home grid ---- */
+.content { flex-grow: 1; }
+.panel {
+    flex-grow: 1;
+    background-color: #0E0E10;
+    border-radius: 22px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-color: #2A2A30;
+    border-right-color: #2A2A30;
+    border-bottom-color: #2A2A30;
+    border-left-color: #2A2A30;
+    padding-top: 22px;
+    padding-right: 22px;
+    padding-bottom: 22px;
+    padding-left: 22px;
+}
+.card-grid { flex-direction: row; flex-wrap: wrap; }
+.card {
+    width: 31.6%;
+    height: 132px;
+    margin-right: 1.5%;
+    margin-bottom: 16px;
+    background-color: #18181B;
+    border-radius: 16px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-color: #2A2A2F;
+    border-right-color: #2A2A2F;
+    border-bottom-color: #2A2A2F;
+    border-left-color: #2A2A2F;
+    padding-top: 18px;
+    padding-right: 18px;
+    padding-bottom: 18px;
+    padding-left: 18px;
+    justify-content: space-between;
+}
+.card:hover {
+    background-color: #1C1C20;
+    border-top-color: #3A3A42;
+    border-right-color: #3A3A42;
+    border-bottom-color: #3A3A42;
+    border-left-color: #3A3A42;
+}
+.card-icon { width: 42px; height: 42px; border-radius: 12px; align-items: center; justify-content: center; }
+.card-glyph { font-size: 18px; -unity-font-style: bold; }
+.card-label { font-size: 20px; -unity-font-style: bold; }
+
+/* ---- module screen ---- */
+.module-header { flex-direction: row; align-items: center; margin-bottom: 16px; }
+.back-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 19px;
+    background-color: #26262C;
+    color: #FFFFFF;
+    font-size: 20px;
+    -unity-font-style: bold;
+    margin-right: 14px;
+    border-top-width: 0;
+    border-right-width: 0;
+    border-bottom-width: 0;
+    border-left-width: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+.back-btn:hover { background-color: #34343C; }
+.module-title { font-size: 26px; -unity-font-style: bold; }
+.info-block { color: #9A9AA2; font-size: 13px; white-space: normal; margin-bottom: 14px; }
+.controls { flex-direction: row; flex-wrap: wrap; margin-bottom: 14px; }
+.output-scroll {
+    flex-grow: 1;
+    min-height: 220px;
+    background-color: #0A0A0C;
+    border-radius: 12px;
+}
+.output {
+    color: #C9C9CF;
+    font-size: 12px;
+    white-space: normal;
+    padding-top: 12px;
+    padding-right: 12px;
+    padding-bottom: 12px;
+    padding-left: 12px;
+}
+.output--ok { color: #C7D7CD; }
+.output--bad { color: #F0B0B4; }

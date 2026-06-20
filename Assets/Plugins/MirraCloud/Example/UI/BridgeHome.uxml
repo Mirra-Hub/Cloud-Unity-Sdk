@@ -1,0 +1,63 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:Style src="BridgeHome.uss" />
+    <ui:VisualElement name="root" class="root">
+        <ui:VisualElement name="panel" class="bridge-panel">
+            <ui:VisualElement name="header" class="bridge-header">
+                <ui:VisualElement class="bridge-logo">
+                    <ui:Label text="][" class="bridge-logo-mark" />
+                </ui:VisualElement>
+                <ui:Label text="BRIDGE" class="bridge-wordmark" />
+            </ui:VisualElement>
+            <ui:VisualElement name="grid" class="card-grid">
+                <ui:VisualElement class="card card--platform">
+                    <ui:VisualElement class="card-icon"><ui:Label text="&lt;/&gt;" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Platform" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--device">
+                    <ui:VisualElement class="card-icon"><ui:Label text="[=]" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Device" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--game">
+                    <ui:VisualElement class="card-icon"><ui:Label text=":)" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Game" class="card-label" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="card card--storage">
+                    <ui:VisualElement class="card-icon"><ui:Label text="↓" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Storage" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--ads">
+                    <ui:VisualElement class="card-icon"><ui:Label text="!" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Advertisement" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--player">
+                    <ui:VisualElement class="card-icon"><ui:Label text="+" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Player" class="card-label" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="card card--social">
+                    <ui:VisualElement class="card-icon"><ui:Label text="+1" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Social" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--leaderboards">
+                    <ui:VisualElement class="card-icon"><ui:Label text="≡" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Leaderboards" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--payments">
+                    <ui:VisualElement class="card-icon"><ui:Label text="$" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Payments" class="card-label" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="card card--achievements">
+                    <ui:VisualElement class="card-icon"><ui:Label text="★" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Achievements" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--config">
+                    <ui:VisualElement class="card-icon"><ui:Label text="{ }" class="card-glyph" /></ui:VisualElement>
+                    <ui:Label text="Remote Config" class="card-label" />
+                </ui:VisualElement>
+                <ui:VisualElement class="card card--spacer" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
