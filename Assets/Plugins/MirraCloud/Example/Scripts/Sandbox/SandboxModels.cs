@@ -32,16 +32,28 @@ namespace MirraCloud.Example.Sandbox
     }
 
     /// <summary>
+    /// A single typed input for a parametrized control. M2 ships string fields; later
+    /// milestones add enum/bool/DTO field types.
+    /// </summary>
+    public sealed class FieldDescriptor
+    {
+        public string Label;
+        public string Default;
+    }
+
+    /// <summary>
     /// One invokable control on a module screen. The <see cref="Invoke"/> closure
     /// is hand-written per method so we keep full compile-time type safety while the
-    /// generic renderer owns all the layout/binding/output boilerplate.
+    /// generic renderer owns all the layout/binding/output boilerplate. The closure
+    /// receives the current field values (aligned to <see cref="Fields"/>).
     /// </summary>
     public sealed class ControlDescriptor
     {
         public string Label;
         public ControlKind Kind = ControlKind.Query;
         public bool Destructive;
-        public Func<Task<OpResult>> Invoke;
+        public List<FieldDescriptor> Fields = new List<FieldDescriptor>();
+        public Func<IReadOnlyList<string>, Task<OpResult>> Invoke;
     }
 
     /// <summary>

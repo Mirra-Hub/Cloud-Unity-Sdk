@@ -39,7 +39,7 @@ namespace MirraCloud.Example.Sandbox
         public event Action<string, string> EmailLoginRequested;
         public event Action LogoutRequested;
         public event Action HistoryToggleRequested;
-        public event Action<ControlDescriptor> InvokeRequested;
+        public event Action<ControlDescriptor, IReadOnlyList<string>> InvokeRequested;
 
         public SandboxView(VisualElement root, List<ModuleDescriptor> modules,
             string project, string branch, string platform, string url)
@@ -197,10 +197,8 @@ namespace MirraCloud.Example.Sandbox
 
             card.Add(chip);
             card.Add(label);
-            card.RegisterCallback<ClickEvent>(_ =>
-            {
-                if (_authed) ShowModule(m);
-            });
+            // Cards stay browsable when logged out (dimmed); invocation is gated in the app.
+            card.RegisterCallback<ClickEvent>(_ => ShowModule(m));
             _cards.Add(card);
             return card;
         }
@@ -209,7 +207,6 @@ namespace MirraCloud.Example.Sandbox
         {
             foreach (var c in _cards)
             {
-                c.SetEnabled(_authed);
                 c.EnableInClassList("card--disabled", !_authed);
             }
             if (_gateNote != null) _gateNote.style.display = _authed ? DisplayStyle.None : DisplayStyle.Flex;
@@ -243,15 +240,35 @@ namespace MirraCloud.Example.Sandbox
                 panel.Add(info);
             }
 
-            var controls = New("controls");
+            var controls = New("control-list");
             foreach (var c in m.Controls)
             {
                 var local = c;
-                var b = new Button(() => InvokeRequested?.Invoke(local)) { text = c.Label };
+                var row = New("control-row");
+
+                var fieldRefs = new List<TextField>();
+                foreach (var f in c.Fields)
+                {
+                    var tf = new TextField(f.Label);
+                    tf.AddToClassList("field");
+                    if (!string.IsNullOrEmpty(f.Default)) tf.value = f.Default;
+                    fieldRefs.Add(tf);
+                    row.Add(tf);
+                }
+
+                var b = new Button(() =>
+                {
+                    var vals = new List<string>(fieldRefs.Count);
+                    foreach (var tf in fieldRefs) vals.Add(tf.value);
+                    InvokeRequested?.Invoke(local, vals);
+                })
+                { text = c.Label };
                 b.AddToClassList("btn");
                 if (c.Destructive) b.AddToClassList("btn--danger");
                 _controlButtons.Add(b);
-                controls.Add(b);
+                row.Add(b);
+
+                controls.Add(row);
             }
             panel.Add(controls);
 

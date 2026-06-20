@@ -141,6 +141,8 @@
 .module-title { font-size: 26px; -unity-font-style: bold; }
 .info-block { color: #9A9AA2; font-size: 13px; white-space: normal; margin-bottom: 14px; }
 .controls { flex-direction: row; flex-wrap: wrap; margin-bottom: 14px; }
+.control-list { flex-direction: column; margin-bottom: 14px; }
+.control-row { flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
 .output-scroll {
     flex-grow: 1;
     min-height: 220px;

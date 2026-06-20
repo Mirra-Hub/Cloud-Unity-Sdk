@@ -110,7 +110,7 @@ namespace MirraCloud.Example.Sandbox
             _view.SetBusy(false);
         }
 
-        private async void OnInvoke(ControlDescriptor c)
+        private async void OnInvoke(ControlDescriptor c, IReadOnlyList<string> values)
         {
             if (!_sdk.Authentication.IsAuth)
             {
@@ -132,7 +132,7 @@ namespace MirraCloud.Example.Sandbox
             OpResult r;
             try
             {
-                r = await c.Invoke();
+                r = await c.Invoke(values);
             }
             catch (Exception e)
             {
