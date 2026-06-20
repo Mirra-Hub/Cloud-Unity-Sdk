@@ -165,6 +165,31 @@ namespace MirraCloud.Example.Sandbox
                         Mutate("Claim", v => SandboxOps.Run(sdk.DailyRewards.ClaimAsync(v[0])), F("calendarId")),
                     }
                 },
+                new ModuleDescriptor
+                {
+                    Id = "chats", Title = "Chats", Glyph = "»", Accent = Hex("#E0479E"),
+                    Info = () => "REST (create/get/members/messages/join/leave) works without realtime. Realtime (connect/subscribe/send/edit/delete/markRead) needs ConnectAsync first, else 'not_connected'. Events stream into the log below.",
+                    HasEventLog = true,
+                    Subscribe = log => ChatsEventLog.Subscribe(sdk.Chats, log),
+                    Controls =
+                    {
+                        Query("Connect (realtime)", _ => SandboxOps.RunRt(sdk.Chats.ConnectAsync())),
+                        Query("Disconnect", _ => SandboxOps.RunRt(sdk.Chats.DisconnectAsync())),
+                        Param("Create Channel", v => SandboxOps.Run(sdk.Chats.CreateChannelAsync(v[0], v[1])), F("name"), F("templateKey")),
+                        Param("Get Channel", v => SandboxOps.Run(sdk.Chats.GetChannelAsync(v[0])), F("channelId")),
+                        Param("Get Members", v => SandboxOps.Run(sdk.Chats.GetMembersAsync(v[0])), F("channelId")),
+                        Param("Get Messages", v => SandboxOps.Run(sdk.Chats.GetMessagesAsync(v[0])), F("channelId")),
+                        Param("Lookup Group Channel", v => SandboxOps.Run(sdk.Chats.LookupGroupChannelAsync(v[0])), F("groupId")),
+                        Param("Subscribe", v => SandboxOps.RunRt(sdk.Chats.SubscribeAsync(v[0])), F("channelId")),
+                        Param("Unsubscribe", v => SandboxOps.RunRt(sdk.Chats.UnsubscribeAsync(v[0])), F("channelId")),
+                        Param("Send Message", v => SandboxOps.RunRt(sdk.Chats.SendMessageAsync(v[0], v[1])), F("channelId"), F("body")),
+                        Param("Edit Message", v => SandboxOps.RunRt(sdk.Chats.EditMessageAsync(v[0], v[1], v[2])), F("channelId"), F("messageId"), F("body")),
+                        Param("Mark As Read", v => SandboxOps.RunRt(sdk.Chats.MarkAsReadAsync(v[0], (long)SandboxParse.Int(v[1]))), F("channelId"), Fi("messageNumber")),
+                        Param("Join", v => SandboxOps.Run(sdk.Chats.JoinAsync(v[0])), F("channelId")),
+                        Mutate("Leave", v => SandboxOps.Run(sdk.Chats.LeaveAsync(v[0])), F("channelId")),
+                        Mutate("Delete Message", v => SandboxOps.RunRt(sdk.Chats.DeleteMessageAsync(v[0], v[1])), F("channelId"), F("messageId")),
+                    }
+                },
             };
         }
 

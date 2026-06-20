@@ -71,5 +71,10 @@ namespace MirraCloud.Example.Sandbox
         public Color Accent = new Color(0.60f, 0.63f, 0.65f);
         public Func<string> Info; // optional read-only key:value text block
         public List<ControlDescriptor> Controls = new List<ControlDescriptor>();
+
+        // Realtime modules (Chats): render a live event log. Subscribe(log) wires the
+        // SDK events to the log callback and returns an unsubscribe action (called on leave).
+        public bool HasEventLog;
+        public Func<Action<string>, Action> Subscribe;
     }
 }

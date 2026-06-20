@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.Tasks;
 using MirraCloud.Core;
+using MirraCloud.Core.Realtime.Protocol;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 
 namespace MirraCloud.Example.Sandbox
@@ -32,6 +33,60 @@ namespace MirraCloud.Example.Sandbox
 
             await op.Task();
             return From(op.Result);
+        }
+
+        // ---- realtime (Chats): RealtimeResult instead of RestApiResult ----
+
+        public static async Task<OpResult> RunRt(AsyncOperation<RealtimeResult> op)
+        {
+            if (op == null)
+            {
+                return new OpResult { Ok = false, Status = "FAIL · no operation", Body = "(operation was null)" };
+            }
+
+            await op.Task();
+            return FromRt(op.Result, null);
+        }
+
+        public static async Task<OpResult> RunRt<T>(AsyncOperation<RealtimeResult<T>> op)
+        {
+            if (op == null)
+            {
+                return new OpResult { Ok = false, Status = "FAIL · no operation", Body = "(operation was null)" };
+            }
+
+            await op.Task();
+            var r = op.Result;
+            return FromRt(r, r != null ? (object)r.Data : null);
+        }
+
+        private static OpResult FromRt(RealtimeResult r, object data)
+        {
+            if (r == null)
+            {
+                return new OpResult { Ok = false, Status = "FAIL · null result", Body = "(null result)" };
+            }
+
+            string status = (r.IsSuccess ? "OK" : "FAIL") + " · realtime"
+                + (string.IsNullOrEmpty(r.Code) ? "" : " · " + r.Code);
+            string body;
+            if (r.IsSuccess)
+            {
+                body = data != null ? SafeJson(data) : (string.IsNullOrEmpty(r.Message) ? "(ok)" : r.Message);
+            }
+            else
+            {
+                body = "Code: " + r.Code + "\nMessage: " + r.Message;
+            }
+
+            return new OpResult { Ok = r.IsSuccess, Status = status, Body = body, Method = "WS" };
+        }
+
+        public static string SafeJson(object o)
+        {
+            if (o == null) return "(null)";
+            try { return JsonPretty.Format(UnityEngine.JsonUtility.ToJson(o)); }
+            catch { return o.ToString(); }
         }
 
         public static OpResult From(RestApiResult r)

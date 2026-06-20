@@ -32,6 +32,9 @@ namespace MirraCloud.Example.Sandbox
         private readonly List<VisualElement> _cards = new List<VisualElement>();
         private Label _gateNote;
 
+        private ScrollView _eventLog;
+        private Action _eventUnsub;
+
         private TextField _email, _password;
 
         public event Action GuestLoginRequested;
@@ -120,6 +123,7 @@ namespace MirraCloud.Example.Sandbox
 
         public void ShowHome()
         {
+            LeaveModule();
             _content.Clear();
             _output = null;
             _controlButtons.Clear();
@@ -216,6 +220,7 @@ namespace MirraCloud.Example.Sandbox
 
         public void ShowModule(ModuleDescriptor m)
         {
+            LeaveModule();
             _content.Clear();
             _controlButtons.Clear();
             _cards.Clear();
@@ -322,7 +327,44 @@ namespace MirraCloud.Example.Sandbox
             outScroll.Add(_output);
             panel.Add(outScroll);
 
+            if (m.HasEventLog)
+            {
+                var logTitle = new Label("Event log");
+                logTitle.AddToClassList("section-title");
+                logTitle.style.marginTop = 12;
+                panel.Add(logTitle);
+
+                _eventLog = new ScrollView(ScrollViewMode.Vertical);
+                _eventLog.AddToClassList("event-log");
+                panel.Add(_eventLog);
+
+                if (m.Subscribe != null)
+                {
+                    _eventUnsub = m.Subscribe(AppendLog);
+                }
+            }
+
             _content.Add(panel);
+        }
+
+        private void AppendLog(string line)
+        {
+            if (_eventLog == null) return;
+            var lbl = new Label(System.DateTime.Now.ToString("HH:mm:ss") + "  " + line);
+            lbl.AddToClassList("event-line");
+            lbl.enableRichText = false;
+            _eventLog.Add(lbl);
+            if (_eventLog.childCount > 200) _eventLog.RemoveAt(0);
+        }
+
+        private void LeaveModule()
+        {
+            if (_eventUnsub != null)
+            {
+                _eventUnsub();
+                _eventUnsub = null;
+            }
+            _eventLog = null;
         }
 
         // ---- history overlay ----
