@@ -63,7 +63,9 @@ namespace MirraCloud.Example.Sandbox
 
             screen.Add(BuildTopBar());
 
-            _content = New("content");
+            var contentScroll = new ScrollView(ScrollViewMode.Vertical);
+            contentScroll.AddToClassList("content");
+            _content = contentScroll;
             screen.Add(_content);
 
             _toastHost = New("toast-host");

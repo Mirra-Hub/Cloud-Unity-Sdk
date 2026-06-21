@@ -89,6 +89,34 @@ namespace MirraCloud.Example.Sandbox
             catch { return o.ToString(); }
         }
 
+        // ---- synchronous local calls (WebView): void / bool, no AsyncOperation ----
+
+        public static Task<OpResult> Sync(System.Action action, string okMsg = "done")
+        {
+            try
+            {
+                action();
+                return Task.FromResult(new OpResult { Ok = true, Status = "OK · local", Body = okMsg, Method = "local" });
+            }
+            catch (System.Exception e)
+            {
+                return Task.FromResult(new OpResult { Ok = false, Status = "Exception", Body = e.ToString(), Method = "local" });
+            }
+        }
+
+        public static Task<OpResult> SyncVal(System.Func<object> f)
+        {
+            try
+            {
+                var r = f();
+                return Task.FromResult(new OpResult { Ok = true, Status = "OK · local", Body = r == null ? "(null)" : r.ToString(), Method = "local" });
+            }
+            catch (System.Exception e)
+            {
+                return Task.FromResult(new OpResult { Ok = false, Status = "Exception", Body = e.ToString(), Method = "local" });
+            }
+        }
+
         public static OpResult From(RestApiResult r)
         {
             if (r == null)

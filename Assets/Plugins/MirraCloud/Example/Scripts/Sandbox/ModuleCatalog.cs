@@ -190,6 +190,143 @@ namespace MirraCloud.Example.Sandbox
                         Mutate("Delete Message", v => SandboxOps.RunRt(sdk.Chats.DeleteMessageAsync(v[0], v[1])), F("channelId"), F("messageId")),
                     }
                 },
+                new ModuleDescriptor
+                {
+                    Id = "purchases", Title = "Purchases", Glyph = "$$", Accent = Hex("#F5A623"),
+                    Info = () => "Catalog + orders + subscriptions. InitiatePurchase mints an order (no charge). BuyAsync (real payment via WebView) is intentionally omitted here.",
+                    Controls =
+                    {
+                        Query("Load Catalog", _ => SandboxOps.Run(sdk.Purchases.LoadCatalogAsync())),
+                        Query("Get Orders", _ => SandboxOps.Run(sdk.Purchases.GetOrdersAsync())),
+                        Query("Get Subscriptions", _ => SandboxOps.Run(sdk.Purchases.GetSubscriptionsAsync())),
+                        Param("Get Order", v => SandboxOps.Run(sdk.Purchases.GetOrderAsync(v[0])), F("orderId")),
+                        Param("Initiate Purchase", v => SandboxOps.Run(sdk.Purchases.InitiatePurchaseAsync(v[0], v[1], v[2], v[3])), F("purchaseKey"), F("providerConfigId"), F("successUrl"), F("cancelUrl")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "promoCodes", Title = "Promo Codes", Glyph = "%", Accent = Hex("#FF7AA8"),
+                    Info = () => "Redeem a code (usually single-use per player); history + active effects.",
+                    Controls =
+                    {
+                        Query("Get Active Effects", _ => SandboxOps.Run(sdk.PromoCodes.GetActiveEffectsAsync())),
+                        Query("Get History", _ => SandboxOps.Run(sdk.PromoCodes.GetHistoryAsync())),
+                        Mutate("Redeem", v => SandboxOps.Run(sdk.PromoCodes.RedeemAsync(v[0])), F("code")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "analytics", Title = "Analytics", Glyph = "≈", Accent = Hex("#7FB0C0"),
+                    Info = () => "Writes real analytics (pollutes dashboards). Custom events need a server-seeded metricId.",
+                    Controls =
+                    {
+                        Param("Send Event", v => SandboxOps.Run(sdk.Analytics.SendEventAsync(v[0])), F("metricId")),
+                        Query("Send Session Started", _ => SandboxOps.Run(sdk.Analytics.SendSessionStartedAsync())),
+                        Param("Send Playtime", v => SandboxOps.Run(sdk.Analytics.SendPlaytimeAsync(SandboxParse.Int(v[0]))), Fi("minutes", "1")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "profanity", Title = "Profanity Filter", Glyph = "*", Accent = Hex("#E86A6A"),
+                    Info = () => "Check text against the project filter (optional group). Read-only.",
+                    Controls =
+                    {
+                        Param("Check", v => SandboxOps.Run(sdk.ProfanityFilter.CheckAsync(v[0], string.IsNullOrEmpty(v[1]) ? null : v[1])), F("text"), F("groupName (optional)")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "cloudCode", Title = "Cloud Code", Glyph = "</>", Accent = Hex("#7FD97F"),
+                    Info = () => "Execute a deployed Cloud Code script by id. Server code can do anything (treated as mutating). JSON input deferred.",
+                    Controls =
+                    {
+                        Mutate("Execute", v => SandboxOps.Run(sdk.CloudCode.ExecuteAsync(v[0])), F("scriptId")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "assets", Title = "Assets Storage", Glyph = "FS", Accent = Hex("#6FC0F0"),
+                    Info = () => "LoadConfig to discover asset ids, then load by id. Loaders require the asset's real content type.",
+                    Controls =
+                    {
+                        Query("Load Config", _ => SandboxOps.Run(sdk.AssetsStorage.LoadConfigAsync())),
+                        Param("Load Text", v => SandboxOps.Run(sdk.AssetsStorage.LoadTextFromId(v[0])), F("assetId")),
+                        Param("Load Texture", v => SandboxOps.Run(sdk.AssetsStorage.LoadTextureFromId(v[0])), F("assetId")),
+                        Param("Load Sprite", v => SandboxOps.Run(sdk.AssetsStorage.LoadSpriteFromId(v[0])), F("assetId")),
+                        Param("Load AssetBundle", v => SandboxOps.Run(sdk.AssetsStorage.LoadAssetBundleFromId(v[0])), F("assetId")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "groups", Title = "Groups", Glyph = "##", Accent = Hex("#9B8CFF"),
+                    Info = () => "Group CRUD/membership/roles/invites. groupId from GetMyGroups. (Create/Update + other DTO methods deferred.)",
+                    Controls =
+                    {
+                        Query("Get My Groups", _ => SandboxOps.Run(sdk.Groups.GetMyGroupsAsync())),
+                        Param("Get", v => SandboxOps.Run(sdk.Groups.GetAsync(v[0])), F("groupId")),
+                        Param("Get Members", v => SandboxOps.Run(sdk.Groups.GetMembersAsync(v[0])), F("groupId")),
+                        Param("Get Roles", v => SandboxOps.Run(sdk.Groups.GetRolesAsync(v[0])), F("groupId")),
+                        Param("Get Player Groups", v => SandboxOps.Run(sdk.Groups.GetPlayerGroupsAsync(v[0])), F("playerId")),
+                        Param("Create Chat", v => SandboxOps.Run(sdk.Groups.CreateChatAsync(v[0])), F("groupId")),
+                        Param("Join", v => SandboxOps.Run(sdk.Groups.JoinAsync(v[0])), F("groupId")),
+                        Param("Create Join Request", v => SandboxOps.Run(sdk.Groups.CreateJoinRequestAsync(v[0])), F("groupId")),
+                        Param("Approve Join Request", v => SandboxOps.Run(sdk.Groups.ApproveJoinRequestAsync(v[0], v[1])), F("groupId"), F("requestId")),
+                        Param("Reject Join Request", v => SandboxOps.Run(sdk.Groups.RejectJoinRequestAsync(v[0], v[1])), F("groupId"), F("requestId")),
+                        Param("Accept Invite", v => SandboxOps.Run(sdk.Groups.AcceptInviteAsync(v[0], v[1])), F("groupId"), F("inviteId")),
+                        Param("Decline Invite", v => SandboxOps.Run(sdk.Groups.DeclineInviteAsync(v[0], v[1])), F("groupId"), F("inviteId")),
+                        Mutate("Leave", v => SandboxOps.Run(sdk.Groups.LeaveAsync(v[0])), F("groupId")),
+                        Mutate("Delete", v => SandboxOps.Run(sdk.Groups.DeleteAsync(v[0])), F("groupId")),
+                        Mutate("Kick Member", v => SandboxOps.Run(sdk.Groups.KickMemberAsync(v[0], v[1])), F("groupId"), F("profileId")),
+                        Mutate("Unban Player", v => SandboxOps.Run(sdk.Groups.UnbanPlayerAsync(v[0], v[1])), F("groupId"), F("profileId")),
+                        Mutate("Delete Role", v => SandboxOps.Run(sdk.Groups.DeleteRoleAsync(v[0], v[1])), F("groupId"), F("roleId")),
+                        Mutate("Revoke Invite", v => SandboxOps.Run(sdk.Groups.RevokeInviteAsync(v[0], v[1])), F("groupId"), F("inviteId")),
+                        Mutate("Delete Invite Key", v => SandboxOps.Run(sdk.Groups.DeleteInviteKeyAsync(v[0], v[1])), F("groupId"), F("inviteKeyId")),
+                    }
+                },
+                new ModuleDescriptor
+                {
+                    Id = "webview", Title = "WebView", Glyph = "WV", Accent = Hex("#46C0B0"),
+                    Info = () => "Native overlay — SYNC calls + events (no AsyncOperation). Unsupported in WebGL-from-Editor (IsReady stays false). Set visible + non-zero margins to see anything.",
+                    HasEventLog = true,
+                    Subscribe = log =>
+                    {
+                        var wv = sdk.WebView;
+                        System.Action<string> onMsg = s => log("message: " + s);
+                        System.Action<string> onErr = s => log("error: " + s);
+                        System.Action<string> onHttp = s => log("httpError: " + s);
+                        System.Action<string> onStart = s => log("pageStarted: " + s);
+                        System.Action<string> onLoad = s => log("pageLoaded: " + s);
+                        System.Action<string> onHook = s => log("urlHooked: " + s);
+                        wv.OnMessageReceived += onMsg;
+                        wv.OnError += onErr;
+                        wv.OnHttpError += onHttp;
+                        wv.OnPageStarted += onStart;
+                        wv.OnPageLoaded += onLoad;
+                        wv.OnUrlHooked += onHook;
+                        return () =>
+                        {
+                            wv.OnMessageReceived -= onMsg;
+                            wv.OnError -= onErr;
+                            wv.OnHttpError -= onHttp;
+                            wv.OnPageStarted -= onStart;
+                            wv.OnPageLoaded -= onLoad;
+                            wv.OnUrlHooked -= onHook;
+                        };
+                    },
+                    Controls =
+                    {
+                        Query("Can Go Back", _ => SandboxOps.SyncVal(() => (object)sdk.WebView.CanGoBack())),
+                        Query("Can Go Forward", _ => SandboxOps.SyncVal(() => (object)sdk.WebView.CanGoForward())),
+                        Query("Go Back", _ => SandboxOps.Sync(() => sdk.WebView.GoBack())),
+                        Query("Go Forward", _ => SandboxOps.Sync(() => sdk.WebView.GoForward())),
+                        Param("Load URL", v => SandboxOps.Sync(() => sdk.WebView.LoadUrl(v[0])), F("url")),
+                        Param("Load HTML", v => SandboxOps.Sync(() => sdk.WebView.LoadHtml(v[0])), F("html")),
+                        Param("Evaluate JS", v => SandboxOps.Sync(() => sdk.WebView.EvaluateJS(v[0])), F("script")),
+                        Param("Set Visibility", v => SandboxOps.Sync(() => sdk.WebView.SetVisibility(SandboxParse.Bool(v[0]))), Fb("visible", "true")),
+                        Param("Set Margins", v => SandboxOps.Sync(() => sdk.WebView.SetMargins(SandboxParse.Int(v[0]), SandboxParse.Int(v[1]), SandboxParse.Int(v[2]), SandboxParse.Int(v[3]))), Fi("left", "0"), Fi("top", "0"), Fi("right", "0"), Fi("bottom", "0")),
+                        Param("Set URL Pattern", v => SandboxOps.Sync(() => sdk.WebView.SetUrlPattern(v[0], v[1], v[2])), F("allow"), F("deny"), F("hook")),
+                    }
+                },
             };
         }
 
