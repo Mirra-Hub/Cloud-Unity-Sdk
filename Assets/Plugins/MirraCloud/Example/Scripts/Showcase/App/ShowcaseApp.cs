@@ -132,6 +132,15 @@ namespace MirraCloud.Example.Showcase
                 case "economy":
                     view = new EconomyView(m, back, _sdk, _images);
                     break;
+                case "friends":
+                    view = new FriendsView(m, back, _sdk, _images);
+                    break;
+                case "assets":
+                    view = new AssetsStorageView(m, back, _sdk, _images);
+                    break;
+                case "chats":
+                    view = new ChatsView(m, back, _sdk, _images);
+                    break;
                 default:
                     view = new ComingSoonView(m, back);
                     break;

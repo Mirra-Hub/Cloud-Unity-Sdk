@@ -540,3 +540,10 @@
 }
 .sc-item__name { color: #D6D6DC; font-size: 12px; -unity-font-style: bold; margin-top: 7px; -unity-text-align: middle-center; white-space: normal; }
 .sc-item__sub { color: #6E6E77; font-size: 10px; margin-top: 1px; -unity-text-align: middle-center; }
+
+/* ===== M3: chats lookup bar ===== */
+.sc-chat-lookup { flex-direction: row; align-items: center; }
+.sc-chat-lookup__input { flex-grow: 1; flex-shrink: 1; margin-bottom: 0; }
+.sc-chat-lookup .sc-btn { margin-left: 8px; margin-bottom: 0; }
+.sc-chat-hint { color: #6E6E77; font-size: 12px; white-space: normal; margin-top: 10px; margin-bottom: 16px; }
+.sc-chat-topic { color: #C9C9CF; font-size: 13px; white-space: normal; margin-bottom: 10px; }
