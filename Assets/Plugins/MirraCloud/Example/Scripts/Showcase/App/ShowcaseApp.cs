@@ -118,8 +118,25 @@ namespace MirraCloud.Example.Showcase
 
         private void OpenModule(ServiceMeta m)
         {
-            // M1: no per-service IServiceView yet -> "coming soon". M2+ resolves a real view by m.Id.
-            _nav.Push(new ComingSoonView(m, () => _nav.Back()));
+            // Resolve a polished per-service view by id; modules without one yet fall back to "coming soon".
+            Action back = () => _nav.Back();
+            VisualElement view;
+            switch (m.Id)
+            {
+                case "playerAccount":
+                    view = new PlayerAccountView(m, back, _sdk, _images);
+                    break;
+                case "leaderboard":
+                    view = new LeaderboardView(m, back, _sdk, _images);
+                    break;
+                case "economy":
+                    view = new EconomyView(m, back, _sdk, _images);
+                    break;
+                default:
+                    view = new ComingSoonView(m, back);
+                    break;
+            }
+            _nav.Push(view);
         }
 
         private async void RunAuth<T>(string label, AsyncOperation<RestApiResult<T>> op)
