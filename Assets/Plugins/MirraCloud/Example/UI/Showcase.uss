@@ -547,3 +547,17 @@
 .sc-chat-lookup .sc-btn { margin-left: 8px; margin-bottom: 0; }
 .sc-chat-hint { color: #6E6E77; font-size: 12px; white-space: normal; margin-top: 10px; margin-bottom: 16px; }
 .sc-chat-topic { color: #C9C9CF; font-size: 13px; white-space: normal; margin-bottom: 10px; }
+
+/* ===== M4: daily-rewards day track ===== */
+.sc-day-track { flex-direction: row; flex-wrap: wrap; margin-top: 4px; }
+.sc-day-tile {
+    background-color: #15151A; border-radius: 12px;
+    border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px;
+    border-top-color: #26262C; border-right-color: #26262C; border-bottom-color: #26262C; border-left-color: #26262C;
+    padding-top: 10px; padding-right: 10px; padding-bottom: 10px; padding-left: 10px;
+    margin-right: 10px; margin-bottom: 10px; min-width: 92px; align-items: flex-start;
+}
+.sc-day-tile--current {
+    border-top-color: #7C5CFC; border-right-color: #7C5CFC; border-bottom-color: #7C5CFC; border-left-color: #7C5CFC;
+    background-color: rgba(124, 92, 252, 0.08);
+}

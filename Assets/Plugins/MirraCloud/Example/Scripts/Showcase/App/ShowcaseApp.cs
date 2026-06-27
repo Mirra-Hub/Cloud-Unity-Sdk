@@ -141,6 +141,18 @@ namespace MirraCloud.Example.Showcase
                 case "chats":
                     view = new ChatsView(m, back, _sdk, _images);
                     break;
+                case "tournaments":
+                    view = new TournamentsView(m, back, _sdk, _images);
+                    break;
+                case "challenges":
+                    view = new ChallengesView(m, back, _sdk, _images);
+                    break;
+                case "dailyRewards":
+                    view = new DailyRewardsView(m, back, _sdk, _images);
+                    break;
+                case "groups":
+                    view = new GroupsView(m, back, _sdk, _images);
+                    break;
                 default:
                     view = new ComingSoonView(m, back);
                     break;
