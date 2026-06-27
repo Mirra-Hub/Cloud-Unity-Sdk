@@ -14,5 +14,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Lobby.unity
     guid: 0286dd879f4ee464098827dc1188bdb0
+  - enabled: 1
+    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Showcase.unity
+    guid: 2f81bd00d880a43c88087f1eab60b89f
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: faac95116d4a9984da39fd1905f26080, type: 2}

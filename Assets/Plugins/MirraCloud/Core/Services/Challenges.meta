@@ -1,12 +1,8 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Plugins/MirraCloud/Core/Services/Groups/Dto/Request.meta
-guid: 38429c24f486fb64bb52794068b9e4a0
-========
 guid: e346560fa257c1849801fb4e82284dd2
->>>>>>>> 828b13eb8f386763cb0583f3cbf9fa30bdf00aeb:Assets/Plugins/MirraCloud/Core/Services/Challenges.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
-  userData: 
-  assetBundleName: 
-  assetBundleVariant: 
+  userData:
+  assetBundleName:
+  assetBundleVariant:
