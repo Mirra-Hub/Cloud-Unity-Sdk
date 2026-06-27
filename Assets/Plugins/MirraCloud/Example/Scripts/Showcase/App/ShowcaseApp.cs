@@ -171,6 +171,24 @@ namespace MirraCloud.Example.Showcase
                 case "purchases":
                     view = new PurchasesView(m, back, _sdk, _images);
                     break;
+                case "promoCodes":
+                    view = new PromoCodesView(m, back, _sdk, _images);
+                    break;
+                case "profanity":
+                    view = new ProfanityFilterView(m, back, _sdk, _images);
+                    break;
+                case "cloudCode":
+                    view = new CloudCodeView(m, back, _sdk, _images);
+                    break;
+                case "analytics":
+                    view = new AnalyticsView(m, back, _sdk, _images);
+                    break;
+                case "webview":
+                    view = new WebViewView(m, back, _sdk, _images);
+                    break;
+                case "deployment":
+                    view = new DeploymentView(m, back, _sdk, _images);
+                    break;
                 default:
                     view = new ComingSoonView(m, back);
                     break;
