@@ -153,6 +153,24 @@ namespace MirraCloud.Example.Showcase
                 case "groups":
                     view = new GroupsView(m, back, _sdk, _images);
                     break;
+                case "remoteConfig":
+                    view = new RemoteConfigView(m, back, _sdk, _images);
+                    break;
+                case "localization":
+                    view = new LocalizationView(m, back, _sdk, _images);
+                    break;
+                case "segments":
+                    view = new SegmentsView(m, back, _sdk, _images);
+                    break;
+                case "entities":
+                    view = new EntitiesView(m, back, _sdk, _images);
+                    break;
+                case "cloudSave":
+                    view = new CloudSaveView(m, back, _sdk, _images);
+                    break;
+                case "purchases":
+                    view = new PurchasesView(m, back, _sdk, _images);
+                    break;
                 default:
                     view = new ComingSoonView(m, back);
                     break;
