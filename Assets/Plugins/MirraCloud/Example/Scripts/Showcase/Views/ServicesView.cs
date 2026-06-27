@@ -14,34 +14,38 @@ namespace MirraCloud.Example.Showcase
 
     /// <summary>
     /// The post-login home: a profile header (avatar + nickname + @handle + logout) over a grid
-    /// of SDK module cards. Tapping a card raises <see cref="ModuleOpened"/>.
+    /// of SDK module cards. Tapping a card raises <see cref="ModuleOpened"/>. The header avatar is
+    /// a placeholder until <see cref="SetProfile"/> is called with the loaded account.
     /// </summary>
     public sealed class ServicesView : VisualElement
     {
         public event Action<ServiceMeta> ModuleOpened;
         public event Action LogoutRequested;
 
+        private readonly RemoteImageLoader _images;
+        private readonly Avatar _avatar;
+        private readonly Label _name;
+        private readonly Label _handle;
+
         public ServicesView(ProfileHeader profile, RemoteImageLoader images)
         {
+            _images = images;
             AddToClassList("sc-services");
 
             var bar = new VisualElement();
             bar.AddToClassList("sc-svc-topbar");
 
-            var avatar = new Avatar(40);
-            string nick = profile != null && !string.IsNullOrEmpty(profile.Nickname) ? profile.Nickname : "Player";
-            string user = profile != null && !string.IsNullOrEmpty(profile.Username) ? profile.Username : "guest";
-            avatar.BindUrl(images, profile != null ? profile.AvatarUrl : null, nick);
-            bar.Add(avatar);
+            _avatar = new Avatar(40);
+            bar.Add(_avatar);
 
             var texts = new VisualElement();
             texts.AddToClassList("sc-svc-topbar__texts");
-            var name = new Label(nick);
-            name.AddToClassList("sc-svc-topbar__name");
-            var handle = new Label("@" + user);
-            handle.AddToClassList("sc-svc-topbar__handle");
-            texts.Add(name);
-            texts.Add(handle);
+            _name = new Label();
+            _name.AddToClassList("sc-svc-topbar__name");
+            _handle = new Label();
+            _handle.AddToClassList("sc-svc-topbar__handle");
+            texts.Add(_name);
+            texts.Add(_handle);
             bar.Add(texts);
 
             var spacer = new VisualElement();
@@ -63,6 +67,18 @@ namespace MirraCloud.Example.Showcase
             }
             scroll.Add(grid);
             Add(scroll);
+
+            SetProfile(profile);
+        }
+
+        /// <summary>Update the header from the loaded account (avatar URL + nickname/@handle).</summary>
+        public void SetProfile(ProfileHeader profile)
+        {
+            string nick = profile != null && !string.IsNullOrEmpty(profile.Nickname) ? profile.Nickname : "Player";
+            string user = profile != null && !string.IsNullOrEmpty(profile.Username) ? profile.Username : "guest";
+            _name.text = nick;
+            _handle.text = "@" + user;
+            _avatar.BindUrl(_images, profile != null ? profile.AvatarUrl : null, nick);
         }
 
         private VisualElement BuildCard(ServiceMeta m)

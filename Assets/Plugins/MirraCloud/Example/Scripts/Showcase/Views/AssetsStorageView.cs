@@ -2,14 +2,15 @@ using System;
 using System.Collections.Generic;
 using MirraCloud.Core;
 using MirraCloud.Core.AssetsStorage;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace MirraCloud.Example.Showcase
 {
     /// <summary>
     /// Asset Storage detail: one structure load (LoadConfigAsync) rendered as a summary stat row,
-    /// a by-type chip breakdown, a folders list, and an assets table. No preview URLs exist on the
-    /// DTOs, so each asset's lead is a type-colored initials badge rather than a thumbnail.
+    /// a by-type chip breakdown, a folders list, and an asset card grid. Image-type assets show their
+    /// actual downloaded picture (LoadTextureFromId); other types show a type glyph.
     /// </summary>
     public sealed class AssetsStorageView : ServiceView
     {
@@ -106,7 +107,7 @@ namespace MirraCloud.Example.Showcase
                 root.Add(list);
             }
 
-            // assets table
+            // assets — card grid with image previews
             root.Add(new SectionHeader("Assets", assets.Count.ToString()));
             if (assets.Count == 0)
             {
@@ -114,25 +115,100 @@ namespace MirraCloud.Example.Showcase
             }
             else
             {
-                var cols = new[]
+                var grid = new VisualElement();
+                grid.AddToClassList("sc-asset-grid");
+                foreach (var a in assets)
                 {
-                    new DataColumn { Header = "", FixedWidth = true, Px = 44, Align = "center", Cell = o => new Avatar(30f).SetInitialsFor(((AssetDto)o).type.ToString()) },
-                    new DataColumn { Header = "NAME", Grow = 2f, Cell = o => Txt(((AssetDto)o).name) },
-                    new DataColumn { Header = "TYPE", Grow = 1f, Cell = o => new Chip(((AssetDto)o).type.ToString(), ToneFor(((AssetDto)o).type)) },
-                    new DataColumn { Header = "EXT", FixedWidth = true, Px = 64, Align = "center", Cell = o => Txt(((AssetDto)o).extension) },
-                    new DataColumn { Header = "SIZE", FixedWidth = true, Px = 92, Align = "right", Cell = o => Txt(FormatBytes(((AssetDto)o).size)) },
-                    new DataColumn { Header = "VER", FixedWidth = true, Px = 50, Align = "center", Cell = o => Txt("v" + ((AssetDto)o).version) },
-                    new DataColumn { Header = "UPDATED", FixedWidth = true, Px = 112, Align = "right", Cell = o => Txt(((AssetDto)o).updatedAt.ToLocalTime().ToString("yyyy-MM-dd")) },
-                };
-                root.Add(new DataTable(cols).Bind(assets));
+                    grid.Add(BuildAssetCard(a));
+                }
+                root.Add(grid);
             }
 
             return root;
         }
 
-        private static Label Txt(string s)
+        private VisualElement BuildAssetCard(AssetDto a)
         {
-            return new Label(string.IsNullOrEmpty(s) ? "—" : s);
+            var card = new VisualElement();
+            card.AddToClassList("sc-asset-card");
+
+            var preview = new VisualElement();
+            preview.AddToClassList("sc-asset-card__preview");
+
+            var glyph = new Label(GlyphFor(a.type));
+            glyph.AddToClassList("sc-asset-card__glyph");
+            glyph.style.color = AccentFor(a.type);
+            preview.Add(glyph);
+
+            var img = new Image { scaleMode = ScaleMode.ScaleToFit };
+            img.AddToClassList("sc-asset-card__img");
+            img.style.display = DisplayStyle.None;
+            preview.Add(img);
+
+            if (a.type == AssetType.Image && !string.IsNullOrEmpty(a.itemId))
+            {
+                LoadImage(a.itemId, img, glyph);
+            }
+            card.Add(preview);
+
+            var body = new VisualElement();
+            body.AddToClassList("sc-asset-card__body");
+            var name = new Label(string.IsNullOrEmpty(a.name) ? "—" : a.name);
+            name.AddToClassList("sc-asset-card__name");
+            body.Add(name);
+
+            var chips = new VisualElement();
+            chips.AddToClassList("sc-chip-row");
+            chips.style.marginTop = 6;
+            chips.Add(new Chip(a.type.ToString(), ToneFor(a.type)));
+            chips.Add(new Chip(FormatBytes(a.size), ChipTone.Neutral));
+            body.Add(chips);
+
+            card.Add(body);
+            return card;
+        }
+
+        private async void LoadImage(string id, Image img, Label glyph)
+        {
+            var op = Sdk.AssetsStorage.LoadTextureFromId(id);
+            if (op == null)
+            {
+                return;
+            }
+            await op.Task();
+            var r = op.Result;
+            if (r == null || !r.IsSuccess || r.Data == null)
+            {
+                return; // leave the glyph placeholder
+            }
+            img.image = r.Data;
+            img.style.display = DisplayStyle.Flex;
+            glyph.style.display = DisplayStyle.None;
+        }
+
+        private static string GlyphFor(AssetType t)
+        {
+            switch (t)
+            {
+                case AssetType.Image: return "IMG";
+                case AssetType.Audio: return "♪";
+                case AssetType.Video: return "▶";
+                case AssetType.Document: return "DOC";
+                case AssetType.Archive: return "ZIP";
+                default: return "?";
+            }
+        }
+
+        private static Color AccentFor(AssetType t)
+        {
+            switch (t)
+            {
+                case AssetType.Image: return new Color(0.35f, 0.71f, 0.94f);
+                case AssetType.Audio: return new Color(0.65f, 0.55f, 0.98f);
+                case AssetType.Video: return new Color(0.18f, 0.81f, 0.63f);
+                case AssetType.Archive: return new Color(0.91f, 0.61f, 0.24f);
+                default: return new Color(0.55f, 0.55f, 0.60f);
+            }
         }
 
         private static ChipTone ToneFor(AssetType t)

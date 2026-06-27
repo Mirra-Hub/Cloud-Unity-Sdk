@@ -561,3 +561,21 @@
     border-top-color: #7C5CFC; border-right-color: #7C5CFC; border-bottom-color: #7C5CFC; border-left-color: #7C5CFC;
     background-color: rgba(124, 92, 252, 0.08);
 }
+
+/* ===== assets storage: image card grid ===== */
+.sc-asset-grid { flex-direction: row; flex-wrap: wrap; }
+.sc-asset-card {
+    width: 168px; margin-right: 14px; margin-bottom: 14px;
+    background-color: #18181B; border-radius: 14px; overflow: hidden;
+    border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px;
+    border-top-color: #2A2A2F; border-right-color: #2A2A2F; border-bottom-color: #2A2A2F; border-left-color: #2A2A2F;
+}
+.sc-asset-card:hover { background-color: #1C1C20; }
+.sc-asset-card__preview {
+    height: 120px; background-color: #0E0E10;
+    align-items: center; justify-content: center; overflow: hidden;
+}
+.sc-asset-card__img { width: 100%; height: 100%; }
+.sc-asset-card__glyph { font-size: 22px; -unity-font-style: bold; }
+.sc-asset-card__body { padding-top: 10px; padding-right: 12px; padding-bottom: 12px; padding-left: 12px; }
+.sc-asset-card__name { color: #E6E6EA; font-size: 13px; -unity-font-style: bold; white-space: normal; }

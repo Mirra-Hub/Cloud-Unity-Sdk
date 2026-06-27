@@ -114,6 +114,23 @@ namespace MirraCloud.Example.Showcase
             services.ModuleOpened += OpenModule;
             services.LogoutRequested += () => RunAuthVoid("Logout", _sdk.Authentication.LogoutAsync());
             _nav.SetRoot(services);
+            LoadProfileHeader(services);
+        }
+
+        private async void LoadProfileHeader(ServicesView services)
+        {
+            var op = _sdk.PlayerAccount.GetAccountAsync();
+            if (op == null)
+            {
+                return;
+            }
+            await op.Task();
+            var r = op.Result;
+            if (r != null && r.IsSuccess && r.Data != null)
+            {
+                var a = r.Data;
+                services.SetProfile(new ProfileHeader { Nickname = a.Nickname, Username = a.Username, AvatarUrl = a.AvatarUrl });
+            }
         }
 
         private void OpenModule(ServiceMeta m)
