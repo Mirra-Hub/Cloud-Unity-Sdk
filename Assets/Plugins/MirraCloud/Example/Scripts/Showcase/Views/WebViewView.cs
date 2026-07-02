@@ -52,7 +52,7 @@ namespace MirraCloud.Example.Showcase
             bar.Add(open);
             card.Body.Add(bar);
 
-            var hint = new Label("Opens a native in-app webview overlay. Not available on WebGL / in the Editor.");
+            var hint = new Label("Opens a native in-app webview overlay. In the Editor with the Web build target it opens in your system browser instead.");
             hint.AddToClassList("sc-chat-hint");
             card.Body.Add(hint);
 
@@ -79,7 +79,7 @@ namespace MirraCloud.Example.Showcase
 
         private void Open()
         {
-            _readyChip.SetText(Sdk.WebView.IsReady ? "Bridge ready" : "Webview unavailable (WebGL/Editor)");
+            _readyChip.SetText(ReadyLabel());
             if (!Sdk.WebView.IsReady)
             {
                 Replace(_resultSlot, new Chip("Webview not ready on this platform", ChipTone.Bad));
@@ -100,10 +100,18 @@ namespace MirraCloud.Example.Showcase
             Replace(_resultSlot, row);
         }
 
-        private Chip ReadyChip()
+        private Chip ReadyChip() => new Chip(ReadyLabel(), ReadyTone());
+
+        private string ReadyLabel()
         {
-            bool ready = Sdk.WebView.IsReady;
-            return new Chip(ready ? "Bridge ready" : "Webview unavailable (WebGL/Editor)", ready ? ChipTone.Ok : ChipTone.Warn);
+            if (Sdk.WebView.IsBrowserFallback) return "Browser fallback (Editor + Web)";
+            return Sdk.WebView.IsReady ? "Bridge ready" : "Webview unavailable (WebGL/Editor)";
+        }
+
+        private ChipTone ReadyTone()
+        {
+            if (Sdk.WebView.IsBrowserFallback) return ChipTone.Info;
+            return Sdk.WebView.IsReady ? ChipTone.Ok : ChipTone.Warn;
         }
 
         private Button NavButton(string text, Action action)

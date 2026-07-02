@@ -9,14 +9,13 @@ namespace MirraCloud.Core.Auth.OpenId
             receiver = null;
             error = null;
 
-            if (options != null && options.UseInAppWebView)
-            {
-                if (webView == null || !webView.IsReady)
-                {
-                    error = "OpenId in-app WebView mode requires an initialized WebViewService.";
-                    return false;
-                }
+            var wantsWebView = options != null && options.UseInAppWebView;
 
+            // Use the embedded WebView only when it can actually intercept the redirect to the
+            // callback URL. In the Editor under the WebGL build target (and on WebGL in general)
+            // the WebView can't hook URLs, so we fall through to the platform default below.
+            if (wantsWebView && webView != null && webView.IsReady && webView.SupportsUrlHooking)
+            {
                 var callbackUrl = string.IsNullOrWhiteSpace(options.WebViewCallbackUrl)
                     ? OpenIdLoginOptions.DefaultWebViewCallbackUrl
                     : options.WebViewCallbackUrl;
@@ -26,6 +25,9 @@ namespace MirraCloud.Core.Auth.OpenId
             }
 
 #if UNITY_EDITOR || UNITY_STANDALONE
+            // Editor / desktop: open the auth page in the system browser and catch the redirect
+            // on a localhost loopback listener. This also covers the Editor-on-WebGL case where
+            // an in-app WebView was requested but isn't available.
             if (LoopbackOpenIdReceiver.TryCreate(options?.LoopbackPort ?? 0, out receiver, out error))
             {
                 return true;
@@ -33,6 +35,12 @@ namespace MirraCloud.Core.Auth.OpenId
 
             return false;
 #elif UNITY_ANDROID || UNITY_IOS
+            if (wantsWebView)
+            {
+                error = "OpenId in-app WebView mode requires an initialized WebViewService.";
+                return false;
+            }
+
             var deepLinkUrl = options?.MobileDeepLinkUrl;
             if (string.IsNullOrWhiteSpace(deepLinkUrl))
             {
@@ -43,7 +51,9 @@ namespace MirraCloud.Core.Auth.OpenId
             receiver = new DeepLinkOpenIdReceiver(deepLinkUrl);
             return true;
 #else
-            error = "OpenId login receiver is not supported on this platform yet.";
+            error = wantsWebView
+                ? "OpenId in-app WebView is not available on this platform."
+                : "OpenId login receiver is not supported on this platform yet.";
             return false;
 #endif
         }

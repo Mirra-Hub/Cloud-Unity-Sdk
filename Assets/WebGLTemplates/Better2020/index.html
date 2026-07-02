@@ -7,6 +7,9 @@
     <title>{{{ PRODUCT_NAME }}}</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <!-- gree/unity-webview WebGL support: defines the global `unityWebView` object used by the jslib plugin -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="unity-webview.js"></script>
   </head>
   <body class="{{{ SPLASH_SCREEN_STYLE.toLowerCase() }}}">
     <div id="unity-container" class="unity-desktop">
@@ -82,6 +85,8 @@
           progressBarEmpty.style.display = "";
           progressBarFull.style.width = `${100 * progress}%`;
         }).then((unityInstance) => {
+          // gree/unity-webview reads the global `unityInstance` to call SendMessage back into Unity
+          window.unityInstance = unityInstance;
           loadingCover.style.display = "none";
           if (canFullscreen) {
             if (!hideFullScreenButton) {

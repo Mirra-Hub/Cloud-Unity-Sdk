@@ -21,6 +21,19 @@ namespace MirraCloud.Core.WebView
 
         public bool IsReady => _bridge != null && _bridge.IsReady;
 
+        /// <summary>
+        /// Whether the active WebView can intercept ("hook") redirect URLs. The OpenID and
+        /// Purchases flows rely on this to detect their callback URL. False under the system-browser
+        /// fallback (Editor + WebGL target) and on WebGL builds.
+        /// </summary>
+        public bool SupportsUrlHooking => _bridge != null && _bridge.SupportsUrlHooking;
+
+        /// <summary>
+        /// True when there is no embedded WebView and <see cref="LoadUrl"/> opens the URL in the
+        /// system browser instead — the Editor running with the WebGL build target.
+        /// </summary>
+        public bool IsBrowserFallback => _bridge != null && _bridge.IsBrowserFallback;
+
         public void CloudSdkInitialize()
         {
             _bridge = WebViewBridge.CreateInstance();
@@ -53,19 +66,19 @@ namespace MirraCloud.Core.WebView
         public void LoadUrl(string url)
         {
             if (!IsReady) return;
-            _bridge.Raw.LoadURL(url);
+            _bridge.LoadUrl(url);
         }
 
         public void LoadHtml(string html, string baseUrl = null)
         {
             if (!IsReady) return;
-            _bridge.Raw.LoadHTML(html, baseUrl);
+            _bridge.LoadHtml(html, baseUrl);
         }
 
         public void SetUrlPattern(string allowPattern, string denyPattern, string hookPattern)
         {
             if (!IsReady) return;
-            _bridge.Raw.SetURLPattern(allowPattern, denyPattern, hookPattern);
+            _bridge.SetUrlPattern(allowPattern, denyPattern, hookPattern);
         }
 
         internal void RegisterCallbackHandler(string urlKey, IWebViewCallbackHandler handler)
@@ -92,43 +105,43 @@ namespace MirraCloud.Core.WebView
         public void EvaluateJS(string script)
         {
             if (!IsReady) return;
-            _bridge.Raw.EvaluateJS(script);
+            _bridge.EvaluateJS(script);
         }
 
         public void SetVisibility(bool visible)
         {
             if (!IsReady) return;
-            _bridge.Raw.SetVisibility(visible);
+            _bridge.SetVisibility(visible);
         }
 
         public void SetMargins(int left, int top, int right, int bottom)
         {
             if (!IsReady) return;
-            _bridge.Raw.SetMargins(left, top, right, bottom);
+            _bridge.SetMargins(left, top, right, bottom);
         }
 
         public void GoBack()
         {
             if (!IsReady) return;
-            _bridge.Raw.GoBack();
+            _bridge.GoBack();
         }
 
         public void GoForward()
         {
             if (!IsReady) return;
-            _bridge.Raw.GoForward();
+            _bridge.GoForward();
         }
 
         public bool CanGoBack()
         {
             if (!IsReady) return false;
-            return _bridge.Raw.CanGoBack();
+            return _bridge.CanGoBack();
         }
 
         public bool CanGoForward()
         {
             if (!IsReady) return false;
-            return _bridge.Raw.CanGoForward();
+            return _bridge.CanGoForward();
         }
 
         private void HandleMessageReceived(string msg) => OnMessageReceived?.Invoke(msg);

@@ -119,9 +119,12 @@ namespace MirraCloud.Core.Purchases
             var pollTimeout = options.StatusPollTimeout;
             var pollInterval = options.StatusPollInterval;
 
-            if (!_webView.IsReady)
+            if (!_webView.IsReady || !_webView.SupportsUrlHooking)
             {
-                return FailSync(op, "WebView is not ready.");
+                // The checkout flow waits for the payment provider to redirect to the success/cancel
+                // URL, which needs the WebView to intercept URLs. That isn't available on WebGL or in
+                // the Editor under the WebGL build target.
+                return FailSync(op, "WebView checkout isn't available on this platform.");
             }
 
             var receiver = new WebViewPurchaseReceiver(_webView, successUrl, cancelUrl);
