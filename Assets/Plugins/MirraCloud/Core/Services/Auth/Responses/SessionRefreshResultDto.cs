@@ -8,6 +8,8 @@ namespace MirraCloud.Core.Auth
     {
         [JsonNameCamel] public string AccountId;
         [JsonNameCamel] public string ProjectId;
+        /// <summary>Freshly minted access token (JWT) the server issues on refresh — must replace the expired one.</summary>
+        [JsonNameCamel] public string Token;
         [JsonNameCamel] public SessionInfoDto Session;
     }
 }

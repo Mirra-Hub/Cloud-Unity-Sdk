@@ -481,7 +481,15 @@ namespace MirraCloud.Core.Auth
                     return;
                 }
 
+                // The refresh response carries a fresh access token; without adopting it the
+                // interceptor would keep sending the expired one and every authed call would 401.
+                if (!string.IsNullOrEmpty(completed.Result.Data.Token))
+                {
+                    _authToken = completed.Result.Data.Token;
+                }
+
                 ApplySession(completed.Result.Data.Session);
+                IsAuth = true;
                 SaveSessionToStorage();
                 OnSessionRefreshed?.Invoke();
                 resultOp.Complete(RestApiResult.Success());
@@ -514,6 +522,19 @@ namespace MirraCloud.Core.Auth
                 OnSessionExpired?.Invoke();
             });
             return op;
+        }
+
+        /// <summary>
+        /// Drops the session locally — clears in-memory auth state (token, session id, refresh
+        /// token) and removes the persisted session keys — without contacting the server. Fires
+        /// <see cref="OnSessionExpired"/> so listeners can return to the auth flow. Use this to
+        /// sign out offline or to discard a stored session that can no longer be restored; for a
+        /// server-side session revoke use <see cref="LogoutAsync"/> / <see cref="LogoutAllAsync"/>.
+        /// </summary>
+        public void ClearLocalSession()
+        {
+            ClearSessionAndStorage();
+            OnSessionExpired?.Invoke();
         }
 
         #endregion

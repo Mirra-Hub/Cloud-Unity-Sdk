@@ -1,5 +1,6 @@
 using System;
 using MirraCloud.Core;
+using MirraCloud.Core.Auth;
 using MirraCloud.Core.Auth.OpenId;
 using Plugins.MirraCloud.Core.General.AsyncOperations;
 using UnityEngine;
@@ -23,6 +24,15 @@ namespace MirraCloud.Example.Showcase
         private Nav _nav;
         private Popup _popup;
         private Toasts _toasts;
+
+        // True once we've navigated to the services screen. Guards against re-navigating when
+        // Authentication.OnLogin fires again (a successful account link reuses the same
+        // auth-complete path and re-raises OnLogin).
+        private bool _authed;
+
+        // Set when the player links an account or dismisses the link prompt. Keeps us from
+        // re-offering linking for the rest of this app run (per-session, not persisted).
+        private bool _linkPromptDismissed;
 
         public ShowcaseApp(IMirraCloudSdk sdk, UIDocument document, RemoteImageLoader images, ShowcaseOptions options)
         {
@@ -64,6 +74,40 @@ namespace MirraCloud.Example.Showcase
 
             if (_devForceServices || _sdk.Authentication.IsAuth)
             {
+                _authed = true;
+                ShowServices();
+            }
+            else
+            {
+                RestoreSessionThenRoute();
+            }
+        }
+
+        // Before showing the auth screen, try to restore a previous session from the stored
+        // refresh token (AuthenticationService.InitializeAsync). If it succeeds we go straight to
+        // the services screen; otherwise (no token, or the token no longer works) we fall back to
+        // the auth screen. A successful restore does NOT raise OnLogin, so the link prompt — which
+        // is only for fresh logins — is intentionally skipped here.
+        private async void RestoreSessionThenRoute()
+        {
+            ShowSplash();
+
+            var op = _sdk.Authentication.InitializeAsync();
+            if (op != null)
+            {
+                try
+                {
+                    await op.Task();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[Showcase] session restore failed: " + e.Message);
+                }
+            }
+
+            if (_sdk.Authentication.IsAuth)
+            {
+                _authed = true;
                 ShowServices();
             }
             else
@@ -74,12 +118,44 @@ namespace MirraCloud.Example.Showcase
 
         private void OnLoggedIn()
         {
+            if (_authed)
+            {
+                // OnLogin also fires after a successful account link (shared auth-complete path).
+                // We're already on the services screen and the link flow handles its own UI, so
+                // don't re-navigate or re-open the link prompt.
+                return;
+            }
+
+            _authed = true;
             _popup?.Close();
             ShowServices();
+            MaybeShowLinkPrompt();
+        }
+
+        private void ShowSplash()
+        {
+            var splash = new VisualElement();
+            splash.AddToClassList("sc-auth");
+
+            var inner = new VisualElement();
+            inner.AddToClassList("sc-auth__inner");
+
+            var brand = new Label("MirraCloud");
+            brand.AddToClassList("sc-auth__brand");
+            inner.Add(brand);
+
+            var sub = new Label("Restoring your session…");
+            sub.AddToClassList("sc-auth__subtitle");
+            inner.Add(sub);
+
+            splash.Add(inner);
+            _nav.SetRoot(splash);
         }
 
         private void ShowAuth()
         {
+            _authed = false;
+
             string project = "", branch = "", platform = "";
             try
             {
@@ -231,7 +307,9 @@ namespace MirraCloud.Example.Showcase
 
             if (_sdk.Authentication.IsAuth)
             {
-                _popup?.Close();
+                // Popup lifecycle is owned by OnLoggedIn: it runs synchronously during OnLogin
+                // (fired inside op.Complete, before this await resumes), closing the login form and
+                // then opening the link prompt. Closing here would tear that fresh prompt back down.
                 _toasts.Ok(label + " · signed in");
                 // navigation handled by Authentication.OnLogin
             }
@@ -256,6 +334,66 @@ namespace MirraCloud.Example.Showcase
             else
             {
                 _toasts.Fail(label + " failed");
+            }
+        }
+
+        // Offer to link a durable sign-in method right after a fresh login. Skipped once the player
+        // links something or dismisses it (per app run). Only credential/device linking is offered —
+        // see LinkPromptView for why social providers aren't.
+        private void MaybeShowLinkPrompt()
+        {
+            if (_linkPromptDismissed || _popup == null)
+            {
+                return;
+            }
+
+            var view = new LinkPromptView(ShowcaseAuthConfig.OpenIdProviders.Length > 0);
+            view.EmailLinkRequested += (email, pass) => RunLink("Email", _sdk.Authentication.LinkEmailAsync(email, pass));
+            view.UsernameLinkRequested += (user, pass) => RunLink("Username", _sdk.Authentication.LinkUsernameAsync(user, pass));
+            view.DeviceLinkRequested += () => RunLink("Device", _sdk.Authentication.LinkDeviceAsync(SystemInfo.deviceUniqueIdentifier));
+            view.SkipRequested += () =>
+            {
+                _linkPromptDismissed = true;
+                _popup.Close();
+            };
+
+            _popup.Open(view, "Link your account", onClose: () => _linkPromptDismissed = true);
+        }
+
+        private async void RunLink(string label, AsyncOperation<RestApiResult<GetAuthDataDto>> op)
+        {
+            if (op == null)
+            {
+                return;
+            }
+            try
+            {
+                await op.Task();
+            }
+            catch (Exception e)
+            {
+                _toasts.Fail(label + " · " + e.Message);
+                return;
+            }
+
+            var r = op.Result;
+            if (r != null && r.IsSuccess && r.Data != null && r.Data.Status == AuthResultStatus.Conflict)
+            {
+                // The provider is already attached to a different account — linking would need a
+                // conflict resolution the showcase doesn't build a UI for.
+                _toasts.Fail(label + " · already linked to another account");
+                return;
+            }
+
+            if (r != null && r.IsSuccess)
+            {
+                _linkPromptDismissed = true;
+                _popup?.Close();
+                _toasts.Ok(label + " · linked");
+            }
+            else
+            {
+                _toasts.Fail(label + " · " + ErrText(r));
             }
         }
 
