@@ -6,16 +6,16 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Bootstrap.unity
-    guid: 9eaf8c4731fc1d14b9cf45af80e00cfa
-  - enabled: 1
-    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Login.unity
-    guid: 17278f2282a4d734f84d2f3772ae8830
-  - enabled: 1
-    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Lobby.unity
-    guid: 0286dd879f4ee464098827dc1188bdb0
-  - enabled: 1
     path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Showcase.unity
     guid: 2f81bd00d880a43c88087f1eab60b89f
+  - enabled: 0
+    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Bootstrap.unity
+    guid: 9eaf8c4731fc1d14b9cf45af80e00cfa
+  - enabled: 0
+    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Login.unity
+    guid: 17278f2282a4d734f84d2f3772ae8830
+  - enabled: 0
+    path: Assets/Plugins/MirraCloud/Example/Scenes/MC_Example_Lobby.unity
+    guid: 0286dd879f4ee464098827dc1188bdb0
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: faac95116d4a9984da39fd1905f26080, type: 2}
